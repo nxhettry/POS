@@ -10,12 +10,15 @@ class PointOfSaleScreen extends StatelessWidget {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(color: Colors.grey[100]),
-        child: Row(
-          children: [
-            Expanded(flex: 2, child: const ItemsView()),
-            const SizedBox(width: 16),
-            Expanded(flex: 1, child: const BillSection()),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Expanded(flex: 2, child: const ItemsView()),
+              const SizedBox(width: 16),
+              Expanded(flex: 1, child: const BillSection()),
+            ],
+          ),
         ),
       ),
     );

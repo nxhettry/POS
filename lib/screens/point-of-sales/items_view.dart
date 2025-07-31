@@ -22,13 +22,15 @@ class _ItemsViewState extends State<ItemsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey[100],
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white
+              ),
               child: TextField(
                 controller: searchController,
                 decoration: InputDecoration(
@@ -56,44 +58,55 @@ class _ItemsViewState extends State<ItemsView> {
                 },
               ),
             ),
-            SizedBox(
-              height: 50,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: CATEGORIES.length + 1,
-                itemBuilder: (context, index) {
-                  final category = index == 0
-                      ? {'id': 0, 'category_name': 'All'}
-                      : CATEGORIES[index - 1];
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        selectedCategory = category['id'];
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      margin: const EdgeInsets.only(right: 10),
-                      decoration: BoxDecoration(
-                        color: selectedCategory == category['id']
-                            ? Colors.red.withOpacity(0.1)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Center(
-                        child: Text(
-                          category['category_name'],
-                          style: TextStyle(
+            const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 8.0, bottom: 8.0),
+                child: SizedBox(
+                  
+                  height: 50,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: CATEGORIES.length + 1,
+                    itemBuilder: (context, index) {
+                      final category = index == 0
+                          ? {'id': 0, 'category_name': 'All'}
+                          : CATEGORIES[index - 1];
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedCategory = category['id'];
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          margin: const EdgeInsets.only(right: 10),
+                          decoration: BoxDecoration(
                             color: selectedCategory == category['id']
-                                ? Colors.red
-                                : Colors.black,
-                            fontWeight: FontWeight.bold,
+                                ? Colors.red.withOpacity(0.1)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Center(
+                            child: Text(
+                              category['category_name'],
+                              style: TextStyle(
+                                color: selectedCategory == category['id']
+                                    ? Colors.red
+                                    : Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  );
-                },
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -170,6 +183,7 @@ class Items extends StatelessWidget {
         final item = filteredItems[index];
 
         return Card(
+          color: Colors.white,
           elevation: 5,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -180,10 +194,19 @@ class Items extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                Image.asset(
-                  "assets/images/rato_khata.png",
-                  
-                  fit: BoxFit.cover,
+                Container(
+                  height: 160,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.grey[100],
+                  ),
+                  child: Image.asset(
+                    item['image'],
+                    height: 160,
+                    width: 160,
+                    fit: BoxFit.fill,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Column(
@@ -191,8 +214,9 @@ class Items extends StatelessWidget {
                     Text(
                       item['item_name'],
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
+                        fontFamily: "Roboto",
                       ),
                       textAlign: TextAlign.center,
                     ),
