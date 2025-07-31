@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 import "./screens/activity_screen.dart";
-import "./screens/point_of_sales_screen.dart";
+import "screens/point-of-sales/point_of_sales_screen.dart";
 import "./screens/reports_screen.dart";
 import "./screens/settings_screen.dart";
 
