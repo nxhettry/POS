@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import '../models.dart';
-import 'dart:developer' as developer;
 
 class CartManager extends ChangeNotifier {
   static final CartManager _instance = CartManager._internal();
@@ -19,33 +18,17 @@ class CartManager extends ChangeNotifier {
       _cartItems.fold(0, (sum, item) => sum + item.totalPrice);
 
   void addItem(Map<String, dynamic> item, int quantity) {
-    developer.log(
-      'Adding item to cart: ${item['item_name']} x$quantity',
-      name: 'CartManager',
-    );
-
     final existingIndex = _cartItems.indexWhere(
       (cartItem) => cartItem.item['id'] == item['id'],
     );
 
     if (existingIndex >= 0) {
       _cartItems[existingIndex].quantity += quantity;
-      developer.log(
-        'Updated existing item quantity to: ${_cartItems[existingIndex].quantity}',
-        name: 'CartManager',
-      );
     } else {
       _cartItems.add(CartItem(item: item, quantity: quantity));
-      developer.log('Added new item to cart', name: 'CartManager');
     }
 
-    developer.log(
-      'Total cart items: ${_cartItems.length}',
-      name: 'CartManager',
-    );
-    developer.log('Notifying listeners...', name: 'CartManager');
     notifyListeners();
-    developer.log('Listeners notified', name: 'CartManager');
   }
 
   void updateItemQuantity(int itemId, int newQuantity) {
