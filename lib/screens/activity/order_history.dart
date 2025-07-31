@@ -174,7 +174,6 @@ class _OrderHistoryState extends State<OrderHistory> {
       ),
       child: Column(
         children: [
-          // Header
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -257,7 +256,6 @@ class _OrderHistoryState extends State<OrderHistory> {
               ],
             ),
           ),
-          // Items
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -266,7 +264,6 @@ class _OrderHistoryState extends State<OrderHistory> {
                 const SizedBox(height: 16),
                 Container(height: 1, color: Colors.grey[200]),
                 const SizedBox(height: 16),
-                // Summary
                 _buildSummaryRow(
                   "Subtotal",
                   "₹${sale.subtotal.toStringAsFixed(2)}",

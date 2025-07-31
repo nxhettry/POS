@@ -3,8 +3,8 @@ import 'package:intl/intl.dart';
 import 'dart:async';
 import "./screens/activity/activity_screen.dart";
 import "screens/point-of-sales/point_of_sales_screen.dart";
-import "./screens/reports_screen.dart";
-import "./screens/settings_screen.dart";
+import "screens/reports/reports_screen.dart";
+import "screens/settings/settings_screen.dart";
 
 void main() {
   runApp(const MyApp());
