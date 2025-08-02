@@ -1,7 +1,7 @@
 import "package:flutter/material.dart";
-import "../../data/table.dart";
+import "package:pos/services/database_service.dart";
 import "../../data/cart_manager.dart";
-import "../../models/models.dart";
+import "../../models/models.dart" as models;
 import 'dart:developer' as developer;
 
 class BillSection extends StatefulWidget {
@@ -19,12 +19,26 @@ class _BillSectionState extends State<BillSection> {
   bool isDiscountPercentage = true;
   late final CartManager cartManager;
   final TextEditingController discountController = TextEditingController();
+  List<models.Table> availableTables = [];
+  final DatabaseService _dbService = DatabaseService();
 
   @override
   void initState() {
     super.initState();
     cartManager = CartManager();
     cartManager.addListener(_onCartChanged);
+    _loadTables();
+  }
+
+  Future<void> _loadTables() async {
+    try {
+      final tables = await _dbService.getTables();
+      setState(() {
+        availableTables = tables;
+      });
+    } catch (e) {
+      developer.log('Error loading tables: $e', name: 'BillSection');
+    }
   }
 
   @override
@@ -57,7 +71,7 @@ class _BillSectionState extends State<BillSection> {
   double get total =>
       cartManager.calculateTotal(taxRate, discountValue, isDiscountPercentage);
 
-  void _placeOrder() {
+  Future<void> _placeOrder() async {
     if (cartManager.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -82,6 +96,32 @@ class _BillSectionState extends State<BillSection> {
     // Log order data to console
     developer.log('Order placed successfully!', name: 'POS');
     developer.log('Order Data: ${orderData.toString()}', name: 'POS');
+
+    // Db operation to save order
+    try {
+      // Get the next invoice number from database
+      final invoiceNo = await DatabaseService().getNextInvoiceNumber();
+      developer.log('Generated invoice number: $invoiceNo', name: 'POS');
+      
+      // Update the order data with the proper invoice number
+      orderData['invoiceNo'] = invoiceNo;
+      
+      final sale = models.Sales.fromMap(orderData);
+      developer.log('Sales object created: ${sale.invoiceNo}', name: 'POS');
+      
+      final saleId = await DatabaseService().saveSale(sale);
+      developer.log('Sale saved with ID: $saleId', name: 'POS');
+    } catch (e) {
+      developer.log('Error saving sale: $e', name: 'POS');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error saving order: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+      return; // Don't clear cart if save failed
+    }
 
     // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
@@ -165,12 +205,14 @@ class _BillSectionState extends State<BillSection> {
                       DropdownMenuItem<String>(
                         value: null,
                         child: Text(
-                          "Select a Table",
+                          availableTables.isEmpty 
+                            ? "Loading tables..." 
+                            : "Select a Table",
                           style: TextStyle(color: Colors.grey),
                         ),
                       ),
-                      for (var table in tables)
-                        DropdownMenuItem(
+                      for (var table in availableTables)
+                        DropdownMenuItem<String>(
                           value: table.name,
                           child: Text(table.name),
                         ),
@@ -515,7 +557,7 @@ class _BillSectionState extends State<BillSection> {
     );
   }
 
-  Widget buildItemRow(CartItem cartItem) {
+  Widget buildItemRow(models.CartItem cartItem) {
     final item = cartItem.item;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),

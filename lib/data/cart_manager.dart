@@ -90,7 +90,7 @@ class CartManager extends ChangeNotifier {
     final total = calculateTotal(taxRate, discountValue, isDiscountPercentage);
 
     return {
-      'invoiceNo': '#${DateTime.now().millisecondsSinceEpoch}',
+      'invoiceNo': 'TEMP', // This will be replaced with auto-generated invoice number
       'table': selectedTable ?? 'No Table',
       'orderType': orderType ?? 'Dine In',
       'items': _cartItems.map((item) => item.toJson()).toList(),

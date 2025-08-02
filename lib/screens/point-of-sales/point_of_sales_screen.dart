@@ -3,7 +3,7 @@ import 'package:pos/screens/point-of-sales/bill_section.dart';
 import 'package:pos/screens/point-of-sales/items_view.dart';
 
 class PointOfSaleScreen extends StatelessWidget {
-  const PointOfSaleScreen({Key? key}) : super(key: key);
+  const PointOfSaleScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

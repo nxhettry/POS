@@ -1,30 +1,31 @@
-
 class Category {
-  final int id;
+  final int? id;
   final String name;
 
-  Category({required this.id, required this.name});
+  Category({this.id, required this.name});
 }
 
 class Item {
-  final int id;
+  final int? id;
   final int categoryId;
   final String itemName;
   final double rate;
+  final String? image;
 
   Item({
-    required this.id,
+    this.id,
     required this.categoryId,
     required this.itemName,
     required this.rate,
+    this.image,
   });
 }
 
 class Table {
-  final int id;
+  final int? id;
   final String name;
 
-  Table({required this.id, required this.name});
+  Table({this.id, required this.name});
 }
 
 class CartItem {
@@ -107,6 +108,30 @@ class Sales {
       isDiscountPercentage: json['isDiscountPercentage'] as bool,
       total: (json['total'] as num).toDouble(),
       timestamp: DateTime.parse(json['timestamp'] as String),
+    );
+  }
+
+  static Sales fromMap(Map<String, dynamic> map) {
+    return Sales(
+      invoiceNo: map['invoiceNo'] as String,
+      table: map['table'] as String,
+      orderType: map['orderType'] as String,
+      items: (map['items'] as List)
+          .map(
+            (item) => CartItem(
+              item: item['item'] as Map<String, dynamic>,
+              quantity: item['quantity'] as int,
+            ),
+          )
+          .toList(),
+      subtotal: (map['subtotal'] as num).toDouble(),
+      tax: (map['tax'] as num).toDouble(),
+      taxRate: (map['taxRate'] as num).toDouble(),
+      discount: (map['discount'] as num).toDouble(),
+      discountValue: (map['discountValue'] as num).toDouble(),
+      isDiscountPercentage: map['isDiscountPercentage'] as bool,
+      total: (map['total'] as num).toDouble(),
+      timestamp: DateTime.parse(map['timestamp'] as String),
     );
   }
 }

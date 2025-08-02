@@ -1,7 +1,7 @@
 import "package:flutter/material.dart";
 import "package:intl/intl.dart";
-import "../../data/sales.dart";
 import "../../models/models.dart";
+import "../../services/database_helper.dart";
 
 class OrderHistory extends StatefulWidget {
   const OrderHistory({super.key});
@@ -13,121 +13,164 @@ class OrderHistory extends StatefulWidget {
 class _OrderHistoryState extends State<OrderHistory> {
   String selectedFilter = "All";
   final List<String> filterOptions = ["All", "Dine In", "Takeaway", "Delivery"];
+  List<Sales> _allSales = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSales();
+  }
+
+  Future<void> _loadSales() async {
+    try {
+      final dbHelper = DatabaseHelper();
+      final sales = await dbHelper.getSales();
+      setState(() {
+        _allSales = sales;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading sales: $e');
+      setState(() {
+        _allSales = [];
+        _isLoading = false;
+      });
+    }
+  }
 
   List<Sales> get filteredSales {
     if (selectedFilter == "All") {
-      return salesData;
+      return _allSales;
     }
-    return salesData.where((sale) => sale.orderType == selectedFilter).toList();
+    return _allSales.where((sale) => sale.orderType == selectedFilter).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      body: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  spreadRadius: 1,
-                  blurRadius: 3,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      "Order History",
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        "${filteredSales.length} Orders",
+      body: RefreshIndicator(
+        onRefresh: _loadSales,
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 3,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Order History",
                         style: TextStyle(
-                          color: Colors.blue[700],
-                          fontWeight: FontWeight.w600,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
                         ),
                       ),
+                      Row(
+                        children: [
+                          if (_isLoading)
+                            Container(
+                              margin: const EdgeInsets.only(right: 12),
+                              width: 20,
+                              height: 20,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              "${filteredSales.length} Orders",
+                              style: TextStyle(
+                                color: Colors.blue[700],
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    height: 40,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: filterOptions.length,
+                      itemBuilder: (context, index) {
+                        final option = filterOptions[index];
+                        final isSelected = selectedFilter == option;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: FilterChip(
+                            label: Text(option),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              setState(() {
+                                selectedFilter = option;
+                              });
+                            },
+                            backgroundColor: Colors.white,
+                            selectedColor: Colors.blue[100],
+                            labelStyle: TextStyle(
+                              color: isSelected
+                                  ? Colors.blue[700]
+                                  : Colors.grey[600],
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                            side: BorderSide(
+                              color: isSelected
+                                  ? Colors.blue[300]!
+                                  : Colors.grey[300]!,
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  height: 40,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: filterOptions.length,
-                    itemBuilder: (context, index) {
-                      final option = filterOptions[index];
-                      final isSelected = selectedFilter == option;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: FilterChip(
-                          label: Text(option),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            setState(() {
-                              selectedFilter = option;
-                            });
-                          },
-                          backgroundColor: Colors.white,
-                          selectedColor: Colors.blue[100],
-                          labelStyle: TextStyle(
-                            color: isSelected
-                                ? Colors.blue[700]
-                                : Colors.grey[600],
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                          ),
-                          side: BorderSide(
-                            color: isSelected
-                                ? Colors.blue[300]!
-                                : Colors.grey[300]!,
-                          ),
-                        ),
-                      );
-                    },
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: filteredSales.isEmpty
-                ? _buildEmptyState()
-                : ListView.builder(
-                    padding: const EdgeInsets.all(20),
-                    itemCount: filteredSales.length,
-                    itemBuilder: (context, index) {
-                      final sale = filteredSales[index];
-                      return _buildOrderCard(sale);
-                    },
-                  ),
-          ),
-        ],
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : filteredSales.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(20),
+                          itemCount: filteredSales.length,
+                          itemBuilder: (context, index) {
+                            final sale = filteredSales[index];
+                            return _buildOrderCard(sale);
+                          },
+                        ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -140,7 +183,7 @@ class _OrderHistoryState extends State<OrderHistory> {
           Icon(Icons.receipt_long_outlined, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
-            "No orders found",
+            _isLoading ? "Loading orders..." : "No orders found",
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -149,9 +192,28 @@ class _OrderHistoryState extends State<OrderHistory> {
           ),
           const SizedBox(height: 8),
           Text(
-            "Orders will appear here once they are placed",
+            _isLoading 
+                ? "Please wait while we fetch your order history"
+                : selectedFilter == "All"
+                    ? "No orders have been placed yet"
+                    : "No $selectedFilter orders found",
             style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+            textAlign: TextAlign.center,
           ),
+          if (!_isLoading && _allSales.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: ElevatedButton.icon(
+                onPressed: _loadSales,
+                icon: const Icon(Icons.refresh),
+                label: const Text("Refresh"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue[50],
+                  foregroundColor: Colors.blue[700],
+                  elevation: 0,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -275,7 +337,7 @@ class _OrderHistoryState extends State<OrderHistory> {
                     color: Colors.orange,
                   ),
                 _buildSummaryRow(
-                  "Tax (${sale.taxRate}%)",
+                  "Tax (${sale.taxRate*100}%)",
                   "₹${sale.tax.toStringAsFixed(2)}",
                 ),
                 const SizedBox(height: 8),
@@ -295,6 +357,9 @@ class _OrderHistoryState extends State<OrderHistory> {
   }
 
   Widget _buildItemRow(CartItem cartItem) {
+    // Get image path, handling null or missing values
+    final String? imagePath = cartItem.item['image'] as String?;
+    
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -308,13 +373,15 @@ class _OrderHistoryState extends State<OrderHistory> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                cartItem.item['image'],
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Icon(Icons.fastfood, color: Colors.grey[400]);
-                },
-              ),
+              child: imagePath != null && imagePath.isNotEmpty
+                  ? Image.asset(
+                      imagePath,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Icon(Icons.fastfood, color: Colors.grey[400]);
+                      },
+                    )
+                  : Icon(Icons.fastfood, color: Colors.grey[400]),
             ),
           ),
           const SizedBox(width: 12),

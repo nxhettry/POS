@@ -6,8 +6,14 @@ import "screens/point-of-sales/point_of_sales_screen.dart";
 import "screens/reports/reports_screen.dart";
 import "screens/settings/settings_screen.dart";
 import 'widgets/drawer_list_item.dart';
+import 'services/database_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize the database
+  await DatabaseService().initializeDatabase();
+  
   runApp(const MyApp());
 }
 

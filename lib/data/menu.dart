@@ -401,7 +401,6 @@ List<Category> getCategories() {
   return CATEGORIES
       .map(
         (categoryMap) => Category(
-          id: categoryMap['id'] as int,
           name: categoryMap['category_name'] as String,
         ),
       )
@@ -412,7 +411,6 @@ List<Item> getItems() {
   return ITEMS
       .map(
         (itemMap) => Item(
-          id: itemMap['id'] as int,
           categoryId: itemMap['category_id'] as int,
           itemName: itemMap['item_name'] as String,
           rate: (itemMap['rate'] as num).toDouble(),

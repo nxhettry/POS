@@ -5,7 +5,7 @@ import '../models/models.dart';
 class DatabaseHelper {
   static Database? _database;
   static final DatabaseHelper _instance = DatabaseHelper._internal();
-  
+
   factory DatabaseHelper() => _instance;
   DatabaseHelper._internal();
 
@@ -18,16 +18,37 @@ class DatabaseHelper {
 
   Future<Database> initDatabase() async {
     String path = await getDatabasesPath();
+    String dbPath = join(path, 'pos_database.db');
+    print('Database path: $dbPath'); // Debug: Print the actual database path
     return await openDatabase(
-      join(path, 'pos_database.db'),
-      version: 2,
+      dbPath,
+      version: 4,
       onCreate: (db, version) async {
         await _createTables(db);
+        print('Database created at: $dbPath'); // Debug: Confirm creation
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
           await db.execute('DROP TABLE IF EXISTS sales');
           await _createTables(db);
+        }
+        if (oldVersion < 3) {
+          // Add image column to items table
+          await db.execute('ALTER TABLE items ADD COLUMN image TEXT');
+        }
+        if (oldVersion < 4) {
+          // Add counters table for auto-increment functionality
+          await db.execute('''
+            CREATE TABLE counters (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              counter_name TEXT UNIQUE NOT NULL,
+              counter_value INTEGER NOT NULL DEFAULT 0
+            )
+          ''');
+          // Initialize invoice counter
+          await db.execute('''
+            INSERT INTO counters (counter_name, counter_value) VALUES ('invoice_counter', 0)
+          ''');
         }
       },
     );
@@ -49,6 +70,7 @@ class DatabaseHelper {
         category_id INTEGER NOT NULL,
         item_name TEXT NOT NULL,
         rate REAL NOT NULL,
+        image TEXT,
         FOREIGN KEY (category_id) REFERENCES categories (id)
       )
     ''');
@@ -93,24 +115,33 @@ class DatabaseHelper {
         FOREIGN KEY (item_id) REFERENCES items (id)
       )
     ''');
+
+    // Create counters table for auto-increment values
+    await db.execute('''
+      CREATE TABLE counters (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        counter_name TEXT UNIQUE NOT NULL,
+        counter_value INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+
+    // Initialize invoice counter
+    await db.execute('''
+      INSERT INTO counters (counter_name, counter_value) VALUES ('invoice_counter', 0)
+    ''');
   }
 
   // Category operations
   Future<int> insertCategory(Category category) async {
     final db = await database;
-    return await db.insert('categories', {
-      'name': category.name,
-    });
+    return await db.insert('categories', {'name': category.name});
   }
 
   Future<List<Category>> getCategories() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query('categories');
     return List.generate(maps.length, (i) {
-      return Category(
-        id: maps[i]['id'],
-        name: maps[i]['name'],
-      );
+      return Category(id: maps[i]['id'], name: maps[i]['name']);
     });
   }
 
@@ -121,6 +152,7 @@ class DatabaseHelper {
       'category_id': item.categoryId,
       'item_name': item.itemName,
       'rate': item.rate,
+      'image': item.image,
     });
   }
 
@@ -133,6 +165,7 @@ class DatabaseHelper {
         categoryId: maps[i]['category_id'],
         itemName: maps[i]['item_name'],
         rate: maps[i]['rate'],
+        image: maps[i]['image'],
       );
     });
   }
@@ -150,6 +183,7 @@ class DatabaseHelper {
         categoryId: maps[i]['category_id'],
         itemName: maps[i]['item_name'],
         rate: maps[i]['rate'],
+        image: maps[i]['image'],
       );
     });
   }
@@ -157,60 +191,108 @@ class DatabaseHelper {
   // Table operations
   Future<int> insertTable(Table table) async {
     final db = await database;
-    return await db.insert('tables', {
-      'name': table.name,
-    });
+    return await db.insert('tables', {'name': table.name});
   }
 
   Future<List<Table>> getTables() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query('tables');
     return List.generate(maps.length, (i) {
-      return Table(
-        id: maps[i]['id'],
-        name: maps[i]['name'],
-      );
+      return Table(id: maps[i]['id'], name: maps[i]['name']);
     });
   }
 
-  // Sales operations
-  Future<int> insertSale(Sales sale) async {
+  Future<int> deleteTable(int tableId) async {
     final db = await database;
-    
-    // Insert the main sale record
-    int saleId = await db.insert('sales', {
-      'invoice_no': sale.invoiceNo,
-      'table_name': sale.table,
-      'order_type': sale.orderType,
-      'subtotal': sale.subtotal,
-      'tax': sale.tax,
-      'tax_rate': sale.taxRate,
-      'discount': sale.discount,
-      'discount_value': sale.discountValue,
-      'is_discount_percentage': sale.isDiscountPercentage ? 1 : 0,
-      'total': sale.total,
-      'timestamp': sale.timestamp.toIso8601String(),
-    });
+    return await db.delete('tables', where: 'id = ?', whereArgs: [tableId]);
+  }
 
-    // Insert cart items for this sale
-    for (CartItem cartItem in sale.items) {
-      await db.insert('cart_items', {
-        'sale_id': saleId,
-        'item_id': cartItem.item['id'],
-        'item_name': cartItem.item['itemName'],
-        'rate': cartItem.item['rate'],
-        'quantity': cartItem.quantity,
-        'total_price': cartItem.totalPrice,
-      });
+  Future<String> getNextInvoiceNumber() async {
+    final db = await database;
+
+    final List<Map<String, dynamic>> result = await db.query(
+      'counters',
+      where: 'counter_name = ?',
+      whereArgs: ['invoice_counter'],
+    );
+
+    int currentCounter = 0;
+    if (result.isNotEmpty) {
+      currentCounter = result.first['counter_value'] as int;
     }
 
-    return saleId;
+    final newCounter = currentCounter + 1;
+
+    await db.update(
+      'counters',
+      {'counter_value': newCounter},
+      where: 'counter_name = ?',
+      whereArgs: ['invoice_counter'],
+    );
+
+    return 'INV-${newCounter.toString().padLeft(3, '0')}';
+  }
+
+  Future<int> insertSale(Sales sale) async {
+    final db = await database;
+    print('DatabaseHelper: Starting to insert sale: ${sale.invoiceNo}');
+
+    try {
+      int saleId = await db.transaction((txn) async {
+        int saleId = await txn.insert('sales', {
+          'invoice_no': sale.invoiceNo,
+          'table_name': sale.table,
+          'order_type': sale.orderType,
+          'subtotal': sale.subtotal,
+          'tax': sale.tax,
+          'tax_rate': sale.taxRate,
+          'discount': sale.discount,
+          'discount_value': sale.discountValue,
+          'is_discount_percentage': sale.isDiscountPercentage ? 1 : 0,
+          'total': sale.total,
+          'timestamp': sale.timestamp.toIso8601String(),
+        });
+
+        print('DatabaseHelper: Main sale record inserted with ID: $saleId');
+
+        for (int i = 0; i < sale.items.length; i++) {
+          CartItem cartItem = sale.items[i];
+          print(
+            'DatabaseHelper: Inserting cart item ${i + 1}: ${cartItem.item['item_name']}',
+          );
+
+          await txn.insert('cart_items', {
+            'sale_id': saleId,
+            'item_id': cartItem.item['id'],
+            'item_name': cartItem.item['item_name'],
+            'rate': cartItem.item['rate'],
+            'quantity': cartItem.quantity,
+            'total_price': cartItem.totalPrice,
+          });
+        }
+
+        print(
+          'DatabaseHelper: All ${sale.items.length} cart items inserted successfully',
+        );
+        return saleId;
+      });
+
+      return saleId;
+    } catch (e) {
+      print(
+        'DatabaseHelper: Error inserting sale (transaction rolled back): $e',
+      );
+      rethrow;
+    }
   }
 
   Future<List<Sales>> getSales() async {
     final db = await database;
-    final List<Map<String, dynamic>> salesMaps = await db.query('sales', orderBy: 'timestamp DESC');
-    
+    final List<Map<String, dynamic>> salesMaps = await db.query(
+      'sales',
+      orderBy: 'timestamp DESC',
+    );
+
     List<Sales> salesList = [];
     for (Map<String, dynamic> saleMap in salesMaps) {
       // Get cart items for this sale
@@ -224,33 +306,38 @@ class DatabaseHelper {
         return CartItem(
           item: {
             'id': cartItemMap['item_id'],
-            'itemName': cartItemMap['item_name'],
+            'item_name': cartItemMap['item_name'],
             'rate': cartItemMap['rate'],
           },
           quantity: cartItemMap['quantity'],
         );
       }).toList();
 
-      salesList.add(Sales(
-        invoiceNo: saleMap['invoice_no'],
-        table: saleMap['table_name'],
-        orderType: saleMap['order_type'],
-        items: cartItems,
-        subtotal: saleMap['subtotal'],
-        tax: saleMap['tax'],
-        taxRate: saleMap['tax_rate'],
-        discount: saleMap['discount'],
-        discountValue: saleMap['discount_value'],
-        isDiscountPercentage: saleMap['is_discount_percentage'] == 1,
-        total: saleMap['total'],
-        timestamp: DateTime.parse(saleMap['timestamp']),
-      ));
+      salesList.add(
+        Sales(
+          invoiceNo: saleMap['invoice_no'],
+          table: saleMap['table_name'],
+          orderType: saleMap['order_type'],
+          items: cartItems,
+          subtotal: saleMap['subtotal'],
+          tax: saleMap['tax'],
+          taxRate: saleMap['tax_rate'],
+          discount: saleMap['discount'],
+          discountValue: saleMap['discount_value'],
+          isDiscountPercentage: saleMap['is_discount_percentage'] == 1,
+          total: saleMap['total'],
+          timestamp: DateTime.parse(saleMap['timestamp']),
+        ),
+      );
     }
 
     return salesList;
   }
 
-  Future<List<Sales>> getSalesByDateRange(DateTime startDate, DateTime endDate) async {
+  Future<List<Sales>> getSalesByDateRange(
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
     final db = await database;
     final List<Map<String, dynamic>> salesMaps = await db.query(
       'sales',
@@ -258,7 +345,7 @@ class DatabaseHelper {
       whereArgs: [startDate.toIso8601String(), endDate.toIso8601String()],
       orderBy: 'timestamp DESC',
     );
-    
+
     List<Sales> salesList = [];
     for (Map<String, dynamic> saleMap in salesMaps) {
       final List<Map<String, dynamic>> cartItemsMaps = await db.query(
@@ -271,27 +358,29 @@ class DatabaseHelper {
         return CartItem(
           item: {
             'id': cartItemMap['item_id'],
-            'itemName': cartItemMap['item_name'],
+            'item_name': cartItemMap['item_name'],
             'rate': cartItemMap['rate'],
           },
           quantity: cartItemMap['quantity'],
         );
       }).toList();
 
-      salesList.add(Sales(
-        invoiceNo: saleMap['invoice_no'],
-        table: saleMap['table_name'],
-        orderType: saleMap['order_type'],
-        items: cartItems,
-        subtotal: saleMap['subtotal'],
-        tax: saleMap['tax'],
-        taxRate: saleMap['tax_rate'],
-        discount: saleMap['discount'],
-        discountValue: saleMap['discount_value'],
-        isDiscountPercentage: saleMap['is_discount_percentage'] == 1,
-        total: saleMap['total'],
-        timestamp: DateTime.parse(saleMap['timestamp']),
-      ));
+      salesList.add(
+        Sales(
+          invoiceNo: saleMap['invoice_no'],
+          table: saleMap['table_name'],
+          orderType: saleMap['order_type'],
+          items: cartItems,
+          subtotal: saleMap['subtotal'],
+          tax: saleMap['tax'],
+          taxRate: saleMap['tax_rate'],
+          discount: saleMap['discount'],
+          discountValue: saleMap['discount_value'],
+          isDiscountPercentage: saleMap['is_discount_percentage'] == 1,
+          total: saleMap['total'],
+          timestamp: DateTime.parse(saleMap['timestamp']),
+        ),
+      );
     }
 
     return salesList;

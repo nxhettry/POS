@@ -6,38 +6,18 @@ class DatabaseService {
 
   Future<void> initializeDatabase() async {
     await _databaseHelper.database;
-    
-    final categories = await getCategories();
-    if (categories.isEmpty) {
-      await _insertSampleData();
-    }
+    await _seedDefaultTables();
   }
 
-  Future<void> _insertSampleData() async {
-    final drinksCategoryId = await _databaseHelper.insertCategory(
-      Category(id: 0, name: 'Beverages'),
-    );
-    final foodCategoryId = await _databaseHelper.insertCategory(
-      Category(id: 0, name: 'Food'),
-    );
-
-    await _databaseHelper.insertItem(
-      Item(id: 0, categoryId: drinksCategoryId, itemName: 'Americano', rate: 150.0),
-    );
-    await _databaseHelper.insertItem(
-      Item(id: 0, categoryId: drinksCategoryId, itemName: 'Milkshake', rate: 200.0),
-    );
-    await _databaseHelper.insertItem(
-      Item(id: 0, categoryId: foodCategoryId, itemName: 'Burger', rate: 350.0),
-    );
-    await _databaseHelper.insertItem(
-      Item(id: 0, categoryId: foodCategoryId, itemName: 'Noodles', rate: 250.0),
-    );
-
-    await _databaseHelper.insertTable(Table(id: 0, name: 'Table 1'));
-    await _databaseHelper.insertTable(Table(id: 0, name: 'Table 2'));
-    await _databaseHelper.insertTable(Table(id: 0, name: 'Table 3'));
-    await _databaseHelper.insertTable(Table(id: 0, name: 'Table 4'));
+  Future<void> _seedDefaultTables() async {
+    // Check if tables already exist
+    final existingTables = await getTables();
+    if (existingTables.isEmpty) {
+      // Add some default tables
+      for (int i = 1; i <= 12; i++) {
+        await addTable("Table $i");
+      }
+    }
   }
 
   Future<List<Category>> getCategories() async {
@@ -45,7 +25,7 @@ class DatabaseService {
   }
 
   Future<int> addCategory(String name) async {
-    return await _databaseHelper.insertCategory(Category(id: 0, name: name));
+    return await _databaseHelper.insertCategory(Category(name: name));
   }
 
   Future<List<Item>> getItems() async {
@@ -56,13 +36,20 @@ class DatabaseService {
     return await _databaseHelper.getItemsByCategory(categoryId);
   }
 
-  Future<int> addItem(int categoryId, String itemName, double rate) async {
-    return await _databaseHelper.insertItem(Item(
-      id: 0,
-      categoryId: categoryId,
-      itemName: itemName,
-      rate: rate,
-    ));
+  Future<int> addItem(
+    int categoryId,
+    String itemName,
+    double rate, {
+    String? image,
+  }) async {
+    return await _databaseHelper.insertItem(
+      Item(
+        categoryId: categoryId,
+        itemName: itemName,
+        rate: rate,
+        image: image,
+      ),
+    );
   }
 
   Future<List<Table>> getTables() async {
@@ -70,18 +57,38 @@ class DatabaseService {
   }
 
   Future<int> addTable(String name) async {
-    return await _databaseHelper.insertTable(Table(id: 0, name: name));
+    return await _databaseHelper.insertTable(Table(name: name));
+  }
+
+  Future<int> deleteTable(int tableId) async {
+    return await _databaseHelper.deleteTable(tableId);
   }
 
   Future<int> saveSale(Sales sale) async {
-    return await _databaseHelper.insertSale(sale);
+    print('DatabaseService: Saving sale with invoice: ${sale.invoiceNo}');
+    print('DatabaseService: Sale items count: ${sale.items.length}');
+    try {
+      final result = await _databaseHelper.insertSale(sale);
+      print('DatabaseService: Sale saved successfully with ID: $result');
+      return result;
+    } catch (e) {
+      print('DatabaseService: Error saving sale: $e');
+      rethrow;
+    }
   }
 
   Future<List<Sales>> getSales() async {
     return await _databaseHelper.getSales();
   }
 
-  Future<List<Sales>> getSalesByDateRange(DateTime startDate, DateTime endDate) async {
+  Future<String> getNextInvoiceNumber() async {
+    return await _databaseHelper.getNextInvoiceNumber();
+  }
+
+  Future<List<Sales>> getSalesByDateRange(
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
     return await _databaseHelper.getSalesByDateRange(startDate, endDate);
   }
 
@@ -92,14 +99,20 @@ class DatabaseService {
     return sales.fold<double>(0.0, (total, sale) => total + sale.total);
   }
 
-  Future<double> getTotalSalesForDateRange(DateTime startDate, DateTime endDate) async {
+  Future<double> getTotalSalesForDateRange(
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
     final sales = await getSalesByDateRange(startDate, endDate);
     return sales.fold<double>(0.0, (total, sale) => total + sale.total);
   }
 
   Future<Map<String, dynamic>> getSalesStatistics() async {
     final sales = await getSales();
-    final totalSales = sales.fold<double>(0.0, (total, sale) => total + sale.total);
+    final totalSales = sales.fold<double>(
+      0.0,
+      (total, sale) => total + sale.total,
+    );
     final totalOrders = sales.length;
     final averageOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0.0;
 

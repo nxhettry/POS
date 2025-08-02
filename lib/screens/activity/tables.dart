@@ -1,5 +1,5 @@
 import "package:flutter/material.dart";
-import "package:pos/data/table.dart";
+import "package:pos/services/database_service.dart";
 import "package:pos/models/models.dart" as models;
 
 class Tables extends StatefulWidget {
@@ -10,7 +10,30 @@ class Tables extends StatefulWidget {
 }
 
 class _TablesState extends State<Tables> {
-  List<models.Table> currentTables = List.from(tables);
+  List<models.Table> currentTables = [];
+  final DatabaseService _dbService = DatabaseService();
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTables();
+  }
+
+  Future<void> _loadTables() async {
+    try {
+      final tables = await _dbService.getTables();
+      setState(() {
+        currentTables = tables;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading tables: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   void onAddNewTable(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -34,13 +57,25 @@ class _TablesState extends State<Tables> {
     );
 
     if (confirmed == true) {
-      setState(() {
+      try {
         final newId = currentTables.isEmpty
             ? 1
-            : currentTables.map((t) => t.id).reduce((a, b) => a > b ? a : b) +
-                  1;
-        currentTables.add(models.Table(id: newId, name: "Table $newId"));
-      });
+            : currentTables.map((t) => t.id ?? 0).reduce((a, b) => a > b ? a : b) + 1;
+        
+        final tableName = "Table $newId";
+        final tableId = await _dbService.addTable(tableName);
+        
+        setState(() {
+          currentTables.add(models.Table(id: tableId, name: tableName));
+        });
+      } catch (e) {
+        print('Error adding table: $e');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error adding table: $e')),
+          );
+        }
+      }
     }
   }
 
@@ -71,9 +106,21 @@ class _TablesState extends State<Tables> {
     );
 
     if (confirmed == true) {
-      setState(() {
-        currentTables.remove(table);
-      });
+      try {
+        if (table.id != null) {
+          await _dbService.deleteTable(table.id!);
+          setState(() {
+            currentTables.remove(table);
+          });
+        }
+      } catch (e) {
+        print('Error deleting table: $e');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting table: $e')),
+          );
+        }
+      }
     }
   }
 
@@ -129,36 +176,38 @@ class _TablesState extends State<Tables> {
 
           // Tables Grid Section
           Expanded(
-            child: currentTables.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.table_restaurant_outlined,
-                          size: 64,
-                          color: Colors.grey[400],
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : currentTables.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.table_restaurant_outlined,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No tables available',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Add a new table to get started',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No tables available',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Add a new table to get started',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
+                      )
                 : GridView.builder(
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
