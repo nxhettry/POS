@@ -5,6 +5,7 @@ import "./screens/activity/activity_screen.dart";
 import "screens/point-of-sales/point_of_sales_screen.dart";
 import "screens/reports/reports_screen.dart";
 import "screens/settings/settings_screen.dart";
+import 'widgets/drawer_list_item.dart';
 
 void main() {
   runApp(const MyApp());
@@ -18,7 +19,14 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Rato POS',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: ThemeData(
+        primarySwatch: Colors.red,
+        primaryColor: Colors.red,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.red,
+          primary: Colors.red,
+        ),
+      ),
       home: const MyHomePage(),
     );
   }
@@ -63,131 +71,151 @@ class _MyHomePageState extends State<MyHomePage> {
         actions: [const DateTimeBadge(), const SizedBox(width: 30)],
       ),
       drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
-              decoration: BoxDecoration(color: Colors.red[300]),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(100),
-                      color: Colors.white,
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(100),
-                      child: Image.asset(
-                        'assets/images/rato_khata.png',
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    'Rato-POS',
-                    style: TextStyle(color: Colors.white, fontSize: 24),
+        child: Column(
+          children: [
+            // Custom Header
+            Container(
+              height: 200,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.red,
+                    Colors.red.withOpacity(0.8),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.red.withOpacity(0.3),
+                    spreadRadius: 1,
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
-            ),
-            ListTile(
-              leading: Icon(
-                Icons.point_of_sale,
-                color: _currentIndex == 0 ? Colors.grey[800] : Colors.grey[600],
-                size: 28,
-              ),
-              title: Text(
-                'Point Of Sale',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  color: _currentIndex == 0
-                      ? Colors.grey[900]
-                      : Colors.grey[700],
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Logo Container
+                      Container(
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              spreadRadius: 1,
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.asset(
+                            'assets/images/rato_khata.png',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // App Title
+                      Text(
+                        'Rato-POS',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withOpacity(0.2),
+                              offset: const Offset(0, 1),
+                              blurRadius: 2,
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Subtitle
+                      Text(
+                        'Restaurant Management System',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              selected: _currentIndex == 0,
-              selectedTileColor: Colors.grey[300],
-              contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              onTap: () {
-                _onItemTapped(0);
-                Navigator.pop(context);
-              },
             ),
-            ListTile(
-              leading: Icon(
-                Icons.history,
-                color: _currentIndex == 1 ? Colors.grey[800] : Colors.grey[600],
-                size: 28,
-              ),
-              title: Text(
-                'Activity',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  color: _currentIndex == 1
-                      ? Colors.grey[900]
-                      : Colors.grey[700],
+            
+            // Menu Items Container
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.grey[50]!,
+                      Colors.grey[100]!,
+                    ],
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 8),
+                      DrawerListItem(
+                        title: 'Point Of Sale',
+                        icon: Icons.point_of_sale,
+                        isSelected: _currentIndex == 0,
+                        onTap: () {
+                          _onItemTapped(0);
+                          Navigator.pop(context);
+                        },
+                      ),
+                      DrawerListItem(
+                        title: 'Activity',
+                        icon: Icons.history,
+                        isSelected: _currentIndex == 1,
+                        onTap: () {
+                          _onItemTapped(1);
+                          Navigator.pop(context);
+                        },
+                      ),
+                      DrawerListItem(
+                        title: 'Reports',
+                        icon: Icons.bar_chart,
+                        isSelected: _currentIndex == 2,
+                        onTap: () {
+                          _onItemTapped(2);
+                          Navigator.pop(context);
+                        },
+                      ),
+                      DrawerListItem(
+                        title: 'Settings',
+                        icon: Icons.settings,
+                        isSelected: _currentIndex == 3,
+                        onTap: () {
+                          _onItemTapped(3);
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              selected: _currentIndex == 1,
-              selectedTileColor: Colors.grey[300],
-              contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              onTap: () {
-                _onItemTapped(1);
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(
-                Icons.bar_chart,
-                color: _currentIndex == 2 ? Colors.grey[800] : Colors.grey[600],
-                size: 28,
-              ),
-              title: Text(
-                'Reports',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  color: _currentIndex == 2
-                      ? Colors.grey[900]
-                      : Colors.grey[700],
-                ),
-              ),
-              selected: _currentIndex == 2,
-              selectedTileColor: Colors.grey[300],
-              contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              onTap: () {
-                _onItemTapped(2);
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(
-                Icons.settings,
-                color: _currentIndex == 3 ? Colors.grey[800] : Colors.grey[600],
-                size: 28,
-              ),
-              title: Text(
-                'Settings',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  color: _currentIndex == 3
-                      ? Colors.grey[900]
-                      : Colors.grey[700],
-                ),
-              ),
-              selected: _currentIndex == 3,
-              selectedTileColor: Colors.grey[300],
-              contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              onTap: () {
-                _onItemTapped(3);
-                Navigator.pop(context);
-              },
             ),
           ],
         ),

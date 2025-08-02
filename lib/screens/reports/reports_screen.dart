@@ -109,14 +109,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Most Sold Items Table
-                      Expanded(
-                        child: _buildMostSoldItemsTable(mostSoldItems),
-                      ),
+                      Expanded(child: _buildMostSoldItemsTable(mostSoldItems)),
                       const SizedBox(width: 16),
                       // Sales Records Table
-                      Expanded(
-                        child: _buildSalesRecordsTable(filteredSales),
-                      ),
+                      Expanded(child: _buildSalesRecordsTable(filteredSales)),
                     ],
                   ),
                 ],
@@ -450,9 +446,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           ),
                         ),
                       ),
-                      DataCell(
-                        Text('Rs. ${sale.total.toStringAsFixed(2)}'),
-                      ),
+                      DataCell(Text('Rs. ${sale.total.toStringAsFixed(2)}')),
                       DataCell(
                         SizedBox(
                           width: 80,
