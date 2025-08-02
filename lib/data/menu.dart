@@ -1,4 +1,4 @@
-import "../models.dart";
+import "../models/models.dart";
 
 const List<Map<String, dynamic>> CATEGORIES = [
   {"id": 1, "category_name": "Cold Beverages"},

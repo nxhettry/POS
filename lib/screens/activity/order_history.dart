@@ -1,7 +1,7 @@
 import "package:flutter/material.dart";
 import "package:intl/intl.dart";
 import "../../data/sales.dart";
-import "../../models.dart";
+import "../../models/models.dart";
 
 class OrderHistory extends StatefulWidget {
   const OrderHistory({super.key});

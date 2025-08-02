@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../models.dart';
+import '../../models/models.dart';
 import '../../data/sales.dart';
 
 class ReportsScreen extends StatefulWidget {

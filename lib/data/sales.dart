@@ -1,4 +1,4 @@
-import '../models.dart';
+import '../models/models.dart';
 
 final List<Sales> salesData = [
   Sales(

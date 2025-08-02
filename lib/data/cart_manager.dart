@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../models.dart';
+import '../models/models.dart';
 
 class CartManager extends ChangeNotifier {
   static final CartManager _instance = CartManager._internal();

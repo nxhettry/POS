@@ -1,7 +1,7 @@
 import "package:flutter/material.dart";
 import "../../data/table.dart";
 import "../../data/cart_manager.dart";
-import "../../models.dart";
+import "../../models/models.dart";
 import 'dart:developer' as developer;
 
 class BillSection extends StatefulWidget {

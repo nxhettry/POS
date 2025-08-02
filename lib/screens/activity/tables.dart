@@ -1,6 +1,6 @@
 import "package:flutter/material.dart";
 import "package:pos/data/table.dart";
-import "package:pos/models.dart" as models;
+import "package:pos/models/models.dart" as models;
 
 class Tables extends StatefulWidget {
   const Tables({super.key});

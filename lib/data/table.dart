@@ -1,4 +1,4 @@
-import "../models.dart";
+import "../models/models.dart";
 
 final List<Table> tables = [
   Table(id: 1, name: "Table 1"),
