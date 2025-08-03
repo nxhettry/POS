@@ -13,6 +13,8 @@ class OrderHistory extends StatefulWidget {
 class _OrderHistoryState extends State<OrderHistory> {
   String selectedFilter = "All";
   final List<String> filterOptions = ["All", "Dine In", "Takeaway", "Delivery"];
+  String selectedDateFilter = "Today";
+  final List<String> dateFilterOptions = ["Today", "Yesterday", "Last 2 Days"];
   List<Sales> _allSales = [];
   bool _isLoading = true;
 
@@ -40,10 +42,48 @@ class _OrderHistoryState extends State<OrderHistory> {
   }
 
   List<Sales> get filteredSales {
-    if (selectedFilter == "All") {
-      return _allSales;
+    DateTime now = DateTime.now();
+
+    List<Sales> dateFilteredSales;
+    if (selectedDateFilter == "Last 2 Days") {
+      DateTime yesterdayStart = DateTime(now.year, now.month, now.day - 1);
+      DateTime todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+      dateFilteredSales = _allSales.where((sale) {
+        return sale.timestamp.isAfter(yesterdayStart) &&
+            sale.timestamp.isBefore(todayEnd.add(Duration(seconds: 1)));
+      }).toList();
+    } else if (selectedDateFilter == "Yesterday") {
+      DateTime yesterdayStart = DateTime(now.year, now.month, now.day - 1);
+      DateTime yesterdayEnd = DateTime(
+        now.year,
+        now.month,
+        now.day - 1,
+        23,
+        59,
+        59,
+      );
+
+      dateFilteredSales = _allSales.where((sale) {
+        return sale.timestamp.isAfter(yesterdayStart) &&
+            sale.timestamp.isBefore(yesterdayEnd.add(Duration(seconds: 1)));
+      }).toList();
+    } else {
+      DateTime todayStart = DateTime(now.year, now.month, now.day);
+      DateTime todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+      dateFilteredSales = _allSales.where((sale) {
+        return sale.timestamp.isAfter(todayStart) &&
+            sale.timestamp.isBefore(todayEnd.add(Duration(seconds: 1)));
+      }).toList();
     }
-    return _allSales.where((sale) => sale.orderType == selectedFilter).toList();
+
+    if (selectedFilter == "All") {
+      return dateFilteredSales;
+    }
+    return dateFilteredSales
+        .where((sale) => sale.orderType == selectedFilter)
+        .toList();
   }
 
   @override
@@ -114,6 +154,19 @@ class _OrderHistoryState extends State<OrderHistory> {
                     ],
                   ),
                   const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Text(
+                        "Order Type:",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   SizedBox(
                     height: 40,
                     child: ListView.builder(
@@ -152,6 +205,58 @@ class _OrderHistoryState extends State<OrderHistory> {
                       },
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Text(
+                        "Date Range:",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 40,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: dateFilterOptions.length,
+                      itemBuilder: (context, index) {
+                        final option = dateFilterOptions[index];
+                        final isSelected = selectedDateFilter == option;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: FilterChip(
+                            label: Text(option),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              setState(() {
+                                selectedDateFilter = option;
+                              });
+                            },
+                            backgroundColor: Colors.white,
+                            selectedColor: Colors.green[100],
+                            labelStyle: TextStyle(
+                              color: isSelected
+                                  ? Colors.green[700]
+                                  : Colors.grey[600],
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                            side: BorderSide(
+                              color: isSelected
+                                  ? Colors.green[300]!
+                                  : Colors.grey[300]!,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -159,15 +264,15 @@ class _OrderHistoryState extends State<OrderHistory> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : filteredSales.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(20),
-                          itemCount: filteredSales.length,
-                          itemBuilder: (context, index) {
-                            final sale = filteredSales[index];
-                            return _buildOrderCard(sale);
-                          },
-                        ),
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(20),
+                      itemCount: filteredSales.length,
+                      itemBuilder: (context, index) {
+                        final sale = filteredSales[index];
+                        return _buildOrderCard(sale);
+                      },
+                    ),
             ),
           ],
         ),
@@ -192,11 +297,9 @@ class _OrderHistoryState extends State<OrderHistory> {
           ),
           const SizedBox(height: 8),
           Text(
-            _isLoading 
+            _isLoading
                 ? "Please wait while we fetch your order history"
-                : selectedFilter == "All"
-                    ? "No orders have been placed yet"
-                    : "No $selectedFilter orders found",
+                : _getEmptyStateMessage(),
             style: TextStyle(fontSize: 14, color: Colors.grey[500]),
             textAlign: TextAlign.center,
           ),
@@ -337,7 +440,7 @@ class _OrderHistoryState extends State<OrderHistory> {
                     color: Colors.orange,
                   ),
                 _buildSummaryRow(
-                  "Tax (${sale.taxRate*100}%)",
+                  "Tax (${sale.taxRate * 100}%)",
                   "₹${sale.tax.toStringAsFixed(2)}",
                 ),
                 const SizedBox(height: 8),
@@ -359,7 +462,7 @@ class _OrderHistoryState extends State<OrderHistory> {
   Widget _buildItemRow(CartItem cartItem) {
     // Get image path, handling null or missing values
     final String? imagePath = cartItem.item['image'] as String?;
-    
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -467,6 +570,33 @@ class _OrderHistoryState extends State<OrderHistory> {
         return Icons.delivery_dining;
       default:
         return Icons.receipt;
+    }
+  }
+
+  String _getEmptyStateMessage() {
+    String dateMessage;
+    switch (selectedDateFilter) {
+      case "Today":
+        dateMessage = "today";
+        break;
+      case "Yesterday":
+        dateMessage = "yesterday";
+        break;
+      case "Last 2 Days":
+        dateMessage = "in the last 2 days";
+        break;
+      default:
+        dateMessage = "today";
+    }
+
+    if (selectedFilter == "All") {
+      return _allSales.isEmpty
+          ? "No orders have been placed yet"
+          : "No orders found $dateMessage";
+    } else {
+      return _allSales.isEmpty
+          ? "No orders have been placed yet"
+          : "No $selectedFilter orders found $dateMessage";
     }
   }
 }
