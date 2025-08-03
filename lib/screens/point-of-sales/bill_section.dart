@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:pos/services/database_service.dart";
 import "../../data/cart_manager.dart";
 import "../../models/models.dart" as models;
+import "../../utils/responsive.dart";
 import 'dart:developer' as developer;
 
 class BillSection extends StatefulWidget {
@@ -150,27 +151,31 @@ class _BillSectionState extends State<BillSection> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      padding: const EdgeInsets.all(16.0),
+      padding: ResponsiveUtils.getPadding(context),
       color: Colors.white,
       child: Column(
         children: [
-          // Header Section
           Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
+            padding: EdgeInsets.only(
+              bottom: ResponsiveUtils.getSpacing(context),
+            ),
             child: Column(
               children: [
                 Text(
                   "Sales Invoice",
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: ResponsiveUtils.getFontSize(context, 24),
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
                   ),
                 ),
-                SizedBox(height: 8),
+                SizedBox(height: ResponsiveUtils.getSpacing(context, base: 8)),
                 Text(
                   "Invoice No: #111",
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: ResponsiveUtils.getFontSize(context, 14),
+                    color: Colors.grey,
+                  ),
                 ),
               ],
             ),
@@ -194,10 +199,13 @@ class _BillSectionState extends State<BillSection> {
                   child: DropdownButtonFormField(
                     decoration: InputDecoration(
                       labelText: "Table No",
+                      labelStyle: TextStyle(
+                        fontSize: ResponsiveUtils.getFontSize(context, 14),
+                      ),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 12,
+                        vertical: ResponsiveUtils.getSpacing(context, base: 12),
+                        horizontal: ResponsiveUtils.getSpacing(context, base: 12),
                       ),
                     ),
                     value: selectedTable,
@@ -208,13 +216,21 @@ class _BillSectionState extends State<BillSection> {
                           availableTables.isEmpty 
                             ? "Loading tables..." 
                             : "Select a Table",
-                          style: TextStyle(color: Colors.grey),
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                          ),
                         ),
                       ),
                       for (var table in availableTables)
                         DropdownMenuItem<String>(
                           value: table.name,
-                          child: Text(table.name),
+                          child: Text(
+                            table.name,
+                            style: TextStyle(
+                              fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            ),
+                          ),
                         ),
                     ],
                     onChanged: (value) {
@@ -225,7 +241,7 @@ class _BillSectionState extends State<BillSection> {
                   ),
                 ),
               ),
-              SizedBox(width: 16),
+              SizedBox(width: ResponsiveUtils.getSpacing(context)),
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
@@ -242,21 +258,34 @@ class _BillSectionState extends State<BillSection> {
                   child: DropdownButtonFormField(
                     decoration: InputDecoration(
                       labelText: "Dine In / Takeaway",
+                      labelStyle: TextStyle(
+                        fontSize: ResponsiveUtils.getFontSize(context, 14),
+                      ),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 12,
+                        vertical: ResponsiveUtils.getSpacing(context, base: 12),
+                        horizontal: ResponsiveUtils.getSpacing(context, base: 12),
                       ),
                     ),
                     value: selectedOrderType,
                     items: [
                       DropdownMenuItem(
                         value: "dine_in",
-                        child: Text("Dine In"),
+                        child: Text(
+                          "Dine In",
+                          style: TextStyle(
+                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                          ),
+                        ),
                       ),
                       DropdownMenuItem(
                         value: "takeaway",
-                        child: Text("Takeaway"),
+                        child: Text(
+                          "Takeaway",
+                          style: TextStyle(
+                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                          ),
+                        ),
                       ),
                     ],
                     onChanged: (value) {
@@ -270,7 +299,6 @@ class _BillSectionState extends State<BillSection> {
             ],
           ),
 
-          // Items Section
           Expanded(
             child: AnimatedBuilder(
               animation: cartManager,
@@ -280,28 +308,30 @@ class _BillSectionState extends State<BillSection> {
                     children: [
                       if (cartManager.isEmpty)
                         Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 40.0),
+                          padding: EdgeInsets.symmetric(
+                            vertical: ResponsiveUtils.getSpacing(context, base: 40),
+                          ),
                           child: Column(
                             children: [
                               Icon(
                                 Icons.shopping_cart_outlined,
-                                size: 80,
+                                size: ResponsiveUtils.isSmallDesktop(context) ? 60 : 80,
                                 color: Colors.grey[400],
                               ),
-                              const SizedBox(height: 16),
+                              SizedBox(height: ResponsiveUtils.getSpacing(context)),
                               Text(
                                 'No items in cart',
                                 style: TextStyle(
-                                  fontSize: 18,
+                                  fontSize: ResponsiveUtils.getFontSize(context, 18),
                                   color: Colors.grey[600],
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              SizedBox(height: ResponsiveUtils.getSpacing(context, base: 8)),
                               Text(
                                 'Add items from the menu to get started',
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: ResponsiveUtils.getFontSize(context, 14),
                                   color: Colors.grey[500],
                                 ),
                               ),
@@ -319,15 +349,15 @@ class _BillSectionState extends State<BillSection> {
             ),
           ),
 
-          // Tax and Discount Section
           Padding(
-            padding: const EdgeInsets.only(top: 12.0),
+            padding: EdgeInsets.only(
+              top: ResponsiveUtils.getSpacing(context, base: 12),
+            ),
             child: Row(
               children: [
-                // Tax Section
                 Expanded(
                   child: Container(
-                    height: 45,
+                    height: ResponsiveUtils.isSmallDesktop(context) ? 40 : 45,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
                       color: Colors.grey[100],
@@ -342,23 +372,38 @@ class _BillSectionState extends State<BillSection> {
                     child: DropdownButtonFormField<String>(
                       decoration: InputDecoration(
                         labelText: "Tax",
-                        labelStyle: TextStyle(fontSize: 12),
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveUtils.getFontSize(context, 12),
+                        ),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(
-                          vertical: 8,
-                          horizontal: 10,
+                          vertical: ResponsiveUtils.getSpacing(context, base: 8),
+                          horizontal: ResponsiveUtils.getSpacing(context, base: 10),
                         ),
                       ),
                       value: selectedTax,
-                      style: TextStyle(fontSize: 14, color: Colors.black),
+                      style: TextStyle(
+                        fontSize: ResponsiveUtils.getFontSize(context, 14),
+                        color: Colors.black,
+                      ),
                       items: [
                         DropdownMenuItem(
                           value: "0%", 
-                          child: Text("0%", style: TextStyle(fontSize: 14))
+                          child: Text(
+                            "0%",
+                            style: TextStyle(
+                              fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            ),
+                          ),
                         ),
                         DropdownMenuItem(
                           value: "13%", 
-                          child: Text("13%", style: TextStyle(fontSize: 14))
+                          child: Text(
+                            "13%",
+                            style: TextStyle(
+                              fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            ),
+                          ),
                         ),
                       ],
                       onChanged: (value) {
@@ -369,11 +414,10 @@ class _BillSectionState extends State<BillSection> {
                     ),
                   ),
                 ),
-                SizedBox(width: 12),
-                // Discount Section
+                SizedBox(width: ResponsiveUtils.getSpacing(context, base: 12)),
                 Expanded(
                   child: Container(
-                    height: 45,
+                    height: ResponsiveUtils.isSmallDesktop(context) ? 40 : 45,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
                       color: Colors.grey[100],
@@ -387,14 +431,18 @@ class _BillSectionState extends State<BillSection> {
                     ),
                     child: TextFormField(
                       controller: discountController,
-                      style: TextStyle(fontSize: 14),
+                      style: TextStyle(
+                        fontSize: ResponsiveUtils.getFontSize(context, 14),
+                      ),
                       decoration: InputDecoration(
                         labelText: "Discount",
-                        labelStyle: TextStyle(fontSize: 12),
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveUtils.getFontSize(context, 12),
+                        ),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(
-                          vertical: 8,
-                          horizontal: 10,
+                          vertical: ResponsiveUtils.getSpacing(context, base: 8),
+                          horizontal: ResponsiveUtils.getSpacing(context, base: 10),
                         ),
                       ),
                       keyboardType: TextInputType.number,
@@ -406,26 +454,41 @@ class _BillSectionState extends State<BillSection> {
                     ),
                   ),
                 ),
-                SizedBox(width: 8),
+                SizedBox(width: ResponsiveUtils.getSpacing(context, base: 8)),
                 Container(
-                  height: 45,
-                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  height: ResponsiveUtils.isSmallDesktop(context) ? 40 : 45,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: ResponsiveUtils.getSpacing(context, base: 8),
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
                     color: Colors.grey[100],
                   ),
                   child: DropdownButton<String>(
                     value: isDiscountPercentage ? "%" : "\$",
-                    style: TextStyle(fontSize: 14, color: Colors.black),
+                    style: TextStyle(
+                      fontSize: ResponsiveUtils.getFontSize(context, 14),
+                      color: Colors.black,
+                    ),
                     underline: SizedBox(),
                     items: [
                       DropdownMenuItem(
                         value: "%", 
-                        child: Text("%", style: TextStyle(fontSize: 14))
+                        child: Text(
+                          "%",
+                          style: TextStyle(
+                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                          ),
+                        ),
                       ),
                       DropdownMenuItem(
                         value: "\$", 
-                        child: Text("Rs.", style: TextStyle(fontSize: 14))
+                        child: Text(
+                          "Rs.",
+                          style: TextStyle(
+                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                          ),
+                        ),
                       ),
                     ],
                     onChanged: (value) {
@@ -439,14 +502,15 @@ class _BillSectionState extends State<BillSection> {
             ),
           ),
 
-          // Calculation and Total Section
-          SizedBox(height: 12),
+          SizedBox(height: ResponsiveUtils.getSpacing(context, base: 12)),
           Divider(height: 1),
           AnimatedBuilder(
             animation: cartManager,
             builder: (context, child) {
               return Padding(
-                padding: const EdgeInsets.only(top: 12.0),
+                padding: EdgeInsets.only(
+                  top: ResponsiveUtils.getSpacing(context, base: 12),
+                ),
                 child: Column(
                   children: [
                     Row(
@@ -454,44 +518,64 @@ class _BillSectionState extends State<BillSection> {
                       children: [
                         Text(
                           "Subtotal",
-                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                          style: TextStyle(
+                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            color: Colors.grey[600],
+                          ),
                         ),
                         Text(
                           "Rs. ${subtotal.toStringAsFixed(2)}",
-                          style: TextStyle(fontSize: 14, color: Colors.black),
+                          style: TextStyle(
+                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            color: Colors.black,
+                          ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 4),
+                    SizedBox(height: ResponsiveUtils.getSpacing(context, base: 4)),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           "Tax ($selectedTax)",
-                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                          style: TextStyle(
+                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            color: Colors.grey[600],
+                          ),
                         ),
                         Text(
                           "Rs. ${tax.toStringAsFixed(2)}",
-                          style: TextStyle(fontSize: 14, color: Colors.black),
+                          style: TextStyle(
+                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            color: Colors.black,
+                          ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 4),
+                    SizedBox(height: ResponsiveUtils.getSpacing(context, base: 4)),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           "Discount",
-                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                          style: TextStyle(
+                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            color: Colors.grey[600],
+                          ),
                         ),
                         Text(
                           "-Rs. ${discount.toStringAsFixed(2)}",
-                          style: TextStyle(fontSize: 14, color: Colors.black),
+                          style: TextStyle(
+                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            color: Colors.black,
+                          ),
                         ),
                       ],
                     ),
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      padding: EdgeInsets.symmetric(
+                        vertical: ResponsiveUtils.getSpacing(context, base: 8),
+                      ),
                       child: Divider(height: 1),
                     ),
                     Row(
@@ -500,7 +584,7 @@ class _BillSectionState extends State<BillSection> {
                         Text(
                           "TOTAL",
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: ResponsiveUtils.getFontSize(context, 16),
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
                           ),
@@ -508,7 +592,7 @@ class _BillSectionState extends State<BillSection> {
                         Text(
                           "Rs. ${total.toStringAsFixed(2)}",
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: ResponsiveUtils.getFontSize(context, 18),
                             fontWeight: FontWeight.bold,
                             color: Colors.green[700],
                           ),
@@ -521,14 +605,13 @@ class _BillSectionState extends State<BillSection> {
             },
           ),
 
-          // Place Order Button
-          SizedBox(height: 12),
+          SizedBox(height: ResponsiveUtils.getSpacing(context, base: 12)),
           AnimatedBuilder(
             animation: cartManager,
             builder: (context, child) {
               return Container(
                 width: double.infinity,
-                height: 48,
+                height: ResponsiveUtils.isSmallDesktop(context) ? 44 : 48,
                 child: ElevatedButton(
                   onPressed: _placeOrder,
                   style: ElevatedButton.styleFrom(
@@ -543,7 +626,7 @@ class _BillSectionState extends State<BillSection> {
                   child: Text(
                     cartManager.isEmpty ? "Add Items to Cart" : "Place Order",
                     style: TextStyle(
-                      fontSize: 16, 
+                      fontSize: ResponsiveUtils.getFontSize(context, 16),
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
                     ),
@@ -560,9 +643,11 @@ class _BillSectionState extends State<BillSection> {
   Widget buildItemRow(models.CartItem cartItem) {
     final item = cartItem.item;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: EdgeInsets.symmetric(
+        vertical: ResponsiveUtils.getSpacing(context, base: 8),
+      ),
       child: Container(
-        padding: const EdgeInsets.all(12.0),
+        padding: ResponsiveUtils.getPadding(context, base: 12),
         decoration: BoxDecoration(
           color: Colors.grey[50],
           borderRadius: BorderRadius.circular(10),
@@ -576,10 +661,9 @@ class _BillSectionState extends State<BillSection> {
         ),
         child: Row(
           children: [
-            // Item Image
             Container(
-              width: 50,
-              height: 50,
+              width: ResponsiveUtils.isSmallDesktop(context) ? 45 : 50,
+              height: ResponsiveUtils.isSmallDesktop(context) ? 45 : 50,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
                 color: Colors.grey[200],
@@ -592,8 +676,6 @@ class _BillSectionState extends State<BillSection> {
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
-                            width: 50,
-                            height: 50,
                             decoration: BoxDecoration(
                               color: Colors.grey[300],
                               borderRadius: BorderRadius.circular(8),
@@ -601,14 +683,12 @@ class _BillSectionState extends State<BillSection> {
                             child: Icon(
                               Icons.fastfood,
                               color: Colors.grey[600],
-                              size: 24,
+                              size: ResponsiveUtils.isSmallDesktop(context) ? 20 : 24,
                             ),
                           );
                         },
                       )
                     : Container(
-                        width: 50,
-                        height: 50,
                         decoration: BoxDecoration(
                           color: Colors.grey[300],
                           borderRadius: BorderRadius.circular(8),
@@ -616,36 +696,39 @@ class _BillSectionState extends State<BillSection> {
                         child: Icon(
                           Icons.fastfood,
                           color: Colors.grey[600],
-                          size: 24,
+                          size: ResponsiveUtils.isSmallDesktop(context) ? 20 : 24,
                         ),
                       ),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: ResponsiveUtils.getSpacing(context, base: 12)),
 
-            // Item details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     item['item_name'],
-                    style: const TextStyle(
-                      fontSize: 16,
+                    style: TextStyle(
+                      fontSize: ResponsiveUtils.getFontSize(context, 16),
                       fontWeight: FontWeight.w600,
                       color: Colors.black,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: ResponsiveUtils.getSpacing(context, base: 4)),
                   Text(
                     "Rs. ${item['rate']} each",
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    style: TextStyle(
+                      fontSize: ResponsiveUtils.getFontSize(context, 14),
+                      color: Colors.grey[600],
+                    ),
                   ),
                 ],
               ),
             ),
 
-            // Quantity controls
             Row(
               children: [
                 Container(
@@ -654,7 +737,11 @@ class _BillSectionState extends State<BillSection> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.remove, color: Colors.red, size: 18),
+                    icon: Icon(
+                      Icons.remove,
+                      color: Colors.red,
+                      size: ResponsiveUtils.isSmallDesktop(context) ? 16 : 18,
+                    ),
                     onPressed: () {
                       if (cartItem.quantity > 1) {
                         cartManager.updateItemQuantity(
@@ -665,18 +752,20 @@ class _BillSectionState extends State<BillSection> {
                         cartManager.removeItem(item['id']);
                       }
                     },
-                    constraints: const BoxConstraints(
-                      minWidth: 32,
-                      minHeight: 32,
+                    constraints: BoxConstraints(
+                      minWidth: ResponsiveUtils.isSmallDesktop(context) ? 28 : 32,
+                      minHeight: ResponsiveUtils.isSmallDesktop(context) ? 28 : 32,
                     ),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: ResponsiveUtils.getSpacing(context, base: 12),
+                  ),
                   child: Text(
                     "${cartItem.quantity}",
-                    style: const TextStyle(
-                      fontSize: 16,
+                    style: TextStyle(
+                      fontSize: ResponsiveUtils.getFontSize(context, 16),
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),
@@ -688,37 +777,39 @@ class _BillSectionState extends State<BillSection> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.add, color: Colors.green, size: 18),
+                    icon: Icon(
+                      Icons.add,
+                      color: Colors.green,
+                      size: ResponsiveUtils.isSmallDesktop(context) ? 16 : 18,
+                    ),
                     onPressed: () {
                       cartManager.updateItemQuantity(
                         item['id'],
                         cartItem.quantity + 1,
                       );
                     },
-                    constraints: const BoxConstraints(
-                      minWidth: 32,
-                      minHeight: 32,
+                    constraints: BoxConstraints(
+                      minWidth: ResponsiveUtils.isSmallDesktop(context) ? 28 : 32,
+                      minHeight: ResponsiveUtils.isSmallDesktop(context) ? 28 : 32,
                     ),
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(width: 12),
+            SizedBox(width: ResponsiveUtils.getSpacing(context, base: 12)),
 
-            // Total price
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
                   "Rs. ${cartItem.totalPrice.toStringAsFixed(2)}",
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: TextStyle(
+                    fontSize: ResponsiveUtils.getFontSize(context, 16),
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
                   ),
                 ),
-                // Remove button
                 TextButton(
                   onPressed: () {
                     cartManager.removeItem(item['id']);
@@ -729,7 +820,10 @@ class _BillSectionState extends State<BillSection> {
                   ),
                   child: Text(
                     "Remove",
-                    style: TextStyle(fontSize: 12, color: Colors.red[600]),
+                    style: TextStyle(
+                      fontSize: ResponsiveUtils.getFontSize(context, 12),
+                      color: Colors.red[600],
+                    ),
                   ),
                 ),
               ],

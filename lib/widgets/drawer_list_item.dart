@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/responsive.dart';
 
 class DrawerListItem extends StatefulWidget {
   final String title;
@@ -54,7 +55,10 @@ class _DrawerListItemState extends State<DrawerListItem>
         return Transform.scale(
           scale: _scaleAnimation.value,
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+            margin: EdgeInsets.symmetric(
+              horizontal: ResponsiveUtils.getSpacing(context, base: 12),
+              vertical: ResponsiveUtils.getSpacing(context, base: 3),
+            ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               gradient: widget.isSelected
@@ -110,13 +114,17 @@ class _DrawerListItemState extends State<DrawerListItem>
                 onTap: widget.onTap,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: ResponsiveUtils.getSpacing(context),
+                    vertical: ResponsiveUtils.getSpacing(context),
+                  ),
                   child: Row(
                     children: [
-                      // Icon with animated background
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.all(10),
+                        padding: EdgeInsets.all(
+                          ResponsiveUtils.getSpacing(context, base: 10),
+                        ),
                         decoration: BoxDecoration(
                           color: widget.isSelected
                               ? Colors.white.withOpacity(0.2)
@@ -132,17 +140,16 @@ class _DrawerListItemState extends State<DrawerListItem>
                               : _isHovered
                                   ? Colors.red
                                   : Colors.grey[600],
-                          size: 24,
+                          size: ResponsiveUtils.isSmallDesktop(context) ? 20 : 24,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      SizedBox(width: ResponsiveUtils.getSpacing(context)),
                       
-                      // Title
                       Expanded(
                         child: AnimatedDefaultTextStyle(
                           duration: const Duration(milliseconds: 200),
                           style: TextStyle(
-                            fontSize: 17,
+                            fontSize: ResponsiveUtils.getFontSize(context, 17),
                             fontWeight: widget.isSelected || _isHovered
                                 ? FontWeight.w600
                                 : FontWeight.w500,
@@ -156,25 +163,26 @@ class _DrawerListItemState extends State<DrawerListItem>
                         ),
                       ),
                       
-                      // Selection indicator
                       if (widget.isSelected)
                         Container(
-                          padding: const EdgeInsets.all(4),
+                          padding: EdgeInsets.all(
+                            ResponsiveUtils.getSpacing(context, base: 4),
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.check,
                             color: Colors.white,
-                            size: 16,
+                            size: ResponsiveUtils.isSmallDesktop(context) ? 14 : 16,
                           ),
                         )
                       else if (_isHovered)
                         Icon(
                           Icons.arrow_forward_ios,
                           color: Colors.red,
-                          size: 16,
+                          size: ResponsiveUtils.isSmallDesktop(context) ? 14 : 16,
                         ),
                     ],
                   ),

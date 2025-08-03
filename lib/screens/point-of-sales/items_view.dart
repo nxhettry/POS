@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import "../../data/cart_manager.dart";
 import "../../services/database_service.dart";
 import "../../models/models.dart";
+import "../../utils/responsive.dart";
 
 class ItemsView extends StatefulWidget {
   const ItemsView({super.key});
@@ -27,7 +28,7 @@ class _ItemsViewState extends State<ItemsView> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: ResponsiveUtils.getPadding(context),
         child: Column(
           children: [
             Container(
@@ -36,6 +37,9 @@ class _ItemsViewState extends State<ItemsView> {
                 controller: searchController,
                 decoration: InputDecoration(
                   hintText: 'Search items...',
+                  hintStyle: TextStyle(
+                    fontSize: ResponsiveUtils.getFontSize(context, 14),
+                  ),
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: searchQuery.isNotEmpty
                       ? IconButton(
@@ -52,6 +56,9 @@ class _ItemsViewState extends State<ItemsView> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
+                style: TextStyle(
+                  fontSize: ResponsiveUtils.getFontSize(context, 14),
+                ),
                 onChanged: (value) {
                   setState(() {
                     searchQuery = value;
@@ -59,7 +66,7 @@ class _ItemsViewState extends State<ItemsView> {
                 },
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: ResponsiveUtils.getSpacing(context)),
             FutureBuilder<List<Category>>(
               future: _databaseService.getCategories(),
               builder: (context, snapshot) {
@@ -94,20 +101,14 @@ class _ItemsViewState extends State<ItemsView> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.only(
-                      left: 16.0,
-                      right: 16.0,
-                      top: 8.0,
-                      bottom: 8.0,
-                    ),
+                    padding: ResponsiveUtils.getPadding(context),
                     child: SizedBox(
-                      height: 50,
+                      height: ResponsiveUtils.isSmallDesktop(context) ? 45 : 50,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
                         itemCount: categories.length + 1,
                         itemBuilder: (context, index) {
                           if (index == 0) {
-                            // "All" category
                             return GestureDetector(
                               onTap: () {
                                 setState(() {
@@ -115,8 +116,12 @@ class _ItemsViewState extends State<ItemsView> {
                                 });
                               },
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                margin: const EdgeInsets.only(right: 10),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: ResponsiveUtils.getSpacing(context),
+                                ),
+                                margin: EdgeInsets.only(
+                                  right: ResponsiveUtils.getSpacing(context, base: 10),
+                                ),
                                 decoration: BoxDecoration(
                                   color: selectedCategory == 0
                                       ? Colors.red.withOpacity(0.1)
@@ -131,6 +136,7 @@ class _ItemsViewState extends State<ItemsView> {
                                           ? Colors.red
                                           : Colors.black,
                                       fontWeight: FontWeight.bold,
+                                      fontSize: ResponsiveUtils.getFontSize(context, 14),
                                     ),
                                   ),
                                 ),
@@ -146,8 +152,12 @@ class _ItemsViewState extends State<ItemsView> {
                               });
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                              margin: const EdgeInsets.only(right: 10),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: ResponsiveUtils.getSpacing(context),
+                              ),
+                              margin: EdgeInsets.only(
+                                right: ResponsiveUtils.getSpacing(context, base: 10),
+                              ),
                               decoration: BoxDecoration(
                                 color: selectedCategory == category.id!
                                     ? Colors.red.withOpacity(0.1)
@@ -162,6 +172,7 @@ class _ItemsViewState extends State<ItemsView> {
                                         ? Colors.red
                                         : Colors.black,
                                     fontWeight: FontWeight.bold,
+                                    fontSize: ResponsiveUtils.getFontSize(context, 14),
                                   ),
                                 ),
                               ),
@@ -174,7 +185,7 @@ class _ItemsViewState extends State<ItemsView> {
                 );
               },
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: ResponsiveUtils.getSpacing(context)),
             Expanded(
               child: Items(
                 selectedCategory: selectedCategory,
@@ -268,11 +279,11 @@ class Items extends StatelessWidget {
         }
 
         return GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 4,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: ResponsiveUtils.getGridColumns(context),
+            crossAxisSpacing: ResponsiveUtils.getSpacing(context),
+            mainAxisSpacing: ResponsiveUtils.getSpacing(context),
+            childAspectRatio: ResponsiveUtils.getCardAspectRatio(context),
           ),
           itemCount: filteredItems.length,
           itemBuilder: (context, index) {
@@ -287,13 +298,13 @@ class Items extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(8.0),
+                  padding: ResponsiveUtils.getPadding(context, base: 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       Container(
-                        height: 160,
+                        height: ResponsiveUtils.getItemImageHeight(context),
                         width: double.infinity,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
@@ -303,27 +314,29 @@ class Items extends StatelessWidget {
                             ? Image.asset(item.image!, fit: BoxFit.contain)
                             : Icon(
                                 Icons.fastfood,
-                                size: 80,
+                                size: ResponsiveUtils.isSmallDesktop(context) ? 60 : 80,
                                 color: Colors.grey[400],
                               ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: ResponsiveUtils.getSpacing(context, base: 8)),
                       Column(
                         children: [
                           Text(
                             item.itemName,
-                            style: const TextStyle(
-                              fontSize: 15,
+                            style: TextStyle(
+                              fontSize: ResponsiveUtils.getFontSize(context, 15),
                               fontWeight: FontWeight.bold,
                               fontFamily: "Roboto",
                             ),
                             textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: ResponsiveUtils.getSpacing(context, base: 4)),
                           Text(
                             'Rs. ${item.rate.toStringAsFixed(0)}',
-                            style: const TextStyle(
-                              fontSize: 16,
+                            style: TextStyle(
+                              fontSize: ResponsiveUtils.getFontSize(context, 16),
                               color: Colors.green,
                               fontWeight: FontWeight.w600,
                             ),
@@ -392,11 +405,14 @@ class _ItemPopupState extends State<ItemPopup> {
 
   @override
   Widget build(BuildContext context) {
+    final dialogWidth = ResponsiveUtils.isSmallDesktop(context) ? 350 : 400;
+    final imageSize = ResponsiveUtils.isSmallDesktop(context) ? 180 : 200;
+    
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
-        width: 400,
-        padding: const EdgeInsets.all(24),
+        width: dialogWidth.toDouble(),
+        padding: ResponsiveUtils.getPadding(context, base: 24),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -404,7 +420,6 @@ class _ItemPopupState extends State<ItemPopup> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Close button
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -415,10 +430,9 @@ class _ItemPopupState extends State<ItemPopup> {
               ],
             ),
 
-            // Item Image
             Container(
-              height: 200,
-              width: 200,
+              height: imageSize.toDouble(),
+              width: imageSize.toDouble(),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 color: Colors.grey[100],
@@ -437,34 +451,35 @@ class _ItemPopupState extends State<ItemPopup> {
                     ? Image.asset(widget.item.image!, fit: BoxFit.cover)
                     : Icon(
                         Icons.fastfood,
-                        size: 100,
+                        size: ResponsiveUtils.isSmallDesktop(context) ? 80 : 100,
                         color: Colors.grey[400],
                       ),
               ),
             ),
 
-            const SizedBox(height: 20),
+            SizedBox(height: ResponsiveUtils.getSpacing(context, base: 20)),
 
-            // Item Name
             Text(
               widget.item.itemName,
-              style: const TextStyle(
-                fontSize: 24,
+              style: TextStyle(
+                fontSize: ResponsiveUtils.getFontSize(context, 24),
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
               ),
               textAlign: TextAlign.center,
             ),
 
-            const SizedBox(height: 12),
+            SizedBox(height: ResponsiveUtils.getSpacing(context, base: 12)),
 
-            // Category Badge
             FutureBuilder<String>(
               future: _getCategoryName(widget.item.categoryId),
               builder: (context, snapshot) {
                 final categoryName = snapshot.data ?? 'Loading...';
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: ResponsiveUtils.getSpacing(context),
+                    vertical: ResponsiveUtils.getSpacing(context, base: 6),
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.blue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -472,8 +487,8 @@ class _ItemPopupState extends State<ItemPopup> {
                   ),
                   child: Text(
                     categoryName,
-                    style: const TextStyle(
-                      fontSize: 14,
+                    style: TextStyle(
+                      fontSize: ResponsiveUtils.getFontSize(context, 14),
                       color: Colors.blue,
                       fontWeight: FontWeight.w600,
                     ),
@@ -482,25 +497,22 @@ class _ItemPopupState extends State<ItemPopup> {
               },
             ),
 
-            const SizedBox(height: 16),
+            SizedBox(height: ResponsiveUtils.getSpacing(context)),
 
-            // Price
             Text(
               'Rs. ${widget.item.rate.toStringAsFixed(0)}',
-              style: const TextStyle(
-                fontSize: 28,
+              style: TextStyle(
+                fontSize: ResponsiveUtils.getFontSize(context, 28),
                 color: Colors.green,
                 fontWeight: FontWeight.bold,
               ),
             ),
 
-            const SizedBox(height: 32),
+            SizedBox(height: ResponsiveUtils.getSpacing(context, base: 32)),
 
-            // Quantity Controls
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Minus button
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.grey[100],
@@ -510,24 +522,23 @@ class _ItemPopupState extends State<ItemPopup> {
                   child: IconButton(
                     onPressed: () => _updateQuantity(quantity - 1),
                     icon: const Icon(Icons.remove, color: Colors.grey),
-                    constraints: const BoxConstraints(
-                      minWidth: 48,
-                      minHeight: 48,
+                    constraints: BoxConstraints(
+                      minWidth: ResponsiveUtils.isSmallDesktop(context) ? 40 : 48,
+                      minHeight: ResponsiveUtils.isSmallDesktop(context) ? 40 : 48,
                     ),
                   ),
                 ),
 
-                const SizedBox(width: 16),
+                SizedBox(width: ResponsiveUtils.getSpacing(context)),
 
-                // Quantity Input
                 SizedBox(
-                  width: 80,
+                  width: ResponsiveUtils.isSmallDesktop(context) ? 70 : 80,
                   child: TextField(
                     controller: quantityController,
                     textAlign: TextAlign.center,
                     keyboardType: TextInputType.number,
-                    style: const TextStyle(
-                      fontSize: 18,
+                    style: TextStyle(
+                      fontSize: ResponsiveUtils.getFontSize(context, 18),
                       fontWeight: FontWeight.bold,
                     ),
                     decoration: InputDecoration(
@@ -542,7 +553,9 @@ class _ItemPopupState extends State<ItemPopup> {
                           width: 2,
                         ),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                      contentPadding: EdgeInsets.symmetric(
+                        vertical: ResponsiveUtils.getSpacing(context, base: 12),
+                      ),
                     ),
                     onChanged: (value) {
                       final newQuantity = int.tryParse(value) ?? 1;
@@ -555,9 +568,8 @@ class _ItemPopupState extends State<ItemPopup> {
                   ),
                 ),
 
-                const SizedBox(width: 16),
+                SizedBox(width: ResponsiveUtils.getSpacing(context)),
 
-                // Plus button
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.grey[100],
@@ -567,24 +579,22 @@ class _ItemPopupState extends State<ItemPopup> {
                   child: IconButton(
                     onPressed: () => _updateQuantity(quantity + 1),
                     icon: const Icon(Icons.add, color: Colors.grey),
-                    constraints: const BoxConstraints(
-                      minWidth: 48,
-                      minHeight: 48,
+                    constraints: BoxConstraints(
+                      minWidth: ResponsiveUtils.isSmallDesktop(context) ? 40 : 48,
+                      minHeight: ResponsiveUtils.isSmallDesktop(context) ? 40 : 48,
                     ),
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 32),
+            SizedBox(height: ResponsiveUtils.getSpacing(context, base: 32)),
 
-            // Add to Cart Button
             SizedBox(
               width: double.infinity,
-              height: 56,
+              height: ResponsiveUtils.isSmallDesktop(context) ? 50 : 56,
               child: ElevatedButton(
                 onPressed: () {
-                  // Convert Item to Map format for CartManager compatibility
                   Map<String, dynamic> itemMap = {
                     'id': widget.item.id,
                     'category_id': widget.item.categoryId,
@@ -593,7 +603,6 @@ class _ItemPopupState extends State<ItemPopup> {
                     'image': widget.item.image,
                   };
                   
-                  // Add item to cart using CartManager
                   CartManager().addItem(itemMap, quantity);
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -620,11 +629,11 @@ class _ItemPopupState extends State<ItemPopup> {
                       Icons.shopping_cart_outlined,
                       color: Colors.white,
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: ResponsiveUtils.getSpacing(context, base: 8)),
                     Text(
                       'Add to Cart - Rs. ${(widget.item.rate * quantity).toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        fontSize: 18,
+                      style: TextStyle(
+                        fontSize: ResponsiveUtils.getFontSize(context, 18),
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),

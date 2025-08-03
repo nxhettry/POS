@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pos/screens/point-of-sales/bill_section.dart';
 import 'package:pos/screens/point-of-sales/items_view.dart';
+import '../../utils/responsive.dart';
 
 class PointOfSaleScreen extends StatelessWidget {
   const PointOfSaleScreen({super.key});
@@ -11,12 +12,18 @@ class PointOfSaleScreen extends StatelessWidget {
       body: Container(
         decoration: BoxDecoration(color: Colors.grey[100]),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: ResponsiveUtils.getPadding(context),
           child: Row(
             children: [
-              Expanded(flex: 2, child: const ItemsView()),
-              const SizedBox(width: 16),
-              Expanded(flex: 1, child: const BillSection()),
+              Expanded(
+                flex: ResponsiveUtils.getItemsSectionFlex(context).round(),
+                child: const ItemsView(),
+              ),
+              SizedBox(width: ResponsiveUtils.getSpacing(context)),
+              Expanded(
+                flex: ResponsiveUtils.getBillSectionFlex(context).round(),
+                child: const BillSection(),
+              ),
             ],
           ),
         ),
