@@ -586,13 +586,39 @@ class _BillSectionState extends State<BillSection> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  item['image'],
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Icon(Icons.image_not_supported, color: Colors.grey);
-                  },
-                ),
+                child: item['image'] != null && item['image'].toString().isNotEmpty
+                    ? Image.asset(
+                        item['image'],
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.fastfood,
+                              color: Colors.grey[600],
+                              size: 24,
+                            ),
+                          );
+                        },
+                      )
+                    : Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.fastfood,
+                          color: Colors.grey[600],
+                          size: 24,
+                        ),
+                      ),
               ),
             ),
             const SizedBox(width: 12),
