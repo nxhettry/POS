@@ -609,7 +609,7 @@ class _BillSectionState extends State<BillSection> {
           AnimatedBuilder(
             animation: cartManager,
             builder: (context, child) {
-              return Container(
+              return SizedBox(
                 width: double.infinity,
                 height: ResponsiveUtils.isSmallDesktop(context) ? 44 : 48,
                 child: ElevatedButton(

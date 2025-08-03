@@ -28,7 +28,6 @@ class _TablesState extends State<Tables> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Error loading tables: $e');
       setState(() {
         _isLoading = false;
       });
@@ -69,7 +68,6 @@ class _TablesState extends State<Tables> {
           currentTables.add(models.Table(id: tableId, name: tableName));
         });
       } catch (e) {
-        print('Error adding table: $e');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error adding table: $e')),
@@ -77,10 +75,6 @@ class _TablesState extends State<Tables> {
         }
       }
     }
-  }
-
-  void _handleTableSelection(models.Table table) {
-    print("Table ${table.name} selected");
   }
 
   void _deleteTable(models.Table table) async {
@@ -114,7 +108,6 @@ class _TablesState extends State<Tables> {
           });
         }
       } catch (e) {
-        print('Error deleting table: $e');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error deleting table: $e')),
@@ -220,7 +213,6 @@ class _TablesState extends State<Tables> {
                     itemBuilder: (context, index) {
                       final table = currentTables[index];
                       return GestureDetector(
-                        onTap: () => _handleTableSelection(table),
                         onLongPress: () => _deleteTable(table),
                         child: Container(
                           decoration: BoxDecoration(

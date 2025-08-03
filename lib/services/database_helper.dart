@@ -19,13 +19,11 @@ class DatabaseHelper {
   Future<Database> initDatabase() async {
     String path = await getDatabasesPath();
     String dbPath = join(path, 'pos_database.db');
-    print('Database path: $dbPath'); // Debug: Print the actual database path
     return await openDatabase(
       dbPath,
       version: 6,
       onCreate: (db, version) async {
         await _createTables(db);
-        print('Database created at: $dbPath'); // Debug: Confirm creation
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -33,11 +31,9 @@ class DatabaseHelper {
           await _createTables(db);
         }
         if (oldVersion < 3) {
-          // Add image column to items table
           await db.execute('ALTER TABLE items ADD COLUMN image TEXT');
         }
         if (oldVersion < 4) {
-          // Add counters table for auto-increment functionality
           await db.execute('''
             CREATE TABLE counters (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,13 +41,11 @@ class DatabaseHelper {
               counter_value INTEGER NOT NULL DEFAULT 0
             )
           ''');
-          // Initialize invoice counter
           await db.execute('''
             INSERT INTO counters (counter_name, counter_value) VALUES ('invoice_counter', 0)
           ''');
         }
         if (oldVersion < 5) {
-          // Add restaurant table
           await db.execute('''
             CREATE TABLE restaurant (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,7 +89,6 @@ class DatabaseHelper {
   }
 
   Future<void> _createTables(Database db) async {
-    // Create categories table
     await db.execute('''
       CREATE TABLE categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -103,7 +96,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // Create items table
     await db.execute('''
       CREATE TABLE items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -115,7 +107,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // Create tables table
     await db.execute('''
       CREATE TABLE tables (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -123,7 +114,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // Create sales table
     await db.execute('''
       CREATE TABLE sales (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -141,7 +131,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // Create cart_items table
     await db.execute('''
       CREATE TABLE cart_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -156,7 +145,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // Create restaurant table
     await db.execute('''
       CREATE TABLE restaurant (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -196,7 +184,6 @@ class DatabaseHelper {
       )
     ''');
 
-    // Create counters table for auto-increment values
     await db.execute('''
       CREATE TABLE counters (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -205,13 +192,11 @@ class DatabaseHelper {
       )
     ''');
 
-    // Initialize invoice counter
     await db.execute('''
       INSERT INTO counters (counter_name, counter_value) VALUES ('invoice_counter', 0)
     ''');
   }
 
-  // Category operations
   Future<int> insertCategory(Category category) async {
     final db = await database;
     return await db.insert('categories', {'name': category.name});
@@ -237,13 +222,10 @@ class DatabaseHelper {
 
   Future<int> deleteCategory(int categoryId) async {
     final db = await database;
-    // First delete all items in this category
     await db.delete('items', where: 'category_id = ?', whereArgs: [categoryId]);
-    // Then delete the category
     return await db.delete('categories', where: 'id = ?', whereArgs: [categoryId]);
   }
 
-  // Item operations
   Future<int> insertItem(Item item) async {
     final db = await database;
     return await db.insert('items', {
@@ -306,7 +288,6 @@ class DatabaseHelper {
     return await db.delete('items', where: 'id = ?', whereArgs: [itemId]);
   }
 
-  // Table operations
   Future<int> insertTable(Table table) async {
     final db = await database;
     return await db.insert('tables', {'name': table.name});
@@ -353,7 +334,6 @@ class DatabaseHelper {
 
   Future<int> insertSale(Sales sale) async {
     final db = await database;
-    print('DatabaseHelper: Starting to insert sale: ${sale.invoiceNo}');
 
     try {
       int saleId = await db.transaction((txn) async {
@@ -371,13 +351,9 @@ class DatabaseHelper {
           'timestamp': sale.timestamp.toIso8601String(),
         });
 
-        print('DatabaseHelper: Main sale record inserted with ID: $saleId');
 
         for (int i = 0; i < sale.items.length; i++) {
           CartItem cartItem = sale.items[i];
-          print(
-            'DatabaseHelper: Inserting cart item ${i + 1}: ${cartItem.item['item_name']}',
-          );
 
           await txn.insert('cart_items', {
             'sale_id': saleId,
@@ -389,17 +365,11 @@ class DatabaseHelper {
           });
         }
 
-        print(
-          'DatabaseHelper: All ${sale.items.length} cart items inserted successfully',
-        );
         return saleId;
       });
 
       return saleId;
     } catch (e) {
-      print(
-        'DatabaseHelper: Error inserting sale (transaction rolled back): $e',
-      );
       rethrow;
     }
   }

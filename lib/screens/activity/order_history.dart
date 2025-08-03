@@ -33,7 +33,6 @@ class _OrderHistoryState extends State<OrderHistory> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Error loading sales: $e');
       setState(() {
         _allSales = [];
         _isLoading = false;

@@ -416,7 +416,6 @@ class _TaxScreenState extends State<TaxScreen> {
   }
 
   void _addNewTaxRule() {
-    // TODO: Implement add new tax rule dialog
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Add new tax rule feature coming soon!'),

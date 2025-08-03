@@ -311,7 +311,6 @@ class _SalesBillScreenState extends State<SalesBillScreen> {
   }
 
   void _previewBill() {
-    // TODO: Implement bill preview functionality
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Bill preview feature coming soon!'),

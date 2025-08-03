@@ -19,7 +19,7 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +40,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key}) : super(key: key);
+  const MyHomePage({super.key});
 
   @override
   _MyHomePageState createState() => _MyHomePageState();
@@ -245,7 +245,7 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class DateTimeBadge extends StatefulWidget {
-  const DateTimeBadge({Key? key}) : super(key: key);
+  const DateTimeBadge({super.key});
 
   @override
   _DateTimeBadgeState createState() => _DateTimeBadgeState();

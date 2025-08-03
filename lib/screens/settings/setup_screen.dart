@@ -58,7 +58,6 @@ class _SetupScreenState extends State<SetupScreen> {
       }
       setState(() {});
     } catch (e) {
-      print('Error loading data: $e');
       // Show error message to user
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -966,7 +965,6 @@ class _SetupScreenState extends State<SetupScreen> {
       });
       _showSuccessMessage('Category added successfully!');
     } catch (e) {
-      print('Error adding category: $e');
       _showErrorMessage('Error adding category: $e');
     }
   }
@@ -1002,7 +1000,6 @@ class _SetupScreenState extends State<SetupScreen> {
       });
       _showSuccessMessage('Item added successfully!');
     } catch (e) {
-      print('Error adding item: $e');
       _showErrorMessage('Error adding item: $e');
     }
   }
@@ -1113,7 +1110,6 @@ class _SetupScreenState extends State<SetupScreen> {
           _showSuccessMessage('Category updated successfully!');
         }
       } catch (e) {
-        print('Error updating category: $e');
         _showErrorMessage('Error updating category: $e');
       }
     }
@@ -1143,7 +1139,6 @@ class _SetupScreenState extends State<SetupScreen> {
           _showSuccessMessage('Item updated successfully!');
         }
       } catch (e) {
-        print('Error updating item: $e');
         _showErrorMessage('Error updating item: $e');
       }
     }

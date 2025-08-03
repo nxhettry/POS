@@ -65,14 +65,10 @@ class DatabaseService {
   }
 
   Future<int> saveSale(Sales sale) async {
-    print('DatabaseService: Saving sale with invoice: ${sale.invoiceNo}');
-    print('DatabaseService: Sale items count: ${sale.items.length}');
     try {
       final result = await _databaseHelper.insertSale(sale);
-      print('DatabaseService: Sale saved successfully with ID: $result');
       return result;
     } catch (e) {
-      print('DatabaseService: Error saving sale: $e');
       rethrow;
     }
   }
