@@ -23,7 +23,6 @@ class _SystemScreenState extends State<SystemScreen> {
   
   final List<String> _languages = ['English', 'Nepali', 'Hindi'];
   final List<String> _currencies = ['NPR', 'USD', 'EUR', 'INR'];
-  final List<String> _dateFormats = ['dd/MM/yyyy', 'MM/dd/yyyy', 'yyyy-MM-dd'];
   final List<String> _timeZones = [
     'Asia/Kathmandu',
     'UTC',

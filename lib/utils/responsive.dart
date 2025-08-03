@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
 class ResponsiveUtils {
+  static bool isExtraSmallDesktop(BuildContext context) {
+    return MediaQuery.of(context).size.width < 1280;
+  }
+
   static bool isSmallDesktop(BuildContext context) {
     return MediaQuery.of(context).size.width < 1366;
   }
@@ -39,21 +43,24 @@ class ResponsiveUtils {
 
   static double getDrawerWidth(BuildContext context) {
     final width = getScreenWidth(context);
-    if (width < 1280) return 240;
+    if (width < 1280) return 220;
+    if (width < 1366) return 240;
     if (width < 1600) return 260;
-    return 280;
+    return 350;
   }
 
   static double getFontSize(BuildContext context, double baseSize) {
     final width = getScreenWidth(context);
-    if (width < 1280) return baseSize * 0.9;
+    if (width < 1280) return baseSize * 0.85;
+    if (width < 1366) return baseSize * 0.9;
     if (width < 1600) return baseSize;
     return baseSize * 1.1;
   }
 
   static EdgeInsets getPadding(BuildContext context, {double base = 16.0}) {
     final width = getScreenWidth(context);
-    if (width < 1280) return EdgeInsets.all(base * 0.75);
+    if (width < 1280) return EdgeInsets.all(base * 0.7);
+    if (width < 1366) return EdgeInsets.all(base * 0.8);
     if (width < 1600) return EdgeInsets.all(base);
     return EdgeInsets.all(base * 1.25);
   }

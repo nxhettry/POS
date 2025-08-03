@@ -86,7 +86,8 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Column(
             children: [
               Container(
-                height: ResponsiveUtils.isSmallDesktop(context) ? 180 : 200,
+                height: ResponsiveUtils.isExtraSmallDesktop(context) ? 160 : 
+                        ResponsiveUtils.isSmallDesktop(context) ? 180 : 200,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -114,8 +115,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: ResponsiveUtils.isSmallDesktop(context) ? 60 : 70,
-                          height: ResponsiveUtils.isSmallDesktop(context) ? 60 : 70,
+                          width: ResponsiveUtils.isExtraSmallDesktop(context) ? 50 :
+                                 ResponsiveUtils.isSmallDesktop(context) ? 60 : 70,
+                          height: ResponsiveUtils.isExtraSmallDesktop(context) ? 50 :
+                                  ResponsiveUtils.isSmallDesktop(context) ? 60 : 70,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
                             color: Colors.white,
@@ -141,7 +144,8 @@ class _MyHomePageState extends State<MyHomePage> {
                           'Rato-POS',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: ResponsiveUtils.getFontSize(context, 28),
+                            fontSize: ResponsiveUtils.getFontSize(context, 
+                              ResponsiveUtils.isExtraSmallDesktop(context) ? 24 : 28),
                             fontWeight: FontWeight.bold,
                             shadows: [
                               Shadow(
@@ -152,12 +156,19 @@ class _MyHomePageState extends State<MyHomePage> {
                             ],
                           ),
                         ),
-                        Text(
-                          'Restaurant Management System',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                            fontSize: ResponsiveUtils.getFontSize(context, 14),
-                            fontWeight: FontWeight.w500,
+                        Flexible(
+                          child: Text(
+                            'Restaurant Management System',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: ResponsiveUtils.getFontSize(context, 
+                                ResponsiveUtils.isExtraSmallDesktop(context) ? 11 : 
+                                ResponsiveUtils.isSmallDesktop(context) ? 12 : 14),
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            softWrap: true,
                           ),
                         ),
                       ],

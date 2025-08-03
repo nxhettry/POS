@@ -1,6 +1,6 @@
 import "package:flutter/material.dart";
 import "package:pos/services/database_service.dart";
-import "../../data/cart_manager.dart";
+import "../../services/cart_manager.dart";
 import "../../models/models.dart" as models;
 import "../../utils/responsive.dart";
 import 'dart:developer' as developer;

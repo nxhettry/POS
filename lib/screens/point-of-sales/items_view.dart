@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import "../../data/cart_manager.dart";
+import "../../services/cart_manager.dart";
 import "../../services/database_service.dart";
 import "../../models/models.dart";
 import "../../utils/responsive.dart";
