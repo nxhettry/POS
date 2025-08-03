@@ -145,6 +145,24 @@ class DatabaseHelper {
     });
   }
 
+  Future<int> updateCategory(Category category) async {
+    final db = await database;
+    return await db.update(
+      'categories',
+      {'name': category.name},
+      where: 'id = ?',
+      whereArgs: [category.id],
+    );
+  }
+
+  Future<int> deleteCategory(int categoryId) async {
+    final db = await database;
+    // First delete all items in this category
+    await db.delete('items', where: 'category_id = ?', whereArgs: [categoryId]);
+    // Then delete the category
+    return await db.delete('categories', where: 'id = ?', whereArgs: [categoryId]);
+  }
+
   // Item operations
   Future<int> insertItem(Item item) async {
     final db = await database;
@@ -186,6 +204,26 @@ class DatabaseHelper {
         image: maps[i]['image'],
       );
     });
+  }
+
+  Future<int> updateItem(Item item) async {
+    final db = await database;
+    return await db.update(
+      'items',
+      {
+        'category_id': item.categoryId,
+        'item_name': item.itemName,
+        'rate': item.rate,
+        'image': item.image,
+      },
+      where: 'id = ?',
+      whereArgs: [item.id],
+    );
+  }
+
+  Future<int> deleteItem(int itemId) async {
+    final db = await database;
+    return await db.delete('items', where: 'id = ?', whereArgs: [itemId]);
   }
 
   // Table operations

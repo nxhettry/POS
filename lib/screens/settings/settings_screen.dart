@@ -4,13 +4,9 @@ import 'restaurant_info_screen.dart';
 import 'sales_bill_screen.dart';
 import 'tax_screen.dart';
 import 'system_screen.dart';
+import "./setup_screen.dart";
 
-enum SettingsSection {
-  restaurantInfo,
-  salesBill,
-  tax,
-  system,
-}
+enum SettingsSection { restaurantInfo, salesBill, tax, system, setup }
 
 class SettingsMenuItem {
   final SettingsSection section;
@@ -55,6 +51,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       title: 'System',
       icon: Icons.settings,
     ),
+    SettingsMenuItem(
+      section: SettingsSection.setup,
+      title: 'Setup',
+      icon: Icons.build,
+    ),
   ];
 
   @override
@@ -68,16 +69,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                Colors.grey[50]!,
-                Colors.grey[100]!,
-              ],
+              colors: [Colors.grey[50]!, Colors.grey[100]!],
             ),
             border: Border(
-              right: BorderSide(
-                color: Colors.grey[300]!,
-                width: 1.0,
-              ),
+              right: BorderSide(color: Colors.grey[300]!, width: 1.0),
             ),
             boxShadow: [
               BoxShadow(
@@ -127,10 +122,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           children: [
                             Text(
                               'Settings',
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[800],
-                              ),
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey[800],
+                                  ),
                             ),
                             Text(
                               'Configure your POS',
@@ -146,7 +142,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
               ),
-              
+
               // Menu Items
               Expanded(
                 child: Padding(
@@ -194,6 +190,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return const TaxScreen();
       case SettingsSection.system:
         return const SystemScreen();
+      case SettingsSection.setup:
+        return const SetupScreen();
     }
   }
 }

@@ -135,3 +135,45 @@ class Sales {
     );
   }
 }
+
+class RestaurantInfo {
+  final String name;
+  final String address;
+  final String phone;
+  final String? email;
+  final String pan;
+
+  RestaurantInfo({
+    required this.name,
+    required this.address,
+    required this.phone,
+    this.email,
+    required this.pan,
+  });
+}
+
+class BillSettings {
+  final bool includeTax;
+  final bool includeDiscount;
+  final bool printCustomerCopy;
+  final bool printKitchenCopy;
+
+  BillSettings({
+    this.includeTax = true,
+    this.includeDiscount = true,
+    this.printCustomerCopy = true,
+    this.printKitchenCopy = true,
+  });
+}
+
+class SystemSettings {
+  final String currency;
+  final String dateFormat;
+  final String language;
+
+  SystemSettings({
+    required this.currency,
+    required this.dateFormat,
+    required this.language,
+  });
+}
