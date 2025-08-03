@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../models/models.dart';
+import '../../services/database_helper.dart';
 
 class RestaurantInfoScreen extends StatefulWidget {
   const RestaurantInfoScreen({super.key});
@@ -9,6 +11,8 @@ class RestaurantInfoScreen extends StatefulWidget {
 
 class _RestaurantInfoScreenState extends State<RestaurantInfoScreen> {
   final _formKey = GlobalKey<FormState>();
+  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  bool _isLoading = true;
 
   // Controllers for form fields
   final _restaurantNameController = TextEditingController();
@@ -16,6 +20,12 @@ class _RestaurantInfoScreenState extends State<RestaurantInfoScreen> {
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _panController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRestaurantInfo();
+  }
 
   @override
   void dispose() {
@@ -29,6 +39,14 @@ class _RestaurantInfoScreenState extends State<RestaurantInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: SingleChildScrollView(
@@ -150,6 +168,23 @@ class _RestaurantInfoScreenState extends State<RestaurantInfoScreen> {
             controller: controller,
             keyboardType: keyboardType,
             maxLines: maxLines,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter $label';
+              }
+              if (keyboardType == TextInputType.emailAddress) {
+                final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                if (!emailRegex.hasMatch(value.trim())) {
+                  return 'Please enter a valid email address';
+                }
+              }
+              if (keyboardType == TextInputType.phone) {
+                if (value.trim().length < 10) {
+                  return 'Please enter a valid phone number';
+                }
+              }
+              return null;
+            },
             decoration: InputDecoration(
               hintText: hint,
               prefixIcon: Icon(icon, color: Colors.grey[600]),
@@ -174,14 +209,69 @@ class _RestaurantInfoScreenState extends State<RestaurantInfoScreen> {
     );
   }
 
-  void _saveSettings() {
+  void _saveSettings() async {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Settings saved successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      try {
+        final restaurant = Restaurant(
+          name: _restaurantNameController.text.trim(),
+          address: _addressController.text.trim(),
+          phone: _phoneController.text.trim(),
+          email: _emailController.text.trim(),
+          panNumber: _panController.text.trim(),
+        );
+
+        await _databaseHelper.upsertRestaurant(restaurant);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Restaurant information saved successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error saving restaurant information: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _loadRestaurantInfo() async {
+    try {
+      final restaurant = await _databaseHelper.getRestaurant();
+      if (restaurant != null && mounted) {
+        setState(() {
+          _restaurantNameController.text = restaurant.name;
+          _addressController.text = restaurant.address;
+          _phoneController.text = restaurant.phone;
+          _emailController.text = restaurant.email;
+          _panController.text = restaurant.panNumber;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading restaurant information: $e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     }
   }
 }

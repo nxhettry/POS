@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../models/models.dart';
+import '../../services/database_helper.dart';
 
 class SystemScreen extends StatefulWidget {
   const SystemScreen({super.key});
@@ -8,16 +10,20 @@ class SystemScreen extends StatefulWidget {
 }
 
 class _SystemScreenState extends State<SystemScreen> {
+  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  bool _isLoading = true;
   bool _autoBackup = true;
   bool _enableNotifications = true;
   bool _darkMode = false;
   bool _enableSounds = true;
   String _selectedLanguage = 'English';
-  String _selectedCurrency = 'NPR (₹)';
+  String _selectedCurrency = 'NPR';
+  String _selectedDateFormat = 'dd/MM/yyyy';
   String _selectedTimeZone = 'Asia/Kathmandu';
   
   final List<String> _languages = ['English', 'Nepali', 'Hindi'];
-  final List<String> _currencies = ['NPR (₹)', 'USD (\$)', 'EUR (€)', 'INR (₹)'];
+  final List<String> _currencies = ['NPR', 'USD', 'EUR', 'INR'];
+  final List<String> _dateFormats = ['dd/MM/yyyy', 'MM/dd/yyyy', 'yyyy-MM-dd'];
   final List<String> _timeZones = [
     'Asia/Kathmandu',
     'UTC',
@@ -27,7 +33,21 @@ class _SystemScreenState extends State<SystemScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _loadSystemSettings();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: SingleChildScrollView(
@@ -513,12 +533,63 @@ class _SystemScreenState extends State<SystemScreen> {
     );
   }
 
-  void _saveSettings() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('System settings saved successfully!'),
-        backgroundColor: Colors.green,
-      ),
-    );
+  void _saveSettings() async {
+    try {
+      final systemSettings = SystemSettings(
+        currency: _selectedCurrency,
+        dateFormat: _selectedDateFormat,
+        language: _selectedLanguage,
+      );
+
+      await _databaseHelper.upsertSystemSettings(systemSettings);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('System settings saved successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving system settings: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadSystemSettings() async {
+    try {
+      final systemSettings = await _databaseHelper.getSystemSettings();
+      if (systemSettings != null && mounted) {
+        setState(() {
+          _selectedCurrency = systemSettings.currency;
+          _selectedDateFormat = systemSettings.dateFormat;
+          _selectedLanguage = systemSettings.language;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading system settings: $e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
   }
 }

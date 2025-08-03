@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:excel/excel.dart' as excel_lib;
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../data/sales.dart';
 
@@ -19,27 +23,40 @@ class _ReportsScreenState extends State<ReportsScreen> {
     '6 months',
   ];
 
+  int currentPage = 0;
+  final int itemsPerPage = 20;
+  bool isExporting = false;
+
   @override
   Widget build(BuildContext context) {
     final filteredSales = _getFilteredSales();
     final reportData = _calculateReportData(filteredSales);
     final mostSoldItems = _getMostSoldItems(filteredSales);
+    final paginatedSales = _getPaginatedSales(filteredSales);
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text('Sales Report'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.download),
-            onPressed: () {
-              // Handle download action
-            },
-          ),
+          isExporting
+              ? const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : IconButton(
+                  icon: const Icon(Icons.download),
+                  onPressed: _exportToExcel,
+                ),
         ],
       ),
       body: Column(
         children: [
+          // Time Selection Bar
           Container(
             padding: const EdgeInsets.all(16.0),
             decoration: const BoxDecoration(
@@ -66,55 +83,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Summary Cards for Sales, Products, and Revenue
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildSummaryCard(
-                          'Total Sales Count',
-                          '${reportData['salesCount']}',
-                          Icons.receipt_long,
-                          Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildSummaryCard(
-                          'Products Sold',
-                          '${reportData['productsSold']}',
-                          Icons.shopping_cart,
-                          Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _buildSummaryCard(
-                    'Total Sales Amount',
-                    'Rs. ${reportData['totalAmount']?.toStringAsFixed(2) ?? '0.00'}',
-                    Icons.attach_money,
-                    Colors.orange,
-                    isFullWidth: true,
-                  ),
-
+                  // Summary Cards
+                  _buildSummaryCards(reportData),
+                  
                   const SizedBox(height: 24),
 
-                  // Transaction Summary
-                  _buildTransactionSummary(reportData),
-
+                  // Most Sold Items Section
+                  _buildMostSoldItemsSection(mostSoldItems),
+                  
                   const SizedBox(height: 24),
 
-                  // Tables Section - Most Sold Items and Sales Records
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Most Sold Items Table
-                      Expanded(child: _buildMostSoldItemsTable(mostSoldItems)),
-                      const SizedBox(width: 16),
-                      // Sales Records Table
-                      Expanded(child: _buildSalesRecordsTable(filteredSales)),
-                    ],
-                  ),
+                  // Sales Records Section with Pagination
+                  _buildSalesRecordsSection(filteredSales, paginatedSales),
                 ],
               ),
             ),
@@ -130,6 +110,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       onTap: () {
         setState(() {
           selectedPeriod = period;
+          currentPage = 0; // Reset pagination when period changes
         });
       },
       child: Container(
@@ -149,6 +130,42 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSummaryCards(Map<String, dynamic> reportData) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildSummaryCard(
+                'Total Sales Count',
+                '${reportData['salesCount']}',
+                Icons.receipt_long,
+                Colors.blue,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildSummaryCard(
+                'Products Sold',
+                '${reportData['productsSold']}',
+                Icons.shopping_cart,
+                Colors.green,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildSummaryCard(
+          'Total Sales Amount',
+          'Rs. ${reportData['totalAmount']?.toStringAsFixed(2) ?? '0.00'}',
+          Icons.attach_money,
+          Colors.orange,
+          isFullWidth: true,
+        ),
+      ],
     );
   }
 
@@ -212,57 +229,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildTransactionSummary(Map<String, dynamic> reportData) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Transaction Summary',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildSummaryRow(
-            'Subtotal',
-            'Rs. ${reportData['subtotal']?.toStringAsFixed(2) ?? '0.00'}',
-          ),
-          _buildSummaryRow(
-            'Tax',
-            'Rs. ${reportData['tax']?.toStringAsFixed(2) ?? '0.00'}',
-          ),
-          _buildSummaryRow(
-            'Discount',
-            'Rs. ${reportData['discount']?.toStringAsFixed(2) ?? '0.00'}',
-          ),
-          const Divider(),
-          _buildSummaryRow(
-            'Total',
-            'Rs. ${reportData['totalAmount']?.toStringAsFixed(2) ?? '0.00'}',
-            isTotal: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMostSoldItemsTable(List<Map<String, dynamic>> mostSoldItems) {
+  Widget _buildMostSoldItemsSection(List<Map<String, dynamic>> mostSoldItems) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -290,68 +257,98 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ),
             ),
           ),
-          SizedBox(
-            height: 400,
-            child: SingleChildScrollView(
-              child: DataTable(
-                columnSpacing: 12,
-                columns: const [
-                  DataColumn(
-                    label: Text(
-                      '#',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columnSpacing: 24,
+              columns: const [
+                DataColumn(
+                  label: Text(
+                    'Rank',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  DataColumn(
-                    label: Text(
-                      'Item',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Item Name',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  DataColumn(
-                    label: Text(
-                      'Qty',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Quantity Sold',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  DataColumn(
-                    label: Text(
-                      'Revenue',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Total Revenue',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                ],
-                rows: mostSoldItems.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
-                  return DataRow(
-                    cells: [
-                      DataCell(Text('${index + 1}')),
-                      DataCell(
-                        SizedBox(
-                          width: 120,
-                          child: Text(
-                            item['name'],
-                            overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              rows: mostSoldItems.asMap().entries.map((entry) {
+                final index = entry.key;
+                final item = entry.value;
+                return DataRow(
+                  cells: [
+                    DataCell(
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getRankColor(index),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${index + 1}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                      DataCell(Text('${item['quantity']}')),
-                      DataCell(
-                        Text('Rs. ${item['revenue'].toStringAsFixed(2)}'),
+                    ),
+                    DataCell(
+                      SizedBox(
+                        width: 150,
+                        child: Text(
+                          item['name'],
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
                       ),
-                    ],
-                  );
-                }).toList(),
-              ),
+                    ),
+                    DataCell(
+                      Text(
+                        '${item['quantity']}',
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                    DataCell(
+                      Text(
+                        'Rs. ${item['revenue'].toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
             ),
           ),
+          const SizedBox(height: 16),
         ],
       ),
     );
   }
 
-  Widget _buildSalesRecordsTable(List<Sales> sales) {
+  Widget _buildSalesRecordsSection(List<Sales> allSales, List<Sales> paginatedSales) {
+    final totalPages = (allSales.length / itemsPerPage).ceil();
+    
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -368,100 +365,219 @@ class _ReportsScreenState extends State<ReportsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text(
-              'Recent Sales Records',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Sales Records',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                Text(
+                  'Total: ${allSales.length} records',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
             ),
           ),
-          SizedBox(
-            height: 400,
-            child: SingleChildScrollView(
-              child: DataTable(
-                columnSpacing: 8,
-                columns: const [
-                  DataColumn(
-                    label: Text(
-                      'Invoice',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columnSpacing: 16,
+              columns: const [
+                DataColumn(
+                  label: Text(
+                    'Invoice No.',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  DataColumn(
-                    label: Text(
-                      'Table',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Table',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  DataColumn(
-                    label: Text(
-                      'Type',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Order Type',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  DataColumn(
-                    label: Text(
-                      'Total',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Items',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  DataColumn(
-                    label: Text(
-                      'Date',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Total Amount',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                ],
-                rows: sales.map((sale) {
-                  return DataRow(
-                    cells: [
-                      DataCell(
-                        SizedBox(
-                          width: 80,
-                          child: Text(
-                            sale.invoiceNo,
-                            overflow: TextOverflow.ellipsis,
+                ),
+                DataColumn(
+                  label: Text(
+                    'Date & Time',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+              rows: paginatedSales.map((sale) {
+                return DataRow(
+                  cells: [
+                    DataCell(Text(sale.invoiceNo)),
+                    DataCell(Text(sale.table)),
+                    DataCell(
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: sale.orderType == 'Dine In' 
+                              ? Colors.blue.withOpacity(0.1)
+                              : Colors.orange.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          sale.orderType,
+                          style: TextStyle(
+                            color: sale.orderType == 'Dine In' 
+                                ? Colors.blue
+                                : Colors.orange,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
-                      DataCell(
-                        SizedBox(
-                          width: 60,
-                          child: Text(
-                            sale.table,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                    ),
+                    DataCell(
+                      Text(
+                        '${sale.items.fold(0, (sum, item) => sum + item.quantity)} items',
+                      ),
+                    ),
+                    DataCell(
+                      Text(
+                        'Rs. ${sale.total.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          color: Colors.green,
                         ),
                       ),
-                      DataCell(
-                        SizedBox(
-                          width: 70,
-                          child: Text(
-                            sale.orderType,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
+                    ),
+                    DataCell(
+                      Text(
+                        DateFormat('MMM dd, yyyy\nhh:mm a').format(sale.timestamp),
                       ),
-                      DataCell(Text('Rs. ${sale.total.toStringAsFixed(2)}')),
-                      DataCell(
-                        SizedBox(
-                          width: 80,
-                          child: Text(
-                            '${sale.timestamp.month}/${sale.timestamp.day}',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+          
+          // Pagination Controls
+          if (totalPages > 1)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Showing ${(currentPage * itemsPerPage) + 1}-${(currentPage * itemsPerPage) + paginatedSales.length} of ${allSales.length}',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 14,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: currentPage > 0
+                            ? () {
+                                setState(() {
+                                  currentPage--;
+                                });
+                              }
+                            : null,
+                        icon: const Icon(Icons.chevron_left),
+                      ),
+                      ...List.generate(
+                        totalPages > 5 ? 5 : totalPages,
+                        (index) {
+                          int pageNumber;
+                          if (totalPages <= 5) {
+                            pageNumber = index;
+                          } else {
+                            if (currentPage < 3) {
+                              pageNumber = index;
+                            } else if (currentPage >= totalPages - 3) {
+                              pageNumber = totalPages - 5 + index;
+                            } else {
+                              pageNumber = currentPage - 2 + index;
+                            }
+                          }
+                          
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                currentPage = pageNumber;
+                              });
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: currentPage == pageNumber
+                                    ? Colors.red
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: currentPage == pageNumber
+                                      ? Colors.red
+                                      : Colors.grey[300]!,
+                                ),
+                              ),
+                              child: Text(
+                                '${pageNumber + 1}',
+                                style: TextStyle(
+                                  color: currentPage == pageNumber
+                                      ? Colors.white
+                                      : Colors.grey[700],
+                                  fontWeight: currentPage == pageNumber
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      IconButton(
+                        onPressed: currentPage < totalPages - 1
+                            ? () {
+                                setState(() {
+                                  currentPage++;
+                                });
+                              }
+                            : null,
+                        icon: const Icon(Icons.chevron_right),
                       ),
                     ],
-                  );
-                }).toList(),
+                  ),
+                ],
               ),
             ),
-          ),
         ],
       ),
     );
@@ -494,7 +610,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     return salesData
         .where((sale) => sale.timestamp.isAfter(startDate))
-        .toList();
+        .toList()
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+  }
+
+  List<Sales> _getPaginatedSales(List<Sales> sales) {
+    final startIndex = currentPage * itemsPerPage;
+    final endIndex = (startIndex + itemsPerPage).clamp(0, sales.length);
+    return sales.sublist(startIndex, endIndex);
   }
 
   Map<String, dynamic> _calculateReportData(List<Sales> sales) {
@@ -564,31 +687,124 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return sortedItems.take(10).toList();
   }
 
-  Widget _buildSummaryRow(String label, String value, {bool isTotal = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-                fontSize: isTotal ? 16 : 14,
-                color: isTotal ? Colors.black87 : Colors.grey[700],
-              ),
+  Color _getRankColor(int rank) {
+    switch (rank) {
+      case 0:
+        return Colors.amber;
+      case 1:
+        return Colors.grey[600]!;
+      case 2:
+        return Colors.orange[700]!;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  Future<void> _exportToExcel() async {
+    setState(() {
+      isExporting = true;
+    });
+
+    try {
+      final filteredSales = _getFilteredSales();
+      final mostSoldItems = _getMostSoldItems(filteredSales);
+      final reportData = _calculateReportData(filteredSales);
+
+      var excel = excel_lib.Excel.createExcel();
+      
+      // Create Sales Summary Sheet
+      var summarySheet = excel['Sales Summary'];
+      
+      // Add headers and data for summary
+      summarySheet.cell(excel_lib.CellIndex.indexByString('A1')).value = excel_lib.TextCellValue('Sales Report Summary');
+      summarySheet.cell(excel_lib.CellIndex.indexByString('A2')).value = excel_lib.TextCellValue('Period: $selectedPeriod');
+      summarySheet.cell(excel_lib.CellIndex.indexByString('A3')).value = excel_lib.TextCellValue('Generated: ${DateFormat('MMM dd, yyyy hh:mm a').format(DateTime.now())}');
+      
+      summarySheet.cell(excel_lib.CellIndex.indexByString('A5')).value = excel_lib.TextCellValue('Metric');
+      summarySheet.cell(excel_lib.CellIndex.indexByString('B5')).value = excel_lib.TextCellValue('Value');
+      
+      summarySheet.cell(excel_lib.CellIndex.indexByString('A6')).value = excel_lib.TextCellValue('Total Sales Count');
+      summarySheet.cell(excel_lib.CellIndex.indexByString('B6')).value = excel_lib.IntCellValue(reportData['salesCount']);
+      
+      summarySheet.cell(excel_lib.CellIndex.indexByString('A7')).value = excel_lib.TextCellValue('Products Sold');
+      summarySheet.cell(excel_lib.CellIndex.indexByString('B7')).value = excel_lib.IntCellValue(reportData['productsSold']);
+      
+      summarySheet.cell(excel_lib.CellIndex.indexByString('A8')).value = excel_lib.TextCellValue('Total Sales Amount');
+      summarySheet.cell(excel_lib.CellIndex.indexByString('B8')).value = excel_lib.DoubleCellValue(reportData['totalAmount']);
+
+      // Create Most Sold Items Sheet
+      var mostSoldSheet = excel['Most Sold Items'];
+      mostSoldSheet.cell(excel_lib.CellIndex.indexByString('A1')).value = excel_lib.TextCellValue('Rank');
+      mostSoldSheet.cell(excel_lib.CellIndex.indexByString('B1')).value = excel_lib.TextCellValue('Item Name');
+      mostSoldSheet.cell(excel_lib.CellIndex.indexByString('C1')).value = excel_lib.TextCellValue('Quantity Sold');
+      mostSoldSheet.cell(excel_lib.CellIndex.indexByString('D1')).value = excel_lib.TextCellValue('Total Revenue');
+
+      for (int i = 0; i < mostSoldItems.length; i++) {
+        final item = mostSoldItems[i];
+        final row = i + 2;
+        mostSoldSheet.cell(excel_lib.CellIndex.indexByString('A$row')).value = excel_lib.IntCellValue(i + 1);
+        mostSoldSheet.cell(excel_lib.CellIndex.indexByString('B$row')).value = excel_lib.TextCellValue(item['name']);
+        mostSoldSheet.cell(excel_lib.CellIndex.indexByString('C$row')).value = excel_lib.IntCellValue(item['quantity']);
+        mostSoldSheet.cell(excel_lib.CellIndex.indexByString('D$row')).value = excel_lib.DoubleCellValue(item['revenue']);
+      }
+
+      // Create Sales Records Sheet
+      var salesSheet = excel['Sales Records'];
+      salesSheet.cell(excel_lib.CellIndex.indexByString('A1')).value = excel_lib.TextCellValue('Invoice No.');
+      salesSheet.cell(excel_lib.CellIndex.indexByString('B1')).value = excel_lib.TextCellValue('Table');
+      salesSheet.cell(excel_lib.CellIndex.indexByString('C1')).value = excel_lib.TextCellValue('Order Type');
+      salesSheet.cell(excel_lib.CellIndex.indexByString('D1')).value = excel_lib.TextCellValue('Total Amount');
+      salesSheet.cell(excel_lib.CellIndex.indexByString('E1')).value = excel_lib.TextCellValue('Date');
+      salesSheet.cell(excel_lib.CellIndex.indexByString('F1')).value = excel_lib.TextCellValue('Time');
+
+      for (int i = 0; i < filteredSales.length; i++) {
+        final sale = filteredSales[i];
+        final row = i + 2;
+        salesSheet.cell(excel_lib.CellIndex.indexByString('A$row')).value = excel_lib.TextCellValue(sale.invoiceNo);
+        salesSheet.cell(excel_lib.CellIndex.indexByString('B$row')).value = excel_lib.TextCellValue(sale.table);
+        salesSheet.cell(excel_lib.CellIndex.indexByString('C$row')).value = excel_lib.TextCellValue(sale.orderType);
+        salesSheet.cell(excel_lib.CellIndex.indexByString('D$row')).value = excel_lib.DoubleCellValue(sale.total);
+        salesSheet.cell(excel_lib.CellIndex.indexByString('E$row')).value = excel_lib.TextCellValue(DateFormat('MMM dd, yyyy').format(sale.timestamp));
+        salesSheet.cell(excel_lib.CellIndex.indexByString('F$row')).value = excel_lib.TextCellValue(DateFormat('hh:mm a').format(sale.timestamp));
+      }
+
+      // Remove default sheet
+      excel.delete('Sheet1');
+
+      // Save file
+      final directory = await getApplicationDocumentsDirectory();
+      final fileName = 'sales_report_${selectedPeriod}_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.xlsx';
+      final file = File('${directory.path}/$fileName');
+      
+      await file.writeAsBytes(excel.encode()!);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Report exported successfully to: ${file.path}'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'OK',
+              textColor: Colors.white,
+              onPressed: () {},
             ),
           ),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-              fontSize: isTotal ? 16 : 14,
-              color: isTotal ? Colors.black87 : Colors.grey[700],
-            ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error exporting report: $e'),
+            backgroundColor: Colors.red,
           ),
-        ],
-      ),
-    );
+        );
+      }
+    } finally {
+      setState(() {
+        isExporting = false;
+      });
+    }
   }
 }

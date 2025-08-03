@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../models/models.dart';
+import '../../services/database_helper.dart';
 
 class TaxScreen extends StatefulWidget {
   const TaxScreen({super.key});
@@ -8,10 +10,12 @@ class TaxScreen extends StatefulWidget {
 }
 
 class _TaxScreenState extends State<TaxScreen> {
+  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  bool _isLoading = true;
   bool _enableTax = true;
   bool _inclusiveTax = false;
-  final _vatRateController = TextEditingController(text: '13.0');
-  final _serviceChargeController = TextEditingController(text: '10.0');
+  final _taxRateController = TextEditingController(text: '13.0');
+  final _taxNameController = TextEditingController(text: 'VAT');
   
   final List<TaxRule> _taxRules = [
     TaxRule(name: 'VAT', rate: 13.0, isActive: true, description: 'Value Added Tax'),
@@ -20,14 +24,28 @@ class _TaxScreenState extends State<TaxScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _loadTaxSettings();
+  }
+
+  @override
   void dispose() {
-    _vatRateController.dispose();
-    _serviceChargeController.dispose();
+    _taxRateController.dispose();
+    _taxNameController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: SingleChildScrollView(
@@ -79,13 +97,13 @@ class _TaxScreenState extends State<TaxScreen> {
               children: [
                 _buildTaxRateField(
                   label: 'VAT Rate (%)',
-                  controller: _vatRateController,
+                  controller: _taxRateController,
                   icon: Icons.account_balance,
                 ),
                 const SizedBox(height: 16),
                 _buildTaxRateField(
                   label: 'Service Charge (%)',
-                  controller: _serviceChargeController,
+                  controller: _taxNameController,
                   icon: Icons.room_service,
                 ),
               ],
@@ -407,14 +425,65 @@ class _TaxScreenState extends State<TaxScreen> {
     );
   }
 
-  void _saveSettings() {
-    // TODO: Implement save functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Tax settings saved successfully!'),
-        backgroundColor: Colors.green,
-      ),
-    );
+  void _saveSettings() async {
+    try {
+      final taxRate = double.tryParse(_taxRateController.text) ?? 13.0;
+      final taxSettings = TaxSettings(
+        taxRate: taxRate,
+        taxName: _taxNameController.text.trim(),
+        isEnabled: _enableTax,
+      );
+
+      await _databaseHelper.upsertTaxSettings(taxSettings);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tax settings saved successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving tax settings: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadTaxSettings() async {
+    try {
+      final taxSettings = await _databaseHelper.getTaxSettings();
+      if (taxSettings != null && mounted) {
+        setState(() {
+          _taxRateController.text = taxSettings.taxRate.toString();
+          _taxNameController.text = taxSettings.taxName;
+          _enableTax = taxSettings.isEnabled;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading tax settings: $e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
   }
 }
 

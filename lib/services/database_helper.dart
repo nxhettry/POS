@@ -22,7 +22,7 @@ class DatabaseHelper {
     print('Database path: $dbPath'); // Debug: Print the actual database path
     return await openDatabase(
       dbPath,
-      version: 4,
+      version: 6,
       onCreate: (db, version) async {
         await _createTables(db);
         print('Database created at: $dbPath'); // Debug: Confirm creation
@@ -48,6 +48,46 @@ class DatabaseHelper {
           // Initialize invoice counter
           await db.execute('''
             INSERT INTO counters (counter_name, counter_value) VALUES ('invoice_counter', 0)
+          ''');
+        }
+        if (oldVersion < 5) {
+          // Add restaurant table
+          await db.execute('''
+            CREATE TABLE restaurant (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL,
+              address TEXT NOT NULL,
+              phone TEXT NOT NULL,
+              email TEXT NOT NULL,
+              pan_number TEXT NOT NULL
+            )
+          ''');
+        }
+        if (oldVersion < 6) {
+          await db.execute('''
+            CREATE TABLE bill_settings (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              include_tax INTEGER NOT NULL DEFAULT 1,
+              include_discount INTEGER NOT NULL DEFAULT 1,
+              print_customer_copy INTEGER NOT NULL DEFAULT 1,
+              print_kitchen_copy INTEGER NOT NULL DEFAULT 1
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE system_settings (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              currency TEXT NOT NULL DEFAULT 'NPR',
+              date_format TEXT NOT NULL DEFAULT 'dd/MM/yyyy',
+              language TEXT NOT NULL DEFAULT 'English'
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE tax_settings (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              tax_rate REAL NOT NULL DEFAULT 13.0,
+              tax_name TEXT NOT NULL DEFAULT 'VAT',
+              is_enabled INTEGER NOT NULL DEFAULT 1
+            )
           ''');
         }
       },
@@ -113,6 +153,46 @@ class DatabaseHelper {
         total_price REAL NOT NULL,
         FOREIGN KEY (sale_id) REFERENCES sales (id),
         FOREIGN KEY (item_id) REFERENCES items (id)
+      )
+    ''');
+
+    // Create restaurant table
+    await db.execute('''
+      CREATE TABLE restaurant (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        address TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        email TEXT NOT NULL,
+        pan_number TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE bill_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        include_tax INTEGER NOT NULL DEFAULT 1,
+        include_discount INTEGER NOT NULL DEFAULT 1,
+        print_customer_copy INTEGER NOT NULL DEFAULT 1,
+        print_kitchen_copy INTEGER NOT NULL DEFAULT 1
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE system_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        currency TEXT NOT NULL DEFAULT 'NPR',
+        date_format TEXT NOT NULL DEFAULT 'dd/MM/yyyy',
+        language TEXT NOT NULL DEFAULT 'English'
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE tax_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tax_rate REAL NOT NULL DEFAULT 13.0,
+        tax_name TEXT NOT NULL DEFAULT 'VAT',
+        is_enabled INTEGER NOT NULL DEFAULT 1
       )
     ''');
 
@@ -422,6 +502,143 @@ class DatabaseHelper {
     }
 
     return salesList;
+  }
+
+  // Restaurant operations
+  Future<int> insertRestaurant(Restaurant restaurant) async {
+    final db = await database;
+    return await db.insert('restaurant', restaurant.toMap());
+  }
+
+  Future<Restaurant?> getRestaurant() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('restaurant', limit: 1);
+    
+    if (maps.isNotEmpty) {
+      return Restaurant.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<int> updateRestaurant(Restaurant restaurant) async {
+    final db = await database;
+    return await db.update(
+      'restaurant',
+      restaurant.toMap(),
+      where: 'id = ?',
+      whereArgs: [restaurant.id],
+    );
+  }
+
+  Future<int> upsertRestaurant(Restaurant restaurant) async {
+    final existing = await getRestaurant();
+    if (existing != null) {
+      return await updateRestaurant(restaurant.copyWith(id: existing.id));
+    } else {
+      return await insertRestaurant(restaurant);
+    }
+  }
+
+  Future<int> insertBillSettings(BillSettings settings) async {
+    final db = await database;
+    return await db.insert('bill_settings', settings.toMap());
+  }
+
+  Future<BillSettings?> getBillSettings() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('bill_settings', limit: 1);
+    
+    if (maps.isNotEmpty) {
+      return BillSettings.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<int> updateBillSettings(BillSettings settings) async {
+    final db = await database;
+    return await db.update(
+      'bill_settings',
+      settings.toMap(),
+      where: 'id = ?',
+      whereArgs: [settings.id],
+    );
+  }
+
+  Future<int> upsertBillSettings(BillSettings settings) async {
+    final existing = await getBillSettings();
+    if (existing != null) {
+      return await updateBillSettings(settings.copyWith(id: existing.id));
+    } else {
+      return await insertBillSettings(settings);
+    }
+  }
+
+  Future<int> insertSystemSettings(SystemSettings settings) async {
+    final db = await database;
+    return await db.insert('system_settings', settings.toMap());
+  }
+
+  Future<SystemSettings?> getSystemSettings() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('system_settings', limit: 1);
+    
+    if (maps.isNotEmpty) {
+      return SystemSettings.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<int> updateSystemSettings(SystemSettings settings) async {
+    final db = await database;
+    return await db.update(
+      'system_settings',
+      settings.toMap(),
+      where: 'id = ?',
+      whereArgs: [settings.id],
+    );
+  }
+
+  Future<int> upsertSystemSettings(SystemSettings settings) async {
+    final existing = await getSystemSettings();
+    if (existing != null) {
+      return await updateSystemSettings(settings.copyWith(id: existing.id));
+    } else {
+      return await insertSystemSettings(settings);
+    }
+  }
+
+  Future<int> insertTaxSettings(TaxSettings settings) async {
+    final db = await database;
+    return await db.insert('tax_settings', settings.toMap());
+  }
+
+  Future<TaxSettings?> getTaxSettings() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('tax_settings', limit: 1);
+    
+    if (maps.isNotEmpty) {
+      return TaxSettings.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<int> updateTaxSettings(TaxSettings settings) async {
+    final db = await database;
+    return await db.update(
+      'tax_settings',
+      settings.toMap(),
+      where: 'id = ?',
+      whereArgs: [settings.id],
+    );
+  }
+
+  Future<int> upsertTaxSettings(TaxSettings settings) async {
+    final existing = await getTaxSettings();
+    if (existing != null) {
+      return await updateTaxSettings(settings.copyWith(id: existing.id));
+    } else {
+      return await insertTaxSettings(settings);
+    }
   }
 
   // Utility methods

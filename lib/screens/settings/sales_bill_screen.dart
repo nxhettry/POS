@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../models/models.dart';
+import '../../services/database_helper.dart';
 
 class SalesBillScreen extends StatefulWidget {
   const SalesBillScreen({super.key});
@@ -8,6 +10,8 @@ class SalesBillScreen extends StatefulWidget {
 }
 
 class _SalesBillScreenState extends State<SalesBillScreen> {
+  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  bool _isLoading = true;
   bool _includeTax = true;
   bool _includeDiscount = true;
   bool _printCustomerCopy = true;
@@ -19,7 +23,21 @@ class _SalesBillScreenState extends State<SalesBillScreen> {
   final List<String> _templates = ['Modern', 'Classic', 'Minimal', 'Detailed'];
 
   @override
+  void initState() {
+    super.initState();
+    _loadBillSettings();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: SingleChildScrollView(
@@ -302,13 +320,65 @@ class _SalesBillScreenState extends State<SalesBillScreen> {
     );
   }
 
-  void _saveSettings() {
-    // TODO: Implement save functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Bill settings saved successfully!'),
-        backgroundColor: Colors.green,
-      ),
-    );
+  void _saveSettings() async {
+    try {
+      final billSettings = BillSettings(
+        includeTax: _includeTax,
+        includeDiscount: _includeDiscount,
+        printCustomerCopy: _printCustomerCopy,
+        printKitchenCopy: _printKitchenCopy,
+      );
+
+      await _databaseHelper.upsertBillSettings(billSettings);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bill settings saved successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving bill settings: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadBillSettings() async {
+    try {
+      final billSettings = await _databaseHelper.getBillSettings();
+      if (billSettings != null && mounted) {
+        setState(() {
+          _includeTax = billSettings.includeTax;
+          _includeDiscount = billSettings.includeDiscount;
+          _printCustomerCopy = billSettings.printCustomerCopy;
+          _printKitchenCopy = billSettings.printKitchenCopy;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading bill settings: $e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
   }
 }

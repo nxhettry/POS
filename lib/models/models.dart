@@ -153,27 +153,203 @@ class RestaurantInfo {
 }
 
 class BillSettings {
+  final int? id;
   final bool includeTax;
   final bool includeDiscount;
   final bool printCustomerCopy;
   final bool printKitchenCopy;
 
   BillSettings({
+    this.id,
     this.includeTax = true,
     this.includeDiscount = true,
     this.printCustomerCopy = true,
     this.printKitchenCopy = true,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'include_tax': includeTax ? 1 : 0,
+      'include_discount': includeDiscount ? 1 : 0,
+      'print_customer_copy': printCustomerCopy ? 1 : 0,
+      'print_kitchen_copy': printKitchenCopy ? 1 : 0,
+    };
+  }
+
+  factory BillSettings.fromMap(Map<String, dynamic> map) {
+    return BillSettings(
+      id: map['id'] as int?,
+      includeTax: (map['include_tax'] as int) == 1,
+      includeDiscount: (map['include_discount'] as int) == 1,
+      printCustomerCopy: (map['print_customer_copy'] as int) == 1,
+      printKitchenCopy: (map['print_kitchen_copy'] as int) == 1,
+    );
+  }
+
+  BillSettings copyWith({
+    int? id,
+    bool? includeTax,
+    bool? includeDiscount,
+    bool? printCustomerCopy,
+    bool? printKitchenCopy,
+  }) {
+    return BillSettings(
+      id: id ?? this.id,
+      includeTax: includeTax ?? this.includeTax,
+      includeDiscount: includeDiscount ?? this.includeDiscount,
+      printCustomerCopy: printCustomerCopy ?? this.printCustomerCopy,
+      printKitchenCopy: printKitchenCopy ?? this.printKitchenCopy,
+    );
+  }
 }
 
 class SystemSettings {
+  final int? id;
   final String currency;
   final String dateFormat;
   final String language;
 
   SystemSettings({
+    this.id,
     required this.currency,
     required this.dateFormat,
     required this.language,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'currency': currency,
+      'date_format': dateFormat,
+      'language': language,
+    };
+  }
+
+  factory SystemSettings.fromMap(Map<String, dynamic> map) {
+    return SystemSettings(
+      id: map['id'] as int?,
+      currency: map['currency'] as String,
+      dateFormat: map['date_format'] as String,
+      language: map['language'] as String,
+    );
+  }
+
+  SystemSettings copyWith({
+    int? id,
+    String? currency,
+    String? dateFormat,
+    String? language,
+  }) {
+    return SystemSettings(
+      id: id ?? this.id,
+      currency: currency ?? this.currency,
+      dateFormat: dateFormat ?? this.dateFormat,
+      language: language ?? this.language,
+    );
+  }
+}
+
+class TaxSettings {
+  final int? id;
+  final double taxRate;
+  final String taxName;
+  final bool isEnabled;
+
+  TaxSettings({
+    this.id,
+    required this.taxRate,
+    required this.taxName,
+    this.isEnabled = true,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'tax_rate': taxRate,
+      'tax_name': taxName,
+      'is_enabled': isEnabled ? 1 : 0,
+    };
+  }
+
+  factory TaxSettings.fromMap(Map<String, dynamic> map) {
+    return TaxSettings(
+      id: map['id'] as int?,
+      taxRate: (map['tax_rate'] as num).toDouble(),
+      taxName: map['tax_name'] as String,
+      isEnabled: (map['is_enabled'] as int) == 1,
+    );
+  }
+
+  TaxSettings copyWith({
+    int? id,
+    double? taxRate,
+    String? taxName,
+    bool? isEnabled,
+  }) {
+    return TaxSettings(
+      id: id ?? this.id,
+      taxRate: taxRate ?? this.taxRate,
+      taxName: taxName ?? this.taxName,
+      isEnabled: isEnabled ?? this.isEnabled,
+    );
+  }
+}
+
+class Restaurant {
+  final int? id;
+  final String name;
+  final String address;
+  final String phone;
+  final String email;
+  final String panNumber;
+
+  Restaurant({
+    this.id,
+    required this.name,
+    required this.address,
+    required this.phone,
+    required this.email,
+    required this.panNumber,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'address': address,
+      'phone': phone,
+      'email': email,
+      'pan_number': panNumber,
+    };
+  }
+
+  factory Restaurant.fromMap(Map<String, dynamic> map) {
+    return Restaurant(
+      id: map['id'] as int?,
+      name: map['name'] as String,
+      address: map['address'] as String,
+      phone: map['phone'] as String,
+      email: map['email'] as String,
+      panNumber: map['pan_number'] as String,
+    );
+  }
+
+  Restaurant copyWith({
+    int? id,
+    String? name,
+    String? address,
+    String? phone,
+    String? email,
+    String? panNumber,
+  }) {
+    return Restaurant(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      address: address ?? this.address,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      panNumber: panNumber ?? this.panNumber,
+    );
+  }
 }
