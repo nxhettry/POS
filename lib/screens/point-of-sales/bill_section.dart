@@ -87,6 +87,19 @@ class _BillSectionState extends State<BillSection> {
       return;
     }
 
+    if (selectedTable == null || selectedTable!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please select a table before placing the order.',
+          ),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     final orderData = cartManager.getOrderData(
       selectedTable,
       selectedOrderType == "dine_in" ? "Dine In" : "Takeaway",
