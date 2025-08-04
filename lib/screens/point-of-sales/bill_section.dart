@@ -3,6 +3,7 @@ import "package:pos/services/database_service.dart";
 import "../../services/cart_manager.dart";
 import "../../models/models.dart" as models;
 import "../../utils/responsive.dart";
+import "../../utils/invoice.dart";
 import 'dart:developer' as developer;
 
 class BillSection extends StatefulWidget {
@@ -112,6 +113,16 @@ class _BillSectionState extends State<BillSection> {
       
       final saleId = await DatabaseService().saveSale(sale);
       developer.log('Sale saved with ID: $saleId', name: 'POS');
+      
+      // Generate thermal bill after successful sale
+      try {
+        await generateAndSaveThermalBill(sale);
+        developer.log('Thermal bill generated for invoice: ${sale.invoiceNo}', name: 'POS');
+      } catch (billError) {
+        developer.log('Error generating thermal bill: $billError', name: 'POS');
+        // Don't fail the entire order if bill generation fails
+      }
+      
     } catch (e) {
       developer.log('Error saving sale: $e', name: 'POS');
       ScaffoldMessenger.of(context).showSnackBar(
