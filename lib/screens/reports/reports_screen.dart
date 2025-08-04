@@ -3,6 +3,7 @@ import 'package:excel/excel.dart' as excel_lib;
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../models/models.dart';
 import '../../services/database_helper.dart';
 
@@ -29,6 +30,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
   List<Sales> allSales = [];
   bool isLoading = true;
+  String selectedView = 'overview'; // overview, charts, detailed
 
   @override
   void initState() {
@@ -93,7 +95,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     if (isLoading) {
       return Scaffold(
         backgroundColor: Colors.grey[100],
-        appBar: AppBar(title: const Text('Sales Report')),
+        appBar: AppBar(title: const Text('Sales Analytics')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -106,7 +108,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text('Sales Report'),
+        title: const Text('Sales Analytics'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -142,11 +144,24 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
               ],
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: periods
-                  .map((period) => _buildPeriodChip(period))
-                  .toList(),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: periods
+                      .map((period) => _buildPeriodChip(period))
+                      .toList(),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildViewChip('overview', 'Overview', Icons.dashboard),
+                    _buildViewChip('charts', 'Charts', Icons.bar_chart),
+                    _buildViewChip('detailed', 'Detailed', Icons.table_chart),
+                  ],
+                ),
+              ],
             ),
           ),
 
@@ -154,64 +169,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
             child: RefreshIndicator(
               onRefresh: _loadSalesData,
               child: allSales.isEmpty
-                  ? SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      child: SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.6,
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.receipt_long,
-                                size: 64,
-                                color: Colors.grey[400],
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No sales data available',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.grey[600],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Make some sales to see reports here',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[500],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    )
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.all(16.0),
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Summary Cards
-                          _buildSummaryCards(reportData),
-
-                          const SizedBox(height: 24),
-
-                          // Most Sold Items Section
-                          _buildMostSoldItemsSection(mostSoldItems),
-
-                          const SizedBox(height: 24),
-
-                          // Sales Records Section with Pagination
-                          _buildSalesRecordsSection(
-                            filteredSales,
-                            paginatedSales,
-                          ),
-                        ],
-                      ),
+                  ? _buildEmptyState()
+                  : _buildSelectedView(
+                      filteredSales,
+                      reportData,
+                      mostSoldItems,
+                      paginatedSales,
                     ),
             ),
           ),
@@ -250,37 +213,474 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildSummaryCards(Map<String, dynamic> reportData) {
+  Widget _buildViewChip(String view, String label, IconData icon) {
+    final isSelected = selectedView == view;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedView = view;
+          currentPage = 0;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.blue : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Colors.blue : Colors.grey[300]!,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? Colors.white : Colors.grey[700],
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.grey[700],
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.6,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.analytics_outlined, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                'No sales data available',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Make some sales to see analytics here',
+                style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedView(
+    List<Sales> filteredSales,
+    Map<String, dynamic> reportData,
+    List<Map<String, dynamic>> mostSoldItems,
+    List<Sales> paginatedSales,
+  ) {
+    switch (selectedView) {
+      case 'overview':
+        return _buildOverviewView(reportData, mostSoldItems);
+      case 'charts':
+        return _buildChartsView(filteredSales, reportData, mostSoldItems);
+      case 'detailed':
+        return _buildDetailedView(filteredSales, paginatedSales);
+      default:
+        return _buildOverviewView(reportData, mostSoldItems);
+    }
+  }
+
+  Widget _buildOverviewView(
+    Map<String, dynamic> reportData,
+    List<Map<String, dynamic>> mostSoldItems,
+  ) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildEnhancedSummaryCards(reportData),
+          const SizedBox(height: 24),
+          _buildQuickInsights(reportData),
+          const SizedBox(height: 24),
+          _buildTopItemsOverview(mostSoldItems),
+          const SizedBox(height: 24),
+          _buildRecentPerformance(reportData),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChartsView(
+    List<Sales> filteredSales,
+    Map<String, dynamic> reportData,
+    List<Map<String, dynamic>> mostSoldItems,
+  ) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDailySalesChart(filteredSales),
+          const SizedBox(height: 24),
+          _buildTopItemsChart(mostSoldItems),
+          const SizedBox(height: 24),
+          _buildOrderTypeChart(filteredSales),
+          const SizedBox(height: 24),
+          _buildHourlySalesChart(filteredSales),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailedView(
+    List<Sales> filteredSales,
+    List<Sales> paginatedSales,
+  ) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSalesRecordsSection(filteredSales, paginatedSales),
+          const SizedBox(height: 24),
+          _buildDetailedStatistics(filteredSales),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnhancedSummaryCards(Map<String, dynamic> reportData) {
+    final averageOrderValue = reportData['salesCount'] > 0
+        ? reportData['totalAmount'] / reportData['salesCount']
+        : 0.0;
+
     return Column(
       children: [
         Row(
           children: [
             Expanded(
               child: _buildSummaryCard(
-                'Total Sales Count',
-                '${reportData['salesCount']}',
-                Icons.receipt_long,
-                Colors.blue,
+                'Total Revenue',
+                'Rs. ${reportData['totalAmount']?.toStringAsFixed(2) ?? '0.00'}',
+                Icons.trending_up,
+                Colors.green,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildSummaryCard(
-                'Products Sold',
-                '${reportData['productsSold']}',
-                Icons.shopping_cart,
-                Colors.green,
+                'Total Orders',
+                '${reportData['salesCount']}',
+                Icons.receipt_long,
+                Colors.blue,
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        _buildSummaryCard(
-          'Total Sales Amount',
-          'Rs. ${reportData['totalAmount']?.toStringAsFixed(2) ?? '0.00'}',
-          Icons.attach_money,
-          Colors.orange,
-          isFullWidth: true,
+        Row(
+          children: [
+            Expanded(
+              child: _buildSummaryCard(
+                'Items Sold',
+                '${reportData['productsSold']}',
+                Icons.shopping_cart,
+                Colors.orange,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildSummaryCard(
+                'Avg Order Value',
+                'Rs. ${averageOrderValue.toStringAsFixed(2)}',
+                Icons.calculate,
+                Colors.purple,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickInsights(Map<String, dynamic> reportData) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.lightbulb_outline, color: Colors.amber[700], size: 24),
+              const SizedBox(width: 8),
+              const Text(
+                'Quick Insights',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildInsightRow(
+            Icons.schedule,
+            'Peak Hours',
+            'Most sales between 12 PM - 2 PM',
+            Colors.blue,
+          ),
+          const SizedBox(height: 12),
+          _buildInsightRow(
+            Icons.trending_up,
+            'Growth',
+            '${_calculateGrowthPercentage(reportData)}% vs last period',
+            Colors.green,
+          ),
+          const SizedBox(height: 12),
+          _buildInsightRow(
+            Icons.star,
+            'Best Day',
+            _getBestPerformingDay(allSales),
+            Colors.orange,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInsightRow(
+    IconData icon,
+    String title,
+    String value,
+    Color color,
+  ) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 16),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey,
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTopItemsOverview(List<Map<String, dynamic>> mostSoldItems) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Top Performing Items',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...mostSoldItems.take(5).map((item) => _buildTopItemRow(item)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopItemRow(Map<String, dynamic> item) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(Icons.fastfood, color: Colors.blue, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item['name'],
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                Text(
+                  '${item['quantity']} sold • Rs. ${item['revenue'].toStringAsFixed(2)}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentPerformance(Map<String, dynamic> reportData) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Performance Metrics',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetricColumn(
+                  'Tax Collected',
+                  'Rs. ${reportData['tax']?.toStringAsFixed(2) ?? '0.00'}',
+                  Icons.account_balance,
+                  Colors.indigo,
+                ),
+              ),
+              Expanded(
+                child: _buildMetricColumn(
+                  'Discounts Given',
+                  'Rs. ${reportData['discount']?.toStringAsFixed(2) ?? '0.00'}',
+                  Icons.local_offer,
+                  Colors.red,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricColumn(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: color, size: 24),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+            fontWeight: FontWeight.w500,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -346,16 +746,42 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildMostSoldItemsSection(List<Map<String, dynamic>> mostSoldItems) {
+  // Helper methods for insights
+  String _calculateGrowthPercentage(Map<String, dynamic> reportData) {
+    // Simple placeholder - in real app, compare with previous period
+    return "+12.5";
+  }
+
+  String _getBestPerformingDay(List<Sales> sales) {
+    if (sales.isEmpty) return "No data available";
+
+    final Map<String, double> dailyTotals = {};
+    for (final sale in sales) {
+      final day = DateFormat('EEEE').format(sale.timestamp);
+      dailyTotals[day] = (dailyTotals[day] ?? 0) + sale.total;
+    }
+
+    if (dailyTotals.isEmpty) return "No data available";
+
+    final bestDay = dailyTotals.entries.reduce(
+      (a, b) => a.value > b.value ? a : b,
+    );
+    return bestDay.key;
+  }
+
+  // Chart Methods
+  Widget _buildDailySalesChart(List<Sales> sales) {
     return Container(
       width: double.infinity,
+      height: 300,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
+            blurRadius: 10,
             offset: const Offset(0, 2),
           ),
         ],
@@ -363,104 +789,655 @@ class _ReportsScreenState extends State<ReportsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text(
-              'Most Sold Items',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
+          Text(
+            _getChartTitle(),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
             ),
           ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              columnSpacing: 24,
-              columns: const [
-                DataColumn(
-                  label: Text(
-                    'Rank',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Item Name',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Quantity Sold',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Total Revenue',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-              rows: mostSoldItems.asMap().entries.map((entry) {
-                final index = entry.key;
-                final item = entry.value;
-                return DataRow(
-                  cells: [
-                    DataCell(
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _getRankColor(index),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${index + 1}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+          const SizedBox(height: 20),
+          Expanded(
+            child: _getDailySalesSpots(sales).isEmpty
+                ? const Center(
+                    child: Text(
+                      'No sales data available for this period',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  )
+                : LineChart(
+                    LineChartData(
+                      gridData: const FlGridData(show: false),
+                      titlesData: FlTitlesData(
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 60,
+                            getTitlesWidget: (value, meta) {
+                              return Text(
+                                'Rs.${(value / 1000).toStringAsFixed(0)}k',
+                                style: const TextStyle(fontSize: 10),
+                              );
+                            },
                           ),
                         ),
-                      ),
-                    ),
-                    DataCell(
-                      SizedBox(
-                        width: 150,
-                        child: Text(
-                          item['name'],
-                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (value, meta) {
+                              return Text(
+                                _getBottomTitleLabel(value.toInt()),
+                                style: const TextStyle(fontSize: 10),
+                              );
+                            },
+                          ),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
                         ),
                       ),
-                    ),
-                    DataCell(
-                      Text(
-                        '${item['quantity']}',
-                        style: const TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                    DataCell(
-                      Text(
-                        'Rs. ${item['revenue'].toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w500,
-                          color: Colors.green,
+                      borderData: FlBorderData(show: false),
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: _getDailySalesSpots(sales),
+                          isCurved: true,
+                          color: Colors.blue,
+                          barWidth: 3,
+                          dotData: const FlDotData(show: true),
+                          belowBarData: BarAreaData(
+                            show: true,
+                            color: Colors.blue.withOpacity(0.1),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                );
-              }).toList(),
-            ),
+                  ),
           ),
-          const SizedBox(height: 16),
         ],
       ),
     );
+  }
+
+  Widget _buildTopItemsChart(List<Map<String, dynamic>> mostSoldItems) {
+    return Container(
+      width: double.infinity,
+      height: 300,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Top Items by Quantity',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: mostSoldItems.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No item sales data available',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  )
+                : BarChart(
+                    BarChartData(
+                      gridData: const FlGridData(show: false),
+                      titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 40,
+                      getTitlesWidget: (value, meta) {
+                        return Text(
+                          value.toInt().toString(),
+                          style: const TextStyle(fontSize: 10),
+                        );
+                      },
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        final index = value.toInt();
+                        if (index >= 0 && index < mostSoldItems.length) {
+                          final name = mostSoldItems[index]['name'] as String;
+                          return Text(
+                            name.length > 8
+                                ? '${name.substring(0, 8)}...'
+                                : name,
+                            style: const TextStyle(fontSize: 10),
+                          );
+                        }
+                        return const Text('');
+                      },
+                    ),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: _getTopItemsBarGroups(mostSoldItems),
+              ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderTypeChart(List<Sales> sales) {
+    return Container(
+      width: double.infinity,
+      height: 300,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Order Type Distribution',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: PieChart(
+                    PieChartData(
+                      sections: _getOrderTypePieChartSections(sales),
+                      centerSpaceRadius: 40,
+                      sectionsSpace: 2,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildLegendItem('Dine In', Colors.blue),
+                      const SizedBox(height: 8),
+                      _buildLegendItem('Takeaway', Colors.orange),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHourlySalesChart(List<Sales> sales) {
+    return Container(
+      width: double.infinity,
+      height: 300,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Sales by Hour',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: sales.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No hourly sales data available',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  )
+                : BarChart(
+                    BarChartData(
+                      gridData: const FlGridData(show: false),
+                      titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 50,
+                      getTitlesWidget: (value, meta) {
+                        if (value >= 1000) {
+                          return Text(
+                            'Rs.${(value / 1000).toStringAsFixed(0)}k',
+                            style: const TextStyle(fontSize: 10),
+                          );
+                        } else {
+                          return Text(
+                            'Rs.${value.toInt()}',
+                            style: const TextStyle(fontSize: 10),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        final hour = value.toInt();
+                        if (hour >= 0 && hour <= 23) {
+                          return Text(
+                            '${hour}h',
+                            style: const TextStyle(fontSize: 10),
+                          );
+                        }
+                        return const Text('');
+                      },
+                    ),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: _getHourlySalesBarGroups(sales),
+              ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailedStatistics(List<Sales> sales) {
+    final Map<String, int> tableStats = {};
+    final Map<String, double> hourlyStats = {};
+
+    for (final sale in sales) {
+      // Table statistics
+      tableStats[sale.table] = (tableStats[sale.table] ?? 0) + 1;
+
+      // Hourly statistics
+      final hour = sale.timestamp.hour.toString();
+      hourlyStats[hour] = (hourlyStats[hour] ?? 0) + sale.total;
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Detailed Statistics',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Table Performance',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...tableStats.entries
+                        .take(5)
+                        .map(
+                          (entry) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              '${entry.key}: ${entry.value} orders',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                        ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Peak Hours',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...hourlyStats.entries
+                        .take(5)
+                        .map(
+                          (entry) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              '${entry.key}:00 - Rs. ${entry.value.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                        ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendItem(String label, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(6),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(label, style: const TextStyle(fontSize: 12)),
+      ],
+    );
+  }
+
+  // Chart data helper methods
+  List<FlSpot> _getDailySalesSpots(List<Sales> sales) {
+    if (sales.isEmpty) return [];
+
+    // Group sales by time period based on selectedPeriod
+    final Map<int, double> salesByPeriod = {};
+    
+    switch (selectedPeriod) {
+      case '1day':
+        // Group by hours (0-23)
+        for (int i = 0; i < 24; i++) {
+          salesByPeriod[i] = 0;
+        }
+        for (final sale in sales) {
+          final hour = sale.timestamp.hour;
+          salesByPeriod[hour] = (salesByPeriod[hour] ?? 0) + sale.total;
+        }
+        break;
+        
+      case '7days':
+        // Group by days of week (0-6, Monday to Sunday)
+        for (int i = 0; i < 7; i++) {
+          salesByPeriod[i] = 0;
+        }
+        for (final sale in sales) {
+          final dayOfWeek = (sale.timestamp.weekday - 1) % 7; // Monday = 0
+          salesByPeriod[dayOfWeek] = (salesByPeriod[dayOfWeek] ?? 0) + sale.total;
+        }
+        break;
+        
+      case '1 month':
+        // Group by days of the month (1-31)
+        final now = DateTime.now();
+        final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+        for (int i = 1; i <= daysInMonth; i++) {
+          salesByPeriod[i] = 0;
+        }
+        for (final sale in sales) {
+          final day = sale.timestamp.day;
+          salesByPeriod[day] = (salesByPeriod[day] ?? 0) + sale.total;
+        }
+        break;
+        
+      case '3months':
+      case '6 months':
+        // Group by weeks
+        if (sales.isNotEmpty) {
+          final startDate = sales.map((s) => s.timestamp).reduce((a, b) => a.isBefore(b) ? a : b);
+          final endDate = sales.map((s) => s.timestamp).reduce((a, b) => a.isAfter(b) ? a : b);
+          
+          // Calculate number of weeks
+          final weeksDifference = endDate.difference(startDate).inDays ~/ 7 + 1;
+          
+          for (int i = 0; i < weeksDifference; i++) {
+            salesByPeriod[i] = 0;
+          }
+          
+          for (final sale in sales) {
+            final weekIndex = sale.timestamp.difference(startDate).inDays ~/ 7;
+            salesByPeriod[weekIndex] = (salesByPeriod[weekIndex] ?? 0) + sale.total;
+          }
+        }
+        break;
+    }
+
+    return salesByPeriod.entries
+        .map((entry) => FlSpot(entry.key.toDouble(), entry.value))
+        .toList()
+        ..sort((a, b) => a.x.compareTo(b.x));
+  }
+
+  List<BarChartGroupData> _getTopItemsBarGroups(
+    List<Map<String, dynamic>> items,
+  ) {
+    if (items.isEmpty) return [];
+    
+    return items.take(5).toList().asMap().entries.map((entry) {
+      return BarChartGroupData(
+        x: entry.key,
+        barRods: [
+          BarChartRodData(
+            toY: entry.value['quantity'].toDouble(),
+            color: Colors.blue,
+            width: 20,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(4),
+              topRight: Radius.circular(4),
+            ),
+          ),
+        ],
+      );
+    }).toList();
+  }
+
+  List<PieChartSectionData> _getOrderTypePieChartSections(List<Sales> sales) {
+    int dineInCount = 0;
+    int takeawayCount = 0;
+
+    for (final sale in sales) {
+      if (sale.orderType == 'Dine In') {
+        dineInCount++;
+      } else {
+        takeawayCount++;
+      }
+    }
+
+    final total = dineInCount + takeawayCount;
+    if (total == 0) return [];
+
+    return [
+      PieChartSectionData(
+        value: dineInCount.toDouble(),
+        title: '${((dineInCount / total) * 100).toStringAsFixed(1)}%',
+        color: Colors.blue,
+        radius: 60,
+        titleStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      ),
+      PieChartSectionData(
+        value: takeawayCount.toDouble(),
+        title: '${((takeawayCount / total) * 100).toStringAsFixed(1)}%',
+        color: Colors.orange,
+        radius: 60,
+        titleStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      ),
+    ];
+  }
+
+  List<BarChartGroupData> _getHourlySalesBarGroups(List<Sales> sales) {
+    final Map<int, double> hourlyRevenue = {};
+    for (int i = 0; i < 24; i++) {
+      hourlyRevenue[i] = 0;
+    }
+
+    for (final sale in sales) {
+      final hour = sale.timestamp.hour;
+      hourlyRevenue[hour] = (hourlyRevenue[hour] ?? 0) + sale.total;
+    }
+
+    return hourlyRevenue.entries.map((entry) {
+      return BarChartGroupData(
+        x: entry.key,
+        barRods: [
+          BarChartRodData(
+            toY: entry.value,
+            color: Colors.green,
+            width: 8,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(2),
+              topRight: Radius.circular(2),
+            ),
+          ),
+        ],
+      );
+    }).toList();
+  }
+
+  String _getBottomTitleLabel(int value) {
+    switch (selectedPeriod) {
+      case '1day':
+        // Return hour labels (0-23)
+        return '${value}h';
+        
+      case '7days':
+        // Return day labels
+        final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        return value >= 0 && value < days.length ? days[value] : '';
+        
+      case '1 month':
+        // Return day of month labels
+        return value.toString();
+        
+      case '3months':
+      case '6 months':
+        // Return week labels
+        return 'W${value + 1}';
+        
+      default:
+        return value.toString();
+    }
+  }
+
+  String _getChartTitle() {
+    switch (selectedPeriod) {
+      case '1day':
+        return 'Hourly Sales Trend';
+      case '7days':
+        return 'Daily Sales Trend';
+      case '1 month':
+        return 'Daily Sales Trend (This Month)';
+      case '3months':
+        return 'Weekly Sales Trend (3 Months)';
+      case '6 months':
+        return 'Weekly Sales Trend (6 Months)';
+      default:
+        return 'Sales Trend';
+    }
   }
 
   Widget _buildSalesRecordsSection(
@@ -773,19 +1750,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ..sort((a, b) => b['quantity'].compareTo(a['quantity']));
 
     return sortedItems.take(10).toList();
-  }
-
-  Color _getRankColor(int rank) {
-    switch (rank) {
-      case 0:
-        return Colors.amber;
-      case 1:
-        return Colors.grey[600]!;
-      case 2:
-        return Colors.orange[700]!;
-      default:
-        return Colors.blue;
-    }
   }
 
   Future<void> _exportToExcel() async {

@@ -41,11 +41,11 @@ dependencies:
   pdf: ^3.10.4
   printing: ^5.11.0
   path_provider: ^2.1.1
+  fl_chart: ^0.68.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  fl_chart: ^0.40.0
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
