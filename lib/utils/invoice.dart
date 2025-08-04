@@ -92,7 +92,7 @@ Future<String> generateThermalBill(Sales sale) async {
 
     // Items Header
     bill.writeln(''.padLeft(42, '-'));
-    bill.writeln('# Items${' ' * 10}Qty  Rate  Amount');
+    bill.writeln('# Items${' ' * 10}Qty     Rate     Amount');
     bill.writeln(''.padLeft(42, '-'));
 
     // Items List
@@ -167,7 +167,6 @@ String _centerText(String text, int width) {
   return '${' ' * padding}$text${' ' * (width - text.length - padding)}';
 }
 
-// Convert number to words (simple implementation for small amounts)
 String convertNumberToWords(int number) {
   if (number == 0) return "Zero Rupees Only";
 

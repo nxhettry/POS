@@ -95,17 +95,10 @@ class _BillSectionState extends State<BillSection> {
       isDiscountPercentage,
     );
 
-    // Log order data to console
-    developer.log('Order placed successfully!', name: 'POS');
-    developer.log('Order Data: ${orderData.toString()}', name: 'POS');
-
-    // Db operation to save order
     try {
-      // Get the next invoice number from database
       final invoiceNo = await DatabaseService().getNextInvoiceNumber();
       developer.log('Generated invoice number: $invoiceNo', name: 'POS');
       
-      // Update the order data with the proper invoice number
       orderData['invoiceNo'] = invoiceNo;
       
       final sale = models.Sales.fromMap(orderData);
@@ -114,13 +107,11 @@ class _BillSectionState extends State<BillSection> {
       final saleId = await DatabaseService().saveSale(sale);
       developer.log('Sale saved with ID: $saleId', name: 'POS');
       
-      // Generate thermal bill after successful sale
       try {
         await generateAndSaveThermalBill(sale);
         developer.log('Thermal bill generated for invoice: ${sale.invoiceNo}', name: 'POS');
       } catch (billError) {
         developer.log('Error generating thermal bill: $billError', name: 'POS');
-        // Don't fail the entire order if bill generation fails
       }
       
     } catch (e) {
