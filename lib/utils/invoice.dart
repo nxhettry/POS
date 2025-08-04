@@ -4,6 +4,7 @@ import "package:path_provider/path_provider.dart";
 import "../models/models.dart";
 import "../services/database_helper.dart";
 import "package:intl/intl.dart";
+import 'package:windows_printer/windows_printer.dart';
 
 Future<void> generateAndSavePdf(List<Map<String, dynamic>> sales) async {
   final pdf = pw.Document();
@@ -240,8 +241,24 @@ Future<void> generateAndSaveThermalBill(Sales sale) async {
     final filePath = await generateThermalBill(sale);
     print("Thermal bill generated successfully at: $filePath");
 
-    // You can also display a success message to the user
-    // or open the file for preview if needed
+    // Get available printers
+    List<String> printers = await WindowsPrinter.getAvailablePrinters();
+
+    // Print the printers list
+    print("Available Printers: $printers");
+
+    // Print to default printer
+    if (printers.isNotEmpty) {
+      // Print the bill to the first available printer
+      await WindowsPrinter.printRawData(
+        data: File(filePath).readAsBytesSync(),
+        printerName: printers.first,
+      );
+      print("Bill sent to printer: ${printers.first}");
+    } else {
+      print("No printers available to print the bill.");
+    }
+    
   } catch (e) {
     print("Failed to generate thermal bill: $e");
     // Handle error appropriately in your app
