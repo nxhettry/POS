@@ -8,10 +8,14 @@ import "screens/settings/settings_screen.dart";
 import 'services/database_service.dart';
 import 'utils/responsive.dart';
 import 'widgets/drawer_list_item.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  sqfliteFfiInit();
+  databaseFactory = databaseFactoryFfi;
+
   // Initialize the database
   await DatabaseService().initializeDatabase();
   
