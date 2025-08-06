@@ -121,10 +121,10 @@ class _BillSectionState extends State<BillSection> {
       developer.log('Sale saved with ID: $saleId', name: 'POS');
       
       try {
-        await generateAndSaveThermalBill(sale);
-        developer.log('Thermal bill generated for invoice: ${sale.invoiceNo}', name: 'POS');
+        await reprintInvoice(context, sale);
+        developer.log('Invoice reprinted successfully: ${sale.invoiceNo}', name: 'POS');
       } catch (billError) {
-        developer.log('Error generating thermal bill: $billError', name: 'POS');
+        developer.log('Error reprinting invoice: $billError', name: 'POS');
       }
       
     } catch (e) {

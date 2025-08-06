@@ -1,13 +1,19 @@
 import "dart:io";
 import "package:pdf/widgets.dart" as pw;
+import "package:pdf/pdf.dart";
 import "package:path_provider/path_provider.dart";
 import "../models/models.dart";
 import "../services/database_helper.dart";
 import "package:intl/intl.dart";
 import 'package:windows_printer/windows_printer.dart';
+import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
 
-Future<void> generateAndSavePdf(List<Map<String, dynamic>> sales) async {
+// Generate PDF invoice for viewing/printing
+Future<pw.Document> generateInvoicePdf(Sales sale) async {
   final pdf = pw.Document();
+  final dbHelper = DatabaseHelper();
+  final restaurant = await dbHelper.getRestaurant();
 
   pdf.addPage(
     pw.Page(
@@ -15,19 +21,231 @@ Future<void> generateAndSavePdf(List<Map<String, dynamic>> sales) async {
         return pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text("Restaurant Invoice", style: pw.TextStyle(fontSize: 24)),
+            // Header
+            pw.Container(
+              width: double.infinity,
+              padding: const pw.EdgeInsets.all(20),
+              decoration: pw.BoxDecoration(border: pw.Border.all()),
+              child: pw.Column(
+                children: [
+                  pw.Text(
+                    restaurant?.name ?? "RESTAURANT NAME",
+                    style: pw.TextStyle(
+                      fontSize: 24,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 5),
+                  pw.Text(restaurant?.address ?? "Restaurant Address"),
+                  pw.Text("PAN: ${restaurant?.panNumber ?? "000000000"}"),
+                  pw.Text("Contact: ${restaurant?.phone ?? "+977-XXXXXXXXX"}"),
+                ],
+              ),
+            ),
+
             pw.SizedBox(height: 20),
-            pw.Table.fromTextArray(
-              headers: ['Item', 'Qty', 'Price', 'Total'],
-              data: sales.map((sale) {
-                final total = sale['quantity'] * sale['price'];
-                return [
-                  sale['item'],
-                  sale['quantity'].toString(),
-                  sale['price'].toStringAsFixed(2),
-                  total.toStringAsFixed(2),
-                ];
-              }).toList(),
+
+            // Invoice Details
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      "Invoice No: ${sale.invoiceNo}",
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
+                    pw.Text("Table: ${sale.table}"),
+                    pw.Text("Order Type: ${sale.orderType}"),
+                  ],
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Text(
+                      "Date: ${DateFormat('dd/MM/yyyy').format(sale.timestamp)}",
+                    ),
+                    pw.Text(
+                      "Time: ${DateFormat('hh:mm a').format(sale.timestamp)}",
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            pw.SizedBox(height: 20),
+
+            // Items Table
+            pw.Table(
+              border: pw.TableBorder.all(),
+              children: [
+                // Header
+                pw.TableRow(
+                  children: [
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                        "#",
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                        "Item",
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                        "Qty",
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                        "Rate",
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                        "Amount",
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                // Items
+                ...sale.items.asMap().entries.map((entry) {
+                  final index = entry.key + 1;
+                  final item = entry.value;
+                  return pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(index.toString()),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(item.item['item_name'] ?? ''),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(item.quantity.toString()),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(
+                          "₹${(item.item['rate'] as num).toStringAsFixed(2)}",
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(
+                          "₹${item.totalPrice.toStringAsFixed(2)}",
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ],
+            ),
+
+            pw.SizedBox(height: 20),
+
+            // Totals
+            pw.Container(
+              width: double.infinity,
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Container(
+                    width: 200,
+                    child: pw.Column(
+                      children: [
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text("Subtotal:"),
+                            pw.Text("₹${sale.subtotal.toStringAsFixed(2)}"),
+                          ],
+                        ),
+                        if (sale.discount > 0) ...[
+                          pw.SizedBox(height: 5),
+                          pw.Row(
+                            mainAxisAlignment:
+                                pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text("Discount:"),
+                              pw.Text("-₹${sale.discount.toStringAsFixed(2)}"),
+                            ],
+                          ),
+                        ],
+                        pw.SizedBox(height: 5),
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text(
+                              "Tax (${(sale.taxRate * 100).toStringAsFixed(0)}%):",
+                            ),
+                            pw.Text("₹${sale.tax.toStringAsFixed(2)}"),
+                          ],
+                        ),
+                        pw.SizedBox(height: 10),
+                        pw.Container(height: 1, color: PdfColors.black),
+                        pw.SizedBox(height: 10),
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text(
+                              "Total:",
+                              style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            pw.Text(
+                              "₹${sale.total.toStringAsFixed(2)}",
+                              style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            pw.SizedBox(height: 30),
+
+            // Amount in words
+            pw.Text(
+              "Amount in Words: ${convertNumberToWords(sale.total.toInt())}",
+              style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
+            ),
+
+            pw.SizedBox(height: 30),
+
+            // Footer
+            pw.Center(
+              child: pw.Column(
+                children: [
+                  pw.Text(
+                    "Thank you for visiting us!",
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                  ),
+                  pw.Text("Please visit us again"),
+                ],
+              ),
             ),
           ],
         );
@@ -35,14 +253,79 @@ Future<void> generateAndSavePdf(List<Map<String, dynamic>> sales) async {
     ),
   );
 
-  // Save to local File
+  return pdf;
+}
 
-  final outputDir = await getApplicationDocumentsDirectory();
-  final timestamp = DateTime.now().millisecondsSinceEpoch;
-  final file = File("${outputDir.path}/$timestamp-invoice.pdf");
-  await file.writeAsBytes(await pdf.save());
+// Show PDF print dialog
+Future<void> showPdfPrintDialog(BuildContext context, Sales sale) async {
+  try {
+    final pdf = await generateInvoicePdf(sale);
 
-  print("Invoice saved to: ${file.path}");
+    await Printing.layoutPdf(
+      onLayout: (format) async => pdf.save(),
+      name: 'Invoice_${sale.invoiceNo}',
+    );
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error generating PDF: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+}
+
+// Enhanced reprint function with error handling
+Future<void> reprintInvoice(BuildContext context, Sales sale) async {
+  try {
+    // First try thermal printing
+    await generateAndSaveThermalBill(sale);
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Invoice ${sale.invoiceNo} sent to printer successfully!',
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  } catch (printError) {
+    print("Thermal printing failed: $printError");
+
+    if (context.mounted) {
+      // Show dialog asking user if they want to view PDF
+      final result = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Printing Failed'),
+            content: const Text(
+              'Unable to print to thermal printer. Would you like to view the invoice as PDF instead?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('View PDF'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (result == true) {
+        // Show PDF print dialog
+        await showPdfPrintDialog(context, sale);
+      }
+    }
+  }
 }
 
 // Thermal Printer Bill Generator (80mm width)
@@ -256,11 +539,11 @@ Future<void> generateAndSaveThermalBill(Sales sale) async {
       );
       print("Bill sent to printer: ${printers.first}");
     } else {
-      print("No printers available to print the bill.");
+      throw Exception("No printers available to print the bill.");
     }
-    
   } catch (e) {
     print("Failed to generate thermal bill: $e");
-    // Handle error appropriately in your app
+    // Re-throw the error so calling functions can handle it
+    rethrow;
   }
 }
