@@ -10,10 +10,8 @@ class DatabaseService {
   }
 
   Future<void> _seedDefaultTables() async {
-    // Check if tables already exist
     final existingTables = await getTables();
     if (existingTables.isEmpty) {
-      // Add some default tables
       for (int i = 1; i <= 12; i++) {
         await addTable("Table $i");
       }
@@ -121,6 +119,67 @@ class DatabaseService {
       'averageOrderValue': averageOrderValue,
       'todaysSales': todaysSales,
     };
+  }
+
+  Future<List<ExpensesCategory>> getExpenseCategories() async {
+    return await _databaseHelper.getExpenseCategories();
+  }
+
+  Future<int> addExpenseCategory(String name) async {
+    return await _databaseHelper.insertExpenseCategory(
+      ExpensesCategory(name: name),
+    );
+  }
+
+  Future<List<Expense>> getExpenses() async {
+    return await _databaseHelper.getExpenses();
+  }
+
+  Future<int> addExpense(
+    String title,
+    String description,
+    double amount,
+    DateTime date,
+    int categoryId,
+  ) async {
+    return await _databaseHelper.insertExpense(
+      Expense(
+        title: title,
+        description: description,
+        amount: amount,
+        date: date,
+        categoryId: categoryId,
+      ),
+    );
+  }
+
+  Future<List<Expense>> getExpensesByDateRange(
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    return await _databaseHelper.getExpensesByDateRange(startDate, endDate);
+  }
+
+  Future<double> getTotalExpensesForDate(DateTime date) async {
+    return await _databaseHelper.getTotalExpensesForDate(date);
+  }
+
+  Future<double> getTotalExpensesForDateRange(
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    return await _databaseHelper.getTotalExpensesForDateRange(
+      startDate,
+      endDate,
+    );
+  }
+
+  Future<int> updateExpense(Expense expense) async {
+    return await _databaseHelper.updateExpense(expense);
+  }
+
+  Future<int> deleteExpense(int expenseId) async {
+    return await _databaseHelper.deleteExpense(expenseId);
   }
 
   Future<void> clearAllData() async {

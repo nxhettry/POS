@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../models/models.dart';
 import '../../services/database_helper.dart';
+import '../../services/database_service.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -28,9 +29,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
   final int itemsPerPage = 20;
   bool isExporting = false;
   final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final DatabaseService _databaseService = DatabaseService();
   List<Sales> allSales = [];
+  List<Expense> allExpenses = [];
+  List<ExpensesCategory> expenseCategories = [];
   bool isLoading = true;
-  String selectedView = 'overview'; // overview, charts, detailed
+  String selectedView = 'overview'; // overview, charts, detailed, expenses
 
   @override
   void initState() {
@@ -68,20 +72,27 @@ class _ReportsScreenState extends State<ReportsScreen> {
       }
 
       final sales = await _databaseHelper.getSalesByDateRange(startDate, now);
+      final expenses = await _databaseService.getExpensesByDateRange(startDate, now);
+      final categories = await _databaseService.getExpenseCategories();
+      
       setState(() {
         allSales = sales;
+        allExpenses = expenses;
+        expenseCategories = categories;
         isLoading = false;
       });
     } catch (e) {
       setState(() {
         allSales = [];
+        allExpenses = [];
+        expenseCategories = [];
         isLoading = false;
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error loading sales data: ${e.toString()}'),
+            content: Text('Error loading data: ${e.toString()}'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
@@ -159,6 +170,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     _buildViewChip('overview', 'Overview', Icons.dashboard),
                     _buildViewChip('charts', 'Charts', Icons.bar_chart),
                     _buildViewChip('detailed', 'Detailed', Icons.table_chart),
+                    _buildViewChip('expenses', 'Expenses', Icons.receipt_long),
                   ],
                 ),
               ],
@@ -298,6 +310,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
         return _buildChartsView(filteredSales, reportData, mostSoldItems);
       case 'detailed':
         return _buildDetailedView(filteredSales, paginatedSales);
+      case 'expenses':
+        return _buildExpensesView();
       default:
         return _buildOverviewView(reportData, mostSoldItems);
     }
@@ -366,10 +380,380 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
+  Widget _buildExpensesView() {
+    final filteredExpenses = allExpenses;
+    final totalExpenses = filteredExpenses.fold<double>(0.0, (sum, expense) => sum + expense.amount);
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Expense Summary Cards
+          _buildExpenseSummaryCards(totalExpenses, filteredExpenses.length),
+          const SizedBox(height: 24),
+          
+          // Category breakdown
+          _buildExpenseCategoryChart(filteredExpenses),
+          const SizedBox(height: 24),
+          
+          // Expense records table
+          _buildExpenseRecordsSection(filteredExpenses),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpenseSummaryCards(double totalExpenses, int expenseCount) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildSummaryCard(
+            'Total Expenses',
+            'NPR ${NumberFormat('#,##0.00').format(totalExpenses)}',
+            Icons.money_off,
+            Colors.red,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildSummaryCard(
+            'Number of Expenses',
+            '$expenseCount',
+            Icons.receipt,
+            Colors.orange,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildSummaryCard(
+            'Average Expense',
+            expenseCount > 0 
+                ? 'NPR ${NumberFormat('#,##0.00').format(totalExpenses / expenseCount)}'
+                : 'NPR 0.00',
+            Icons.calculate,
+            Colors.blue,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExpenseCategoryChart(List<Expense> expenses) {
+    if (expenses.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Group expenses by category
+    final Map<int, double> categoryTotals = {};
+    for (final expense in expenses) {
+      categoryTotals[expense.categoryId] = 
+          (categoryTotals[expense.categoryId] ?? 0.0) + expense.amount;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 2,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Expense by Category',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...categoryTotals.entries.map((entry) {
+            final category = expenseCategories.firstWhere(
+              (cat) => cat.id == entry.key,
+              orElse: () => ExpensesCategory(name: 'Unknown'),
+            );
+            final percentage = (entry.value / expenses.fold<double>(0.0, (sum, e) => sum + e.amount)) * 100;
+            
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      category.name,
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 3,
+                    child: LinearProgressIndicator(
+                      value: percentage / 100,
+                      backgroundColor: Colors.grey[200],
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.red[400]!),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'NPR ${NumberFormat('#,##0.00').format(entry.value)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red[700],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpenseRecordsSection(List<Expense> expenses) {
+    if (expenses.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(40),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 2,
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Column(
+            children: [
+              Icon(
+                Icons.receipt_long_outlined,
+                size: 48,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'No expenses found for selected period',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final paginatedExpenses = expenses.skip(currentPage * itemsPerPage).take(itemsPerPage).toList();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 2,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Expense Records',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                Text(
+                  'Total: ${expenses.length} expenses',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Table Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              border: Border(
+                top: BorderSide(color: Colors.grey[200]!),
+                bottom: BorderSide(color: Colors.grey[200]!),
+              ),
+            ),
+            child: const Row(
+              children: [
+                Expanded(flex: 2, child: Text('Title', style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(flex: 2, child: Text('Description', style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(flex: 1, child: Text('Category', style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(flex: 1, child: Text('Amount', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
+                Expanded(flex: 1, child: Text('Date', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+              ],
+            ),
+          ),
+          // Table Body
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: paginatedExpenses.length,
+            itemBuilder: (context, index) {
+              final expense = paginatedExpenses[index];
+              final category = expenseCategories.firstWhere(
+                (cat) => cat.id == expense.categoryId,
+                orElse: () => ExpensesCategory(name: 'Unknown'),
+              );
+              
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey[100]!),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        expense.title,
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        expense.description,
+                        style: TextStyle(color: Colors.grey[700]),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          category.name,
+                          style: TextStyle(
+                            color: Colors.blue[700],
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Text(
+                        'NPR ${NumberFormat('#,##0.00').format(expense.amount)}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red[700],
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Text(
+                        DateFormat('MMM dd, yyyy').format(expense.date),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          // Pagination
+          if (expenses.length > itemsPerPage)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Showing ${(currentPage * itemsPerPage) + 1}-${(currentPage * itemsPerPage) + paginatedExpenses.length} of ${expenses.length}',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  ),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: currentPage > 0
+                            ? () {
+                                setState(() {
+                                  currentPage--;
+                                });
+                              }
+                            : null,
+                        icon: const Icon(Icons.chevron_left),
+                      ),
+                      Text(
+                        'Page ${currentPage + 1} of ${(expenses.length / itemsPerPage).ceil()}',
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      IconButton(
+                        onPressed: currentPage < (expenses.length / itemsPerPage).ceil() - 1
+                            ? () {
+                                setState(() {
+                                  currentPage++;
+                                });
+                              }
+                            : null,
+                        icon: const Icon(Icons.chevron_right),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildEnhancedSummaryCards(Map<String, dynamic> reportData) {
     final averageOrderValue = reportData['salesCount'] > 0
         ? reportData['totalAmount'] / reportData['salesCount']
         : 0.0;
+
+    final totalExpenses = allExpenses.fold<double>(0.0, (sum, expense) => sum + expense.amount);
+    final profit = reportData['totalAmount'] - totalExpenses;
 
     return Column(
       children: [
@@ -378,9 +762,31 @@ class _ReportsScreenState extends State<ReportsScreen> {
             Expanded(
               child: _buildSummaryCard(
                 'Total Revenue',
-                'Rs. ${reportData['totalAmount']?.toStringAsFixed(2) ?? '0.00'}',
+                'NPR ${NumberFormat('#,##0.00').format(reportData['totalAmount'] ?? 0.0)}',
                 Icons.trending_up,
                 Colors.green,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildSummaryCard(
+                'Total Expenses',
+                'NPR ${NumberFormat('#,##0.00').format(totalExpenses)}',
+                Icons.money_off,
+                Colors.red,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildSummaryCard(
+                'Net Profit',
+                'NPR ${NumberFormat('#,##0.00').format(profit)}',
+                Icons.account_balance_wallet,
+                profit >= 0 ? Colors.green : Colors.red,
               ),
             ),
             const SizedBox(width: 12),
@@ -409,7 +815,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             Expanded(
               child: _buildSummaryCard(
                 'Avg Order Value',
-                'Rs. ${averageOrderValue.toStringAsFixed(2)}',
+                'NPR ${NumberFormat('#,##0.00').format(averageOrderValue)}',
                 Icons.calculate,
                 Colors.purple,
               ),

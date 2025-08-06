@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:pos/screens/expense/expense_screen.dart';
 import 'dart:async';
 import "./screens/activity/activity_screen.dart";
 import "screens/point-of-sales/point_of_sales_screen.dart";
@@ -16,9 +17,8 @@ void main() async {
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
 
-  // Initialize the database
   await DatabaseService().initializeDatabase();
-  
+
   runApp(const MyApp());
 }
 
@@ -56,6 +56,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final List<Widget> _screens = [
     const PointOfSaleScreen(),
     const ActivityScreen(),
+    const ExpenseScreen(),
     const ReportsScreen(),
     const SettingsScreen(),
   ];
@@ -80,8 +81,8 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         centerTitle: true,
         actions: [
-          const DateTimeBadge(), 
-          SizedBox(width: ResponsiveUtils.getSpacing(context, base: 30))
+          const DateTimeBadge(),
+          SizedBox(width: ResponsiveUtils.getSpacing(context, base: 30)),
         ],
       ),
       drawer: SizedBox(
@@ -90,17 +91,17 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Column(
             children: [
               Container(
-                height: ResponsiveUtils.isExtraSmallDesktop(context) ? 160 : 
-                        ResponsiveUtils.isSmallDesktop(context) ? 180 : 200,
+                height: ResponsiveUtils.isExtraSmallDesktop(context)
+                    ? 160
+                    : ResponsiveUtils.isSmallDesktop(context)
+                    ? 180
+                    : 200,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.red,
-                      Colors.red.withOpacity(0.8),
-                    ],
+                    colors: [Colors.red, Colors.red.withOpacity(0.8)],
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -119,10 +120,16 @@ class _MyHomePageState extends State<MyHomePage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: ResponsiveUtils.isExtraSmallDesktop(context) ? 50 :
-                                 ResponsiveUtils.isSmallDesktop(context) ? 60 : 70,
-                          height: ResponsiveUtils.isExtraSmallDesktop(context) ? 50 :
-                                  ResponsiveUtils.isSmallDesktop(context) ? 60 : 70,
+                          width: ResponsiveUtils.isExtraSmallDesktop(context)
+                              ? 50
+                              : ResponsiveUtils.isSmallDesktop(context)
+                              ? 60
+                              : 70,
+                          height: ResponsiveUtils.isExtraSmallDesktop(context)
+                              ? 50
+                              : ResponsiveUtils.isSmallDesktop(context)
+                              ? 60
+                              : 70,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
                             color: Colors.white,
@@ -143,13 +150,19 @@ class _MyHomePageState extends State<MyHomePage> {
                             ),
                           ),
                         ),
-                        SizedBox(height: ResponsiveUtils.getSpacing(context, base: 16)),
+                        SizedBox(
+                          height: ResponsiveUtils.getSpacing(context, base: 16),
+                        ),
                         Text(
                           'Rato-POS',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: ResponsiveUtils.getFontSize(context, 
-                              ResponsiveUtils.isExtraSmallDesktop(context) ? 24 : 28),
+                            fontSize: ResponsiveUtils.getFontSize(
+                              context,
+                              ResponsiveUtils.isExtraSmallDesktop(context)
+                                  ? 24
+                                  : 28,
+                            ),
                             fontWeight: FontWeight.bold,
                             shadows: [
                               Shadow(
@@ -165,9 +178,14 @@ class _MyHomePageState extends State<MyHomePage> {
                             'Restaurant Management System',
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.9),
-                              fontSize: ResponsiveUtils.getFontSize(context, 
-                                ResponsiveUtils.isExtraSmallDesktop(context) ? 11 : 
-                                ResponsiveUtils.isSmallDesktop(context) ? 12 : 14),
+                              fontSize: ResponsiveUtils.getFontSize(
+                                context,
+                                ResponsiveUtils.isExtraSmallDesktop(context)
+                                    ? 11
+                                    : ResponsiveUtils.isSmallDesktop(context)
+                                    ? 12
+                                    : 14,
+                              ),
                               fontWeight: FontWeight.w500,
                             ),
                             maxLines: 2,
@@ -180,24 +198,23 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 ),
               ),
-              
+
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.grey[50]!,
-                        Colors.grey[100]!,
-                      ],
+                      colors: [Colors.grey[50]!, Colors.grey[100]!],
                     ),
                   ),
                   child: Padding(
                     padding: ResponsiveUtils.getPadding(context),
                     child: Column(
                       children: [
-                        SizedBox(height: ResponsiveUtils.getSpacing(context, base: 8)),
+                        SizedBox(
+                          height: ResponsiveUtils.getSpacing(context, base: 8),
+                        ),
                         DrawerListItem(
                           title: 'Point Of Sale',
                           icon: Icons.point_of_sale,
@@ -217,8 +234,8 @@ class _MyHomePageState extends State<MyHomePage> {
                           },
                         ),
                         DrawerListItem(
-                          title: 'Reports',
-                          icon: Icons.bar_chart,
+                          title: 'Expense',
+                          icon: Icons.money_off,
                           isSelected: _currentIndex == 2,
                           onTap: () {
                             _onItemTapped(2);
@@ -226,11 +243,20 @@ class _MyHomePageState extends State<MyHomePage> {
                           },
                         ),
                         DrawerListItem(
-                          title: 'Settings',
-                          icon: Icons.settings,
+                          title: 'Reports',
+                          icon: Icons.bar_chart,
                           isSelected: _currentIndex == 3,
                           onTap: () {
                             _onItemTapped(3);
+                            Navigator.pop(context);
+                          },
+                        ),
+                        DrawerListItem(
+                          title: 'Settings',
+                          icon: Icons.settings,
+                          isSelected: _currentIndex == 4,
+                          onTap: () {
+                            _onItemTapped(4);
                             Navigator.pop(context);
                           },
                         ),
@@ -276,7 +302,6 @@ class _DateTimeBadgeState extends State<DateTimeBadge> {
 
   void _updateTime() {
     setState(() {
-      // Nepal timezone is UTC+5:45
       _currentTime = DateTime.now().toUtc().add(
         const Duration(hours: 5, minutes: 45),
       );
@@ -319,7 +344,9 @@ class _DateTimeBadgeState extends State<DateTimeBadge> {
           ),
           SizedBox(height: ResponsiveUtils.getSpacing(context, base: 2)),
           Padding(
-            padding: EdgeInsets.only(left: ResponsiveUtils.getSpacing(context, base: 8)),
+            padding: EdgeInsets.only(
+              left: ResponsiveUtils.getSpacing(context, base: 8),
+            ),
             child: Text(
               timeFormat.format(_currentTime),
               style: TextStyle(

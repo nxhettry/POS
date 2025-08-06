@@ -21,7 +21,7 @@ class DatabaseHelper {
     String dbPath = join(path, 'pos_database.db');
     return await openDatabase(
       dbPath,
-      version: 6,
+      version: 7,
       onCreate: (db, version) async {
         await _createTables(db);
       },
@@ -83,6 +83,44 @@ class DatabaseHelper {
               is_enabled INTEGER NOT NULL DEFAULT 1
             )
           ''');
+        }
+        if (oldVersion < 7) {
+          await db.execute('''
+            CREATE TABLE expense_categories (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE expenses (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              title TEXT NOT NULL,
+              description TEXT NOT NULL,
+              amount REAL NOT NULL,
+              date TEXT NOT NULL,
+              category_id INTEGER NOT NULL,
+              FOREIGN KEY (category_id) REFERENCES expense_categories (id)
+            )
+          ''');
+          // Insert default expense categories
+          await db.execute(
+            "INSERT INTO expense_categories (name) VALUES ('Office Supplies')",
+          );
+          await db.execute(
+            "INSERT INTO expense_categories (name) VALUES ('Food & Ingredients')",
+          );
+          await db.execute(
+            "INSERT INTO expense_categories (name) VALUES ('Utilities')",
+          );
+          await db.execute(
+            "INSERT INTO expense_categories (name) VALUES ('Marketing')",
+          );
+          await db.execute(
+            "INSERT INTO expense_categories (name) VALUES ('Maintenance')",
+          );
+          await db.execute(
+            "INSERT INTO expense_categories (name) VALUES ('Other')",
+          );
         }
       },
     );
@@ -195,6 +233,43 @@ class DatabaseHelper {
     await db.execute('''
       INSERT INTO counters (counter_name, counter_value) VALUES ('invoice_counter', 0)
     ''');
+
+    await db.execute('''
+      CREATE TABLE expense_categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE expenses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        amount REAL NOT NULL,
+        date TEXT NOT NULL,
+        category_id INTEGER NOT NULL,
+        FOREIGN KEY (category_id) REFERENCES expense_categories (id)
+      )
+    ''');
+
+    // Insert default expense categories
+    await db.execute(
+      "INSERT INTO expense_categories (name) VALUES ('Office Supplies')",
+    );
+    await db.execute(
+      "INSERT INTO expense_categories (name) VALUES ('Food & Ingredients')",
+    );
+    await db.execute(
+      "INSERT INTO expense_categories (name) VALUES ('Utilities')",
+    );
+    await db.execute(
+      "INSERT INTO expense_categories (name) VALUES ('Marketing')",
+    );
+    await db.execute(
+      "INSERT INTO expense_categories (name) VALUES ('Maintenance')",
+    );
+    await db.execute("INSERT INTO expense_categories (name) VALUES ('Other')");
   }
 
   Future<int> insertCategory(Category category) async {
@@ -223,7 +298,11 @@ class DatabaseHelper {
   Future<int> deleteCategory(int categoryId) async {
     final db = await database;
     await db.delete('items', where: 'category_id = ?', whereArgs: [categoryId]);
-    return await db.delete('categories', where: 'id = ?', whereArgs: [categoryId]);
+    return await db.delete(
+      'categories',
+      where: 'id = ?',
+      whereArgs: [categoryId],
+    );
   }
 
   Future<int> insertItem(Item item) async {
@@ -350,7 +429,6 @@ class DatabaseHelper {
           'total': sale.total,
           'timestamp': sale.timestamp.toIso8601String(),
         });
-
 
         for (int i = 0; i < sale.items.length; i++) {
           CartItem cartItem = sale.items[i];
@@ -482,8 +560,11 @@ class DatabaseHelper {
 
   Future<Restaurant?> getRestaurant() async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('restaurant', limit: 1);
-    
+    final List<Map<String, dynamic>> maps = await db.query(
+      'restaurant',
+      limit: 1,
+    );
+
     if (maps.isNotEmpty) {
       return Restaurant.fromMap(maps.first);
     }
@@ -516,8 +597,11 @@ class DatabaseHelper {
 
   Future<BillSettings?> getBillSettings() async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('bill_settings', limit: 1);
-    
+    final List<Map<String, dynamic>> maps = await db.query(
+      'bill_settings',
+      limit: 1,
+    );
+
     if (maps.isNotEmpty) {
       return BillSettings.fromMap(maps.first);
     }
@@ -550,8 +634,11 @@ class DatabaseHelper {
 
   Future<SystemSettings?> getSystemSettings() async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('system_settings', limit: 1);
-    
+    final List<Map<String, dynamic>> maps = await db.query(
+      'system_settings',
+      limit: 1,
+    );
+
     if (maps.isNotEmpty) {
       return SystemSettings.fromMap(maps.first);
     }
@@ -584,8 +671,11 @@ class DatabaseHelper {
 
   Future<TaxSettings?> getTaxSettings() async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('tax_settings', limit: 1);
-    
+    final List<Map<String, dynamic>> maps = await db.query(
+      'tax_settings',
+      limit: 1,
+    );
+
     if (maps.isNotEmpty) {
       return TaxSettings.fromMap(maps.first);
     }
@@ -611,7 +701,117 @@ class DatabaseHelper {
     }
   }
 
-  // Utility methods
+  Future<int> insertExpenseCategory(ExpensesCategory category) async {
+    final db = await database;
+    return await db.insert('expense_categories', category.toMap());
+  }
+
+  Future<List<ExpensesCategory>> getExpenseCategories() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'expense_categories',
+    );
+    return List.generate(maps.length, (i) {
+      return ExpensesCategory.fromMap(maps[i]);
+    });
+  }
+
+  Future<int> updateExpenseCategory(ExpensesCategory category) async {
+    final db = await database;
+    return await db.update(
+      'expense_categories',
+      category.toMap(),
+      where: 'id = ?',
+      whereArgs: [category.id],
+    );
+  }
+
+  Future<int> deleteExpenseCategory(int categoryId) async {
+    final db = await database;
+    return await db.delete(
+      'expense_categories',
+      where: 'id = ?',
+      whereArgs: [categoryId],
+    );
+  }
+
+  Future<int> insertExpense(Expense expense) async {
+    final db = await database;
+    return await db.insert('expenses', expense.toMap());
+  }
+
+  Future<List<Expense>> getExpenses() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'expenses',
+      orderBy: 'date DESC',
+    );
+    return List.generate(maps.length, (i) {
+      return Expense.fromMap(maps[i]);
+    });
+  }
+
+  Future<List<Expense>> getExpensesByDateRange(
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'expenses',
+      where: 'date >= ? AND date <= ?',
+      whereArgs: [startDate.toIso8601String(), endDate.toIso8601String()],
+      orderBy: 'date DESC',
+    );
+    return List.generate(maps.length, (i) {
+      return Expense.fromMap(maps[i]);
+    });
+  }
+
+  Future<List<Expense>> getExpensesByCategory(int categoryId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'expenses',
+      where: 'category_id = ?',
+      whereArgs: [categoryId],
+      orderBy: 'date DESC',
+    );
+    return List.generate(maps.length, (i) {
+      return Expense.fromMap(maps[i]);
+    });
+  }
+
+  Future<int> updateExpense(Expense expense) async {
+    final db = await database;
+    return await db.update(
+      'expenses',
+      expense.toMap(),
+      where: 'id = ?',
+      whereArgs: [expense.id],
+    );
+  }
+
+  Future<int> deleteExpense(int expenseId) async {
+    final db = await database;
+    return await db.delete('expenses', where: 'id = ?', whereArgs: [expenseId]);
+  }
+
+  Future<double> getTotalExpensesForDateRange(
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    final expenses = await getExpensesByDateRange(startDate, endDate);
+    return expenses.fold<double>(
+      0.0,
+      (total, expense) => total + expense.amount,
+    );
+  }
+
+  Future<double> getTotalExpensesForDate(DateTime date) async {
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+    return await getTotalExpensesForDateRange(startOfDay, endOfDay);
+  }
+
   Future<void> deleteDatabase() async {
     String path = await getDatabasesPath();
     await databaseFactory.deleteDatabase(join(path, 'pos_database.db'));

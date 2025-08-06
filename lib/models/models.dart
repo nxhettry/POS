@@ -353,3 +353,80 @@ class Restaurant {
     );
   }
 }
+
+class Expense {
+  final int? id;
+  final String title;
+  final String description;
+  final double amount;
+  final DateTime date;
+  final int categoryId;
+
+  Expense({
+    this.id,
+    required this.title,
+    required this.description,
+    required this.amount,
+    required this.date,
+    required this.categoryId,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'amount': amount,
+      'date': date.toIso8601String(),
+      'category_id': categoryId,
+    };
+  }
+
+  factory Expense.fromMap(Map<String, dynamic> map) {
+    return Expense(
+      id: map['id'] as int?,
+      title: map['title'] as String,
+      description: map['description'] as String,
+      amount: (map['amount'] as num).toDouble(),
+      date: DateTime.parse(map['date'] as String),
+      categoryId: map['category_id'] as int,
+    );
+  }
+
+  Expense copyWith({
+    int? id,
+    String? title,
+    String? description,
+    double? amount,
+    DateTime? date,
+    int? categoryId,
+  }) {
+    return Expense(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      amount: amount ?? this.amount,
+      date: date ?? this.date,
+      categoryId: categoryId ?? this.categoryId,
+    );
+  }
+}
+
+class ExpensesCategory {
+  final int? id;
+  final String name;
+
+  ExpensesCategory({this.id, required this.name});
+
+  Map<String, dynamic> toMap() {
+    return {'id': id, 'name': name};
+  }
+
+  factory ExpensesCategory.fromMap(Map<String, dynamic> map) {
+    return ExpensesCategory(id: map['id'] as int?, name: map['name'] as String);
+  }
+
+  ExpensesCategory copyWith({int? id, String? name}) {
+    return ExpensesCategory(id: id ?? this.id, name: name ?? this.name);
+  }
+}
