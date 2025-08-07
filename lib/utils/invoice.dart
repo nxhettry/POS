@@ -9,7 +9,6 @@ import 'package:windows_printer/windows_printer.dart';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 
-// Generate PDF invoice for viewing/printing
 Future<pw.Document> generateInvoicePdf(Sales sale) async {
   final pdf = pw.Document();
   final dbHelper = DatabaseHelper();
@@ -256,7 +255,6 @@ Future<pw.Document> generateInvoicePdf(Sales sale) async {
   return pdf;
 }
 
-// Show PDF print dialog
 Future<void> showPdfPrintDialog(BuildContext context, Sales sale) async {
   try {
     final pdf = await generateInvoicePdf(sale);

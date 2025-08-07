@@ -72,7 +72,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Restaurant POS',
+          'Rato POS',
           style: TextStyle(
             fontSize: ResponsiveUtils.getFontSize(context, 24),
             fontWeight: FontWeight.bold,

@@ -6,7 +6,6 @@ import 'package:pos/models/models.dart';
 void main() {
   group('Invoice Reprinting Tests', () {
     testWidgets('reprintInvoice handles printing errors correctly', (WidgetTester tester) async {
-      // Create a test sales object
       final testSale = Sales(
         invoiceNo: 'TEST-001',
         table: 'Table 1',
