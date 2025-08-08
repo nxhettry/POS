@@ -1,29 +1,29 @@
 import { Request, Response } from "express";
 import { asyncHandler, apiResponse } from "../utils/api.js";
-import { validateSalesData } from "../validators/sales.validator.js";
+import { validateSalesItemData } from "../validators/salesItem.validator.js";
 import {
-  createSalesService,
-  updateSalesService,
-  getSalesService,
-  getAllSalesService,
-  getSalesByOrderStatusService,
-  getSalesByPaymentStatusService,
-  getSalesByTableService,
-  getSalesByPartyService,
-  deleteSalesService,
-} from "../service/sales.service.js";
+  createSalesItemService,
+  updateSalesItemService,
+  getSalesItemService,
+  getAllSalesItemsService,
+  getSalesItemsBySalesService,
+  getSalesItemsByMenuItemService,
+  deleteSalesItemService,
+  deleteSalesItemsBySalesService,
+} from "../service/salesItem.service.js";
 
-export const createSales = asyncHandler(
+export const createSalesItem = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    const salesData = req.body;
+    const salesItemData = req.body;
 
-    if (!salesData.orderType || !salesData.orderStatus || !salesData.paymentStatus) {
+    if (!salesItemData.salesId || !salesItemData.itemId || !salesItemData.itemName || 
+        salesItemData.quantity === undefined || salesItemData.rate === undefined) {
       return res
         .status(400)
-        .json(new apiResponse(400, null, "Order type, order status, and payment status are required"));
+        .json(new apiResponse(400, null, "Sales ID, item ID, item name, quantity, and rate are required"));
     }
 
-    const validation = validateSalesData(salesData);
+    const validation = validateSalesItemData(salesItemData);
 
     if (!validation.isValid) {
       return res
@@ -37,7 +37,7 @@ export const createSales = asyncHandler(
         );
     }
 
-    const result = await createSalesService(salesData);
+    const result = await createSalesItemService(salesItemData);
 
     if (result.success) {
       return res
@@ -51,18 +51,18 @@ export const createSales = asyncHandler(
   }
 );
 
-export const updateSales = asyncHandler(
+export const updateSalesItem = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const { id } = req.params;
-    const salesData = req.body;
+    const salesItemData = req.body;
 
     if (!id || isNaN(Number(id))) {
       return res
         .status(400)
-        .json(new apiResponse(400, null, "Valid sales ID is required"));
+        .json(new apiResponse(400, null, "Valid sales item ID is required"));
     }
 
-    const validation = validateSalesData(salesData);
+    const validation = validateSalesItemData(salesItemData);
 
     if (!validation.isValid) {
       return res
@@ -76,7 +76,7 @@ export const updateSales = asyncHandler(
         );
     }
 
-    const result = await updateSalesService(Number(id), salesData);
+    const result = await updateSalesItemService(Number(id), salesItemData);
 
     if (result.success) {
       return res
@@ -90,17 +90,17 @@ export const updateSales = asyncHandler(
   }
 );
 
-export const getSales = asyncHandler(
+export const getSalesItem = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const { id } = req.params;
 
     if (!id || isNaN(Number(id))) {
       return res
         .status(400)
-        .json(new apiResponse(400, null, "Valid sales ID is required"));
+        .json(new apiResponse(400, null, "Valid sales item ID is required"));
     }
 
-    const result = await getSalesService(Number(id));
+    const result = await getSalesItemService(Number(id));
 
     if (result.success) {
       return res
@@ -114,9 +114,9 @@ export const getSales = asyncHandler(
   }
 );
 
-export const getAllSales = asyncHandler(
+export const getAllSalesItems = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    const result = await getAllSalesService();
+    const result = await getAllSalesItemsService();
 
     if (result.success) {
       return res
@@ -130,18 +130,17 @@ export const getAllSales = asyncHandler(
   }
 );
 
-export const getSalesByOrderStatus = asyncHandler(
+export const getSalesItemsBySales = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    const { status } = req.params;
+    const { salesId } = req.params;
 
-    const validStatuses = ["pending", "preparing", "ready", "served", "cancelled"];
-    if (!validStatuses.includes(status)) {
+    if (!salesId || isNaN(Number(salesId))) {
       return res
         .status(400)
-        .json(new apiResponse(400, null, "Valid order status is required (pending, preparing, ready, served, cancelled)"));
+        .json(new apiResponse(400, null, "Valid sales ID is required"));
     }
 
-    const result = await getSalesByOrderStatusService(status);
+    const result = await getSalesItemsBySalesService(Number(salesId));
 
     if (result.success) {
       return res
@@ -155,18 +154,17 @@ export const getSalesByOrderStatus = asyncHandler(
   }
 );
 
-export const getSalesByPaymentStatus = asyncHandler(
+export const getSalesItemsByMenuItem = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    const { status } = req.params;
+    const { itemId } = req.params;
 
-    const validStatuses = ["pending", "paid", "partial", "refunded"];
-    if (!validStatuses.includes(status)) {
+    if (!itemId || isNaN(Number(itemId))) {
       return res
         .status(400)
-        .json(new apiResponse(400, null, "Valid payment status is required (pending, paid, partial, refunded)"));
+        .json(new apiResponse(400, null, "Valid menu item ID is required"));
     }
 
-    const result = await getSalesByPaymentStatusService(status);
+    const result = await getSalesItemsByMenuItemService(Number(itemId));
 
     if (result.success) {
       return res
@@ -180,65 +178,41 @@ export const getSalesByPaymentStatus = asyncHandler(
   }
 );
 
-export const getSalesByTable = asyncHandler(
-  async (req: Request, res: Response): Promise<any> => {
-    const { tableId } = req.params;
-
-    if (!tableId || isNaN(Number(tableId))) {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, "Valid table ID is required"));
-    }
-
-    const result = await getSalesByTableService(Number(tableId));
-
-    if (result.success) {
-      return res
-        .status(200)
-        .json(new apiResponse(200, result.data, result.message));
-    } else {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, result.message));
-    }
-  }
-);
-
-export const getSalesByParty = asyncHandler(
-  async (req: Request, res: Response): Promise<any> => {
-    const { partyId } = req.params;
-
-    if (!partyId || isNaN(Number(partyId))) {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, "Valid party ID is required"));
-    }
-
-    const result = await getSalesByPartyService(Number(partyId));
-
-    if (result.success) {
-      return res
-        .status(200)
-        .json(new apiResponse(200, result.data, result.message));
-    } else {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, result.message));
-    }
-  }
-);
-
-export const deleteSales = asyncHandler(
+export const deleteSalesItem = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const { id } = req.params;
 
     if (!id || isNaN(Number(id))) {
       return res
         .status(400)
+        .json(new apiResponse(400, null, "Valid sales item ID is required"));
+    }
+
+    const result = await deleteSalesItemService(Number(id));
+
+    if (result.success) {
+      return res
+        .status(200)
+        .json(new apiResponse(200, result.data, result.message));
+    } else {
+      return res
+        .status(404)
+        .json(new apiResponse(404, null, result.message));
+    }
+  }
+);
+
+export const deleteSalesItemsBySales = asyncHandler(
+  async (req: Request, res: Response): Promise<any> => {
+    const { salesId } = req.params;
+
+    if (!salesId || isNaN(Number(salesId))) {
+      return res
+        .status(400)
         .json(new apiResponse(400, null, "Valid sales ID is required"));
     }
 
-    const result = await deleteSalesService(Number(id));
+    const result = await deleteSalesItemsBySalesService(Number(salesId));
 
     if (result.success) {
       return res
