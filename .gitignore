@@ -1,0 +1,53 @@
+# macOS system files
+.DS_Store
+
+# Node.js dependencies
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
+dist/
+build/
+out/
+
+# Environment variables
+.env
+.env.*
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS generated files
+Thumbs.db
+Desktop.ini
+
+# Misc
+*.log
+*.tgz
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional: Ignore local SQLite or other DB files
+*.sqlite
+*.db
+
+# Optional: Ignore compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Optional: Ignore test output
+test-results/
