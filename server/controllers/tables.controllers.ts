@@ -12,10 +12,10 @@ export const createTable = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const tableData = req.body;
 
-    if (!tableData.tableNumber || !tableData.capacity) {
+    if (!tableData.name) {
       return res
         .status(400)
-        .json(new apiResponse(400, null, "Table number and capacity are required"));
+        .json(new apiResponse(400, null, "Table name is required"));
     }
 
     const result = await createTableService(tableData);
@@ -25,9 +25,7 @@ export const createTable = asyncHandler(
         .status(201)
         .json(new apiResponse(201, result.data, result.message));
     } else {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, result.message));
+      return res.status(409).json(new apiResponse(409, null, result.message));
     }
   }
 );
@@ -50,9 +48,11 @@ export const updateTable = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(404)
-        .json(new apiResponse(404, null, result.message));
+      // If the message indicates a duplicate name, return 409 (Conflict)
+      // If the table is not found, return 404
+      const statusCode = result.message === "Table not found" ? 404 : 
+                        result.message === "A table with this name already exists" ? 409 : 400;
+      return res.status(statusCode).json(new apiResponse(statusCode, null, result.message));
     }
   }
 );
@@ -74,9 +74,7 @@ export const getTable = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(404)
-        .json(new apiResponse(404, null, result.message));
+      return res.status(404).json(new apiResponse(404, null, result.message));
     }
   }
 );
@@ -90,9 +88,7 @@ export const getAllTables = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, result.message));
+      return res.status(400).json(new apiResponse(400, null, result.message));
     }
   }
 );
@@ -114,9 +110,7 @@ export const deleteTable = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(404)
-        .json(new apiResponse(404, null, result.message));
+      return res.status(404).json(new apiResponse(404, null, result.message));
     }
   }
 );

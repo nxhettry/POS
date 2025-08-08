@@ -133,7 +133,7 @@ export const createMenuItem = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const itemData = req.body;
 
-    if (!itemData.name || !itemData.categoryId || itemData.price === undefined) {
+    if (!itemData.itemName || !itemData.categoryId || itemData.rate === undefined) {
       return res
         .status(400)
         .json(new apiResponse(400, null, "Item name, category ID, and price are required"));

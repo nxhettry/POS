@@ -16,6 +16,9 @@ import reportsRoutes from "./reports.routes.js";
 
 const router = Router();
 
+router.use("/settings", settingsRoutes);
+router.use("/tables", tablesRoutes);
+router.use("/menu", menuRoutes);
 router.use("/users", userRoutes);
 router.use("/cart", cartRoutes);
 router.use("/sales", salesRoutes);
@@ -24,11 +27,8 @@ router.use("/parties", partyRoutes);
 router.use("/expenses", expenseRoutes);
 router.use("/expense-categories", expenseCategoryRoutes);
 router.use("/payment-methods", paymentMethodRoutes);
-router.use("/settings", settingsRoutes);
 router.use("/user-sessions", userSessionRoutes);
-router.use("/menu", menuRoutes);
 router.use("/inventory", inventoryRoutes);
-router.use("/tables", tablesRoutes);
 router.use("/reports", reportsRoutes);
 
 export default router;

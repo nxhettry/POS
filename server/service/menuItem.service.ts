@@ -21,6 +21,18 @@ interface MenuItemCreateData {
 
 export const createMenuItemService = async (itemData: MenuItemCreateData) => {
   try {
+    const existingItem = await MenuItem.findOne({
+      where: { itemName: itemData.itemName }
+    });
+
+    if (existingItem) {
+      return {
+        success: false,
+        data: null,
+        message: "A menu item with this name already exists"
+      };
+    }
+
     const newItem = await MenuItem.create(itemData as any);
     return {
       success: true,
@@ -28,6 +40,13 @@ export const createMenuItemService = async (itemData: MenuItemCreateData) => {
       message: "Menu item created successfully"
     };
   } catch (error: any) {
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return {
+        success: false,
+        data: null,
+        message: "A menu item with this name already exists"
+      };
+    }
     throw new Error(`Failed to create menu item: ${error.message}`);
   }
 };
@@ -44,6 +63,20 @@ export const updateMenuItemService = async (id: number, itemData: MenuItemUpdate
       };
     }
 
+    if (itemData.itemName && itemData.itemName !== item.get('itemName')) {
+      const existingItem = await MenuItem.findOne({
+        where: { itemName: itemData.itemName }
+      });
+
+      if (existingItem) {
+        return {
+          success: false,
+          data: null,
+          message: "A menu item with this name already exists"
+        };
+      }
+    }
+
     const updatedItem = await item.update(itemData);
     
     return {
@@ -52,6 +85,13 @@ export const updateMenuItemService = async (id: number, itemData: MenuItemUpdate
       message: "Menu item updated successfully"
     };
   } catch (error: any) {
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return {
+        success: false,
+        data: null,
+        message: "A menu item with this name already exists"
+      };
+    }
     throw new Error(`Failed to update menu item: ${error.message}`);
   }
 };

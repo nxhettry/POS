@@ -13,6 +13,7 @@ Table.init(
     name: {
       type: DataTypes.STRING,
       allowNull: false,
+      unique: true,
     },
     status: {
       type: DataTypes.ENUM("available", "occupied", "reserved"),

@@ -14,6 +14,18 @@ interface MenuCategoryCreateData {
 
 export const createMenuCategoryService = async (categoryData: MenuCategoryCreateData) => {
   try {
+    const existingCategory = await MenuCategory.findOne({
+      where: { name: categoryData.name }
+    });
+
+    if (existingCategory) {
+      return {
+        success: false,
+        data: null,
+        message: "A menu category with this name already exists"
+      };
+    }
+
     const newCategory = await MenuCategory.create(categoryData as any);
     return {
       success: true,
@@ -21,6 +33,13 @@ export const createMenuCategoryService = async (categoryData: MenuCategoryCreate
       message: "Menu category created successfully"
     };
   } catch (error: any) {
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return {
+        success: false,
+        data: null,
+        message: "A menu category with this name already exists"
+      };
+    }
     throw new Error(`Failed to create menu category: ${error.message}`);
   }
 };
@@ -37,6 +56,20 @@ export const updateMenuCategoryService = async (id: number, categoryData: MenuCa
       };
     }
 
+    if (categoryData.name && categoryData.name !== category.get('name')) {
+      const existingCategory = await MenuCategory.findOne({
+        where: { name: categoryData.name }
+      });
+
+      if (existingCategory) {
+        return {
+          success: false,
+          data: null,
+          message: "A menu category with this name already exists"
+        };
+      }
+    }
+
     const updatedCategory = await category.update(categoryData);
     
     return {
@@ -45,6 +78,13 @@ export const updateMenuCategoryService = async (id: number, categoryData: MenuCa
       message: "Menu category updated successfully"
     };
   } catch (error: any) {
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return {
+        success: false,
+        data: null,
+        message: "A menu category with this name already exists"
+      };
+    }
     throw new Error(`Failed to update menu category: ${error.message}`);
   }
 };

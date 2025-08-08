@@ -12,6 +12,18 @@ interface TableCreateData {
 
 export const createTableService = async (tableData: TableCreateData) => {
   try {
+    const existingTable = await Table.findOne({
+      where: { name: tableData.name }
+    });
+
+    if (existingTable) {
+      return {
+        success: false,
+        data: null,
+        message: "A table with this name already exists"
+      };
+    }
+
     const newTable = await Table.create(tableData as any);
     return {
       success: true,
@@ -19,6 +31,13 @@ export const createTableService = async (tableData: TableCreateData) => {
       message: "Table created successfully"
     };
   } catch (error: any) {
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return {
+        success: false,
+        data: null,
+        message: "A table with this name already exists"
+      };
+    }
     throw new Error(`Failed to create table: ${error.message}`);
   }
 };
@@ -35,6 +54,20 @@ export const updateTableService = async (id: number, tableData: TableUpdateData)
       };
     }
 
+    if (tableData.name && tableData.name !== table.get('name')) {
+      const existingTable = await Table.findOne({
+        where: { name: tableData.name }
+      });
+
+      if (existingTable) {
+        return {
+          success: false,
+          data: null,
+          message: "A table with this name already exists"
+        };
+      }
+    }
+
     const updatedTable = await table.update(tableData);
     
     return {
@@ -43,6 +76,13 @@ export const updateTableService = async (id: number, tableData: TableUpdateData)
       message: "Table updated successfully"
     };
   } catch (error: any) {
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return {
+        success: false,
+        data: null,
+        message: "A table with this name already exists"
+      };
+    }
     throw new Error(`Failed to update table: ${error.message}`);
   }
 };
