@@ -1,6 +1,7 @@
 import StockMovement from "../models/stockMovement.js";
 import InventoryItem from "../models/inventoryItem.models.js";
 import User from "../models/user.models.js";
+import { Op } from "sequelize";
 
 interface StockMovementUpdateData {
   inventoryItemId?: number;
@@ -22,55 +23,108 @@ interface StockMovementCreateData {
   createdBy?: number;
 }
 
-export const createStockMovementService = async (movementData: StockMovementCreateData) => {
+export const createStockMovementService = async (
+  movementData: StockMovementCreateData
+) => {
   try {
+    if (movementData.reference && movementData.reference.trim()) {
+      const existingMovement = await StockMovement.findOne({
+        where: {
+          reference: {
+            [Op.iLike]: movementData.reference.trim(),
+          },
+        },
+      });
+
+      if (existingMovement) {
+        return {
+          success: false,
+          data: null,
+          message: "Stock movement with this reference already exists",
+        };
+      }
+    }
+
     const newMovement = await StockMovement.create(movementData as any);
-    
-    const inventoryItem = await InventoryItem.findByPk(movementData.inventoryItemId);
+
+    const inventoryItem = await InventoryItem.findByPk(
+      movementData.inventoryItemId
+    );
     if (inventoryItem) {
-      const currentStock = parseFloat(inventoryItem.get('currentStock') as string) || 0;
+      const currentStock =
+        parseFloat(inventoryItem.get("currentStock") as string) || 0;
       let newStock = currentStock;
-      
-      if (movementData.type.toLowerCase().includes('in') || movementData.type.toLowerCase().includes('purchase')) {
+
+      if (
+        movementData.type.toLowerCase().includes("in") ||
+        movementData.type.toLowerCase().includes("purchase")
+      ) {
         newStock += movementData.quantity;
-      } else if (movementData.type.toLowerCase().includes('out') || movementData.type.toLowerCase().includes('sale')) {
+      } else if (
+        movementData.type.toLowerCase().includes("out") ||
+        movementData.type.toLowerCase().includes("sale")
+      ) {
         newStock -= movementData.quantity;
       }
-      
+
       await inventoryItem.update({
         currentStock: Math.max(0, newStock),
-        lastStockUpdate: new Date()
+        lastStockUpdate: new Date(),
       });
     }
-    
+
     return {
       success: true,
       data: newMovement,
-      message: "Stock movement created successfully"
+      message: "Stock movement created successfully",
     };
   } catch (error: any) {
     throw new Error(`Failed to create stock movement: ${error.message}`);
   }
 };
 
-export const updateStockMovementService = async (id: number, movementData: StockMovementUpdateData) => {
+export const updateStockMovementService = async (
+  id: number,
+  movementData: StockMovementUpdateData
+) => {
   try {
     const movement = await StockMovement.findByPk(id);
-    
+
     if (!movement) {
       return {
         success: false,
         data: null,
-        message: "Stock movement not found"
+        message: "Stock movement not found",
       };
     }
 
+    if (movementData.reference && movementData.reference.trim()) {
+      const existingMovement = await StockMovement.findOne({
+        where: {
+          reference: {
+            [Op.iLike]: movementData.reference.trim(),
+          },
+          id: {
+            [Op.ne]: id,
+          },
+        },
+      });
+
+      if (existingMovement) {
+        return {
+          success: false,
+          data: null,
+          message: "Another stock movement with this reference already exists",
+        };
+      }
+    }
+
     const updatedMovement = await movement.update(movementData);
-    
+
     return {
       success: true,
       data: updatedMovement,
-      message: "Stock movement updated successfully"
+      message: "Stock movement updated successfully",
     };
   } catch (error: any) {
     throw new Error(`Failed to update stock movement: ${error.message}`);
@@ -80,21 +134,21 @@ export const updateStockMovementService = async (id: number, movementData: Stock
 export const getStockMovementService = async (id: number) => {
   try {
     const movement = await StockMovement.findByPk(id, {
-      include: [InventoryItem, User]
+      include: [InventoryItem, User],
     });
-    
+
     if (!movement) {
       return {
         success: false,
         data: null,
-        message: "Stock movement not found"
+        message: "Stock movement not found",
       };
     }
 
     return {
       success: true,
       data: movement,
-      message: "Stock movement retrieved successfully"
+      message: "Stock movement retrieved successfully",
     };
   } catch (error: any) {
     throw new Error(`Failed to get stock movement: ${error.message}`);
@@ -105,31 +159,33 @@ export const getAllStockMovementsService = async () => {
   try {
     const movements = await StockMovement.findAll({
       include: [InventoryItem, User],
-      order: [['id', 'DESC']]
+      order: [["id", "DESC"]],
     });
 
     return {
       success: true,
       data: movements,
-      message: "Stock movements retrieved successfully"
+      message: "Stock movements retrieved successfully",
     };
   } catch (error: any) {
     throw new Error(`Failed to get stock movements: ${error.message}`);
   }
 };
 
-export const getStockMovementsByItemService = async (inventoryItemId: number) => {
+export const getStockMovementsByItemService = async (
+  inventoryItemId: number
+) => {
   try {
     const movements = await StockMovement.findAll({
       where: { inventoryItemId },
       include: [InventoryItem, User],
-      order: [['id', 'DESC']]
+      order: [["id", "DESC"]],
     });
 
     return {
       success: true,
       data: movements,
-      message: "Stock movements retrieved successfully"
+      message: "Stock movements retrieved successfully",
     };
   } catch (error: any) {
     throw new Error(`Failed to get stock movements by item: ${error.message}`);
@@ -139,21 +195,21 @@ export const getStockMovementsByItemService = async (inventoryItemId: number) =>
 export const deleteStockMovementService = async (id: number) => {
   try {
     const movement = await StockMovement.findByPk(id);
-    
+
     if (!movement) {
       return {
         success: false,
         data: null,
-        message: "Stock movement not found"
+        message: "Stock movement not found",
       };
     }
 
     await movement.destroy();
-    
+
     return {
       success: true,
       data: null,
-      message: "Stock movement deleted successfully"
+      message: "Stock movement deleted successfully",
     };
   } catch (error: any) {
     throw new Error(`Failed to delete stock movement: ${error.message}`);

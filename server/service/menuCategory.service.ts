@@ -12,17 +12,30 @@ interface MenuCategoryCreateData {
   isActive?: boolean;
 }
 
-export const createMenuCategoryService = async (categoryData: MenuCategoryCreateData) => {
+const handleUniqueConstraintError = (error: any) => {
+  if (error.name === "SequelizeUniqueConstraintError") {
+    return {
+      success: false,
+      data: null,
+      message: "A menu category with this name already exists",
+    };
+  }
+  return null;
+};
+
+export const createMenuCategoryService = async (
+  categoryData: MenuCategoryCreateData
+) => {
   try {
     const existingCategory = await MenuCategory.findOne({
-      where: { name: categoryData.name }
+      where: { name: categoryData.name },
     });
 
     if (existingCategory) {
       return {
         success: false,
         data: null,
-        message: "A menu category with this name already exists"
+        message: "A menu category with this name already exists",
       };
     }
 
@@ -30,61 +43,54 @@ export const createMenuCategoryService = async (categoryData: MenuCategoryCreate
     return {
       success: true,
       data: newCategory,
-      message: "Menu category created successfully"
+      message: "Menu category created successfully",
     };
   } catch (error: any) {
-    if (error.name === 'SequelizeUniqueConstraintError') {
-      return {
-        success: false,
-        data: null,
-        message: "A menu category with this name already exists"
-      };
-    }
+    const constraintError = handleUniqueConstraintError(error);
+    if (constraintError) return constraintError;
     throw new Error(`Failed to create menu category: ${error.message}`);
   }
 };
 
-export const updateMenuCategoryService = async (id: number, categoryData: MenuCategoryUpdateData) => {
+export const updateMenuCategoryService = async (
+  id: number,
+  categoryData: MenuCategoryUpdateData
+) => {
   try {
     const category = await MenuCategory.findByPk(id);
-    
+
     if (!category) {
       return {
         success: false,
         data: null,
-        message: "Menu category not found"
+        message: "Menu category not found",
       };
     }
 
-    if (categoryData.name && categoryData.name !== category.get('name')) {
+    if (categoryData.name && categoryData.name !== category.get("name")) {
       const existingCategory = await MenuCategory.findOne({
-        where: { name: categoryData.name }
+        where: { name: categoryData.name },
       });
 
       if (existingCategory) {
         return {
           success: false,
           data: null,
-          message: "A menu category with this name already exists"
+          message: "A menu category with this name already exists",
         };
       }
     }
 
     const updatedCategory = await category.update(categoryData);
-    
+
     return {
       success: true,
       data: updatedCategory,
-      message: "Menu category updated successfully"
+      message: "Menu category updated successfully",
     };
   } catch (error: any) {
-    if (error.name === 'SequelizeUniqueConstraintError') {
-      return {
-        success: false,
-        data: null,
-        message: "A menu category with this name already exists"
-      };
-    }
+    const constraintError = handleUniqueConstraintError(error);
+    if (constraintError) return constraintError;
     throw new Error(`Failed to update menu category: ${error.message}`);
   }
 };
@@ -92,19 +98,19 @@ export const updateMenuCategoryService = async (id: number, categoryData: MenuCa
 export const getMenuCategoryService = async (id: number) => {
   try {
     const category = await MenuCategory.findByPk(id);
-    
+
     if (!category) {
       return {
         success: false,
         data: null,
-        message: "Menu category not found"
+        message: "Menu category not found",
       };
     }
 
     return {
       success: true,
       data: category,
-      message: "Menu category retrieved successfully"
+      message: "Menu category retrieved successfully",
     };
   } catch (error: any) {
     throw new Error(`Failed to get menu category: ${error.message}`);
@@ -114,13 +120,13 @@ export const getMenuCategoryService = async (id: number) => {
 export const getAllMenuCategoriesService = async () => {
   try {
     const categories = await MenuCategory.findAll({
-      order: [['id', 'ASC']]
+      order: [["id", "ASC"]],
     });
 
     return {
       success: true,
       data: categories,
-      message: "Menu categories retrieved successfully"
+      message: "Menu categories retrieved successfully",
     };
   } catch (error: any) {
     throw new Error(`Failed to get menu categories: ${error.message}`);
@@ -130,21 +136,21 @@ export const getAllMenuCategoriesService = async () => {
 export const deleteMenuCategoryService = async (id: number) => {
   try {
     const category = await MenuCategory.findByPk(id);
-    
+
     if (!category) {
       return {
         success: false,
         data: null,
-        message: "Menu category not found"
+        message: "Menu category not found",
       };
     }
 
     await category.destroy();
-    
+
     return {
       success: true,
       data: null,
-      message: "Menu category deleted successfully"
+      message: "Menu category deleted successfully",
     };
   } catch (error: any) {
     throw new Error(`Failed to delete menu category: ${error.message}`);
