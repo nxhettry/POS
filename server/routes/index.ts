@@ -19,16 +19,16 @@ const router = Router();
 router.use("/settings", settingsRoutes);
 router.use("/tables", tablesRoutes);
 router.use("/menu", menuRoutes);
+router.use("/inventory", inventoryRoutes);
+router.use("/parties", partyRoutes);
 router.use("/users", userRoutes);
 router.use("/cart", cartRoutes);
 router.use("/sales", salesRoutes);
 router.use("/sales-items", salesItemRoutes);
-router.use("/parties", partyRoutes);
 router.use("/expenses", expenseRoutes);
 router.use("/expense-categories", expenseCategoryRoutes);
 router.use("/payment-methods", paymentMethodRoutes);
 router.use("/user-sessions", userSessionRoutes);
-router.use("/inventory", inventoryRoutes);
 router.use("/reports", reportsRoutes);
 
 export default router;
