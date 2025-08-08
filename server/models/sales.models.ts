@@ -1,6 +1,9 @@
 import { Model, DataTypes } from "sequelize";
 import sequelize from "../db/connection.js";
 import User from "./user.models.js";
+import Table from "./table.model.js";
+import PaymentMethod from "./paymentMethod.models.js";
+import Party from "./party.models.js";
 
 class Sales extends Model {}
 
@@ -13,7 +16,10 @@ Sales.init(
     },
     tableId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      references: {
+        model: Table,
+        key: "id",
+      },
     },
     orderType: {
       type: DataTypes.STRING,
@@ -29,7 +35,10 @@ Sales.init(
     },
     paymentMethodId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      references: {
+        model: PaymentMethod,
+        key: "id",
+      },
     },
     subTotal: {
       type: DataTypes.DECIMAL,
@@ -42,7 +51,10 @@ Sales.init(
     },
     partyId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      references: {
+        model: Party,
+        key: "id",
+      },
     },
     createdBy: {
       type: DataTypes.INTEGER,
@@ -53,6 +65,10 @@ Sales.init(
     },
     signedBy: {
       type: DataTypes.INTEGER,
+      references: {
+        model: User,
+        key: "id",
+      },
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -67,7 +83,7 @@ Sales.init(
     sequelize,
     modelName: "Sales",
     tableName: "sales",
-    timestamps: false,
+    timestamps: true,
   }
 );
 
