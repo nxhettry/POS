@@ -1,5 +1,10 @@
 import User from "../models/user.models.js";
-import { hashPassword, comparePassword, validatePasswordStrength } from "../utils/security.js";
+import {
+  hashPassword,
+  comparePassword,
+  validatePasswordStrength,
+} from "../utils/security.js";
+import { Op } from "sequelize";
 
 interface ServiceResponse<T> {
   success: boolean;
@@ -11,37 +16,34 @@ export const createUserService = async (
   userData: any
 ): Promise<ServiceResponse<any>> => {
   try {
-    // Validate password strength
     const passwordValidation = validatePasswordStrength(userData.password);
     if (!passwordValidation.isValid) {
       return {
         success: false,
-        message: `Password validation failed: ${passwordValidation.errors.join(', ')}`
+        message: `Password validation failed: ${passwordValidation.errors.join(
+          ", "
+        )}`,
       };
     }
 
-    // Check if username already exists
     const existingUser = await User.findOne({
-      where: { username: userData.username }
+      where: { username: userData.username },
     });
 
     if (existingUser) {
       return {
         success: false,
-        message: "Username already exists"
+        message: "Username already exists",
       };
     }
 
-    // Hash the password
     const hashedPassword = await hashPassword(userData.password);
-    
-    // Create user with hashed password
+
     const user = await User.create({
       ...userData,
-      password: hashedPassword
+      password: hashedPassword,
     });
 
-    // Remove password from response
     const userResponse = { ...user.toJSON() };
     delete userResponse.password;
 
@@ -53,7 +55,7 @@ export const createUserService = async (
   } catch (error: any) {
     return {
       success: false,
-      message: `Error creating user: ${error.message}`
+      message: `Error creating user: ${error.message}`,
     };
   }
 };
@@ -71,13 +73,27 @@ export const updateUserService = async (
       };
     }
 
-    // Don't allow password updates through this service
+    if (userData.username) {
+      const existingUser = await User.findOne({
+        where: {
+          username: userData.username,
+          id: { [Op.ne]: id },
+        },
+      });
+
+      if (existingUser) {
+        return {
+          success: false,
+          message: "Username already exists",
+        };
+      }
+    }
+
     const updateData = { ...userData };
     delete updateData.password;
 
     await user.update(updateData);
-    
-    // Remove password from response
+
     const userResponse = { ...user.toJSON() };
     delete userResponse.password;
 
@@ -89,7 +105,7 @@ export const updateUserService = async (
   } catch (error: any) {
     return {
       success: false,
-      message: `Error updating user: ${error.message}`
+      message: `Error updating user: ${error.message}`,
     };
   }
 };
@@ -98,7 +114,7 @@ export const getUserService = async (
   id: number
 ): Promise<ServiceResponse<any>> => {
   const user = await User.findByPk(id, {
-    attributes: { exclude: ['password'] } // Exclude password from query
+    attributes: { exclude: ["password"] },
   });
 
   if (!user) {
@@ -117,7 +133,7 @@ export const getUserService = async (
 
 export const getAllUsersService = async (): Promise<ServiceResponse<any[]>> => {
   const users = await User.findAll({
-    attributes: { exclude: ['password'] }, // Exclude password from query
+    attributes: { exclude: ["password"] },
     order: [["createdAt", "DESC"]],
   });
 
@@ -135,7 +151,7 @@ export const getUsersByRoleService = async (
     where: {
       role: role,
     },
-    attributes: { exclude: ['password'] }, // Exclude password from query
+    attributes: { exclude: ["password"] },
     order: [["username", "ASC"]],
   });
 
@@ -146,12 +162,14 @@ export const getUsersByRoleService = async (
   };
 };
 
-export const getActiveUsersService = async (): Promise<ServiceResponse<any[]>> => {
+export const getActiveUsersService = async (): Promise<
+  ServiceResponse<any[]>
+> => {
   const users = await User.findAll({
     where: {
       isActive: true,
     },
-    attributes: { exclude: ['password'] }, // Exclude password from query
+    attributes: { exclude: ["password"] },
     order: [["username", "ASC"]],
   });
 
@@ -169,7 +187,7 @@ export const getUserByUsernameService = async (
     where: {
       username: username,
     },
-    attributes: { exclude: ['password'] }, // Exclude password from query
+    attributes: { exclude: ["password"] },
   });
 
   if (!user) {
@@ -206,8 +224,7 @@ export const validateUserCredentialsService = async (
     }
 
     const userJson = user.toJSON() as any;
-    
-    // Use bcrypt to compare password
+
     const isPasswordValid = await comparePassword(password, userJson.password);
 
     if (!isPasswordValid) {
@@ -217,7 +234,6 @@ export const validateUserCredentialsService = async (
       };
     }
 
-    // Remove password from response
     const userResponse = { ...userJson };
     delete userResponse.password;
 
@@ -229,7 +245,7 @@ export const validateUserCredentialsService = async (
   } catch (error: any) {
     return {
       success: false,
-      message: `Authentication error: ${error.message}`
+      message: `Authentication error: ${error.message}`,
     };
   }
 };
@@ -240,12 +256,13 @@ export const changePasswordService = async (
   newPassword: string
 ): Promise<ServiceResponse<any>> => {
   try {
-    // Validate new password strength
     const passwordValidation = validatePasswordStrength(newPassword);
     if (!passwordValidation.isValid) {
       return {
         success: false,
-        message: `Password validation failed: ${passwordValidation.errors.join(', ')}`
+        message: `Password validation failed: ${passwordValidation.errors.join(
+          ", "
+        )}`,
       };
     }
 
@@ -258,9 +275,11 @@ export const changePasswordService = async (
     }
 
     const userJson = user.toJSON() as any;
-    
-    // Use bcrypt to compare current password
-    const isCurrentPasswordValid = await comparePassword(currentPassword, userJson.password);
+
+    const isCurrentPasswordValid = await comparePassword(
+      currentPassword,
+      userJson.password
+    );
 
     if (!isCurrentPasswordValid) {
       return {
@@ -269,7 +288,6 @@ export const changePasswordService = async (
       };
     }
 
-    // Hash new password
     const hashedNewPassword = await hashPassword(newPassword);
     await user.update({ password: hashedNewPassword });
 
@@ -281,7 +299,7 @@ export const changePasswordService = async (
   } catch (error: any) {
     return {
       success: false,
-      message: `Error changing password: ${error.message}`
+      message: `Error changing password: ${error.message}`,
     };
   }
 };
