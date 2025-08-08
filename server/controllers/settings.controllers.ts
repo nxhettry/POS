@@ -60,7 +60,6 @@ export const getRestaurantDetails = asyncHandler(
   }
 );
 
-// System Settings Controllers
 export const editSystemSettings = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const systemSettingsData = req.body;
@@ -125,7 +124,6 @@ export const getSystemSettings = asyncHandler(
   }
 );
 
-// Bill Settings Controllers
 export const editBillSettings = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const billSettingsData = req.body;
