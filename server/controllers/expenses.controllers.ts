@@ -207,17 +207,17 @@ export const getExpensesByCreator = asyncHandler(
 
 export const getExpensesByDateRange = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    const { startDate, endDate } = req.params;
+    const { startDate, endDate } = req.query;
 
     if (!startDate || !endDate) {
       return res
         .status(400)
-        .json(new apiResponse(400, null, "Start date and end date are required"));
+        .json(new apiResponse(400, null, "Start date and end date are required as query parameters"));
     }
 
     // Validate dates
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = new Date(startDate as string);
+    const end = new Date(endDate as string);
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       return res
@@ -231,7 +231,7 @@ export const getExpensesByDateRange = asyncHandler(
         .json(new apiResponse(400, null, "Start date must be before or equal to end date"));
     }
 
-    const result = await getExpensesByDateRangeService(startDate, endDate);
+    const result = await getExpensesByDateRangeService(startDate as string, endDate as string);
 
     if (result.success) {
       return res

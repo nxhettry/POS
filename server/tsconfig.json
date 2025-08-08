@@ -1,14 +1,39 @@
 {
   "compilerOptions": {
-    "target": "ES6",
+    "target": "ES2020",
     "module": "ESNext",
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "./",
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "strict": true
+    "strict": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "declaration": false,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "types": ["node"]
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "src/**/*.ts",
+    "controllers/user.controllers.ts",
+    "middlewares/**/*.ts", 
+    "models/**/*.ts",
+    "routes/user.routes.ts",
+    "service/**/*.ts",
+    "utils/**/*.ts",
+    "validators/**/*.ts",
+    "db/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules", 
+    "dist", 
+    "test/**/*.ts",
+    "routes/inventory.routes.ts",
+    "routes/menu.routes.ts", 
+    "routes/tables.routes.ts"
+  ]
 }

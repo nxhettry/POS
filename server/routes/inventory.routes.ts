@@ -7,11 +7,8 @@ import {
   getLowStockItems,
   deleteInventoryItem,
   createStockMovement,
-  updateStockMovement,
-  getStockMovement,
   getAllStockMovements,
   getStockMovementsByItem,
-  deleteStockMovement,
 } from "../controllers/inventory.controllers.js";
 
 const router = Router();
@@ -24,10 +21,7 @@ router.get("/items", getAllInventoryItems);
 router.delete("/items/:id", deleteInventoryItem);
 
 router.post("/movements", createStockMovement);
-router.put("/movements/:id", updateStockMovement);
-router.get("/movements/:id", getStockMovement);
 router.get("/movements", getAllStockMovements);
 router.get("/items/:itemId/movements", getStockMovementsByItem);
-router.delete("/movements/:id", deleteStockMovement);
 
 export default router;
