@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { asyncHandler, apiResponse, apiError } from "../utils/api.js";
+import { asyncHandler, apiResponse } from "../utils/api.js";
 import { validateRestaurantData } from "../validators/restaurant.validator.js";
 import { validateSystemSettingsData } from "../validators/systemSettings.validator.js";
 import { validateBillSettingsData } from "../validators/billSettings.validator.js";
@@ -78,48 +78,32 @@ export const editSystemSettings = asyncHandler(
         );
     }
 
-    try {
-      const result = await updateSystemSettingsService(systemSettingsData);
+    const result = await updateSystemSettingsService(systemSettingsData);
 
-      if (result.success) {
-        return res
-          .status(200)
-          .json(new apiResponse(200, result.data, result.message));
-      } else {
-        return res
-          .status(400)
-          .json(new apiResponse(400, null, result.message));
-      }
-    } catch (error: any) {
+    if (result.success) {
       return res
-        .status(500)
-        .json(
-          new apiResponse(500, null, error.message || "Internal server error")
-        );
+        .status(200)
+        .json(new apiResponse(200, result.data, result.message));
+    } else {
+      return res
+        .status(400)
+        .json(new apiResponse(400, null, result.message));
     }
   }
 );
 
 export const getSystemSettings = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    try {
-      const result = await getSystemSettingsService();
+    const result = await getSystemSettingsService();
 
-      if (result.success) {
-        return res
-          .status(200)
-          .json(new apiResponse(200, result.data, result.message));
-      } else {
-        return res
-          .status(404)
-          .json(new apiResponse(404, null, result.message));
-      }
-    } catch (error: any) {
+    if (result.success) {
       return res
-        .status(500)
-        .json(
-          new apiResponse(500, null, error.message || "Internal server error")
-        );
+        .status(200)
+        .json(new apiResponse(200, result.data, result.message));
+    } else {
+      return res
+        .status(404)
+        .json(new apiResponse(404, null, result.message));
     }
   }
 );
@@ -142,48 +126,32 @@ export const editBillSettings = asyncHandler(
         );
     }
 
-    try {
-      const result = await updateBillSettingsService(billSettingsData);
+    const result = await updateBillSettingsService(billSettingsData);
 
-      if (result.success) {
-        return res
-          .status(200)
-          .json(new apiResponse(200, result.data, result.message));
-      } else {
-        return res
-          .status(400)
-          .json(new apiResponse(400, null, result.message));
-      }
-    } catch (error: any) {
+    if (result.success) {
       return res
-        .status(500)
-        .json(
-          new apiResponse(500, null, error.message || "Internal server error")
-        );
+        .status(200)
+        .json(new apiResponse(200, result.data, result.message));
+    } else {
+      return res
+        .status(400)
+        .json(new apiResponse(400, null, result.message));
     }
   }
 );
 
 export const getBillSettings = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    try {
-      const result = await getBillSettingsService();
+    const result = await getBillSettingsService();
 
-      if (result.success) {
-        return res
-          .status(200)
-          .json(new apiResponse(200, result.data, result.message));
-      } else {
-        return res
-          .status(404)
-          .json(new apiResponse(404, null, result.message));
-      }
-    } catch (error: any) {
+    if (result.success) {
       return res
-        .status(500)
-        .json(
-          new apiResponse(500, null, error.message || "Internal server error")
-        );
+        .status(200)
+        .json(new apiResponse(200, result.data, result.message));
+    } else {
+      return res
+        .status(404)
+        .json(new apiResponse(404, null, result.message));
     }
   }
 );

@@ -1,0 +1,215 @@
+import Sales from "../models/sales.models.js";
+import Table from "../models/table.model.js";
+import PaymentMethod from "../models/paymentMethod.models.js";
+import Party from "../models/party.models.js";
+import User from "../models/user.models.js";
+
+interface ServiceResponse<T> {
+  success: boolean;
+  data?: T;
+  message: string;
+}
+
+export const createSalesService = async (
+  salesData: any
+): Promise<ServiceResponse<any>> => {
+  const sales = await Sales.create(salesData);
+  const salesWithIncludes = await Sales.findByPk((sales as any).id, {
+    include: [
+      { model: Table, as: "Table" },
+      { model: PaymentMethod, as: "PaymentMethod" },
+      { model: Party, as: "Party" },
+      { model: User, as: "User" },
+    ],
+  });
+
+  return {
+    success: true,
+    data: salesWithIncludes,
+    message: "Sales record created successfully",
+  };
+};
+
+export const updateSalesService = async (
+  id: number,
+  salesData: any
+): Promise<ServiceResponse<any>> => {
+  const sales = await Sales.findByPk(id);
+  if (!sales) {
+    return {
+      success: false,
+      message: "Sales record not found",
+    };
+  }
+
+  await sales.update(salesData);
+  const updatedSales = await Sales.findByPk(id, {
+    include: [
+      { model: Table, as: "Table" },
+      { model: PaymentMethod, as: "PaymentMethod" },
+      { model: Party, as: "Party" },
+      { model: User, as: "User" },
+    ],
+  });
+
+  return {
+    success: true,
+    data: updatedSales,
+    message: "Sales record updated successfully",
+  };
+};
+
+export const getSalesService = async (
+  id: number
+): Promise<ServiceResponse<any>> => {
+  const sales = await Sales.findByPk(id, {
+    include: [
+      { model: Table, as: "Table" },
+      { model: PaymentMethod, as: "PaymentMethod" },
+      { model: Party, as: "Party" },
+      { model: User, as: "User" },
+    ],
+  });
+
+  if (!sales) {
+    return {
+      success: false,
+      message: "Sales record not found",
+    };
+  }
+
+  return {
+    success: true,
+    data: sales,
+    message: "Sales record retrieved successfully",
+  };
+};
+
+export const getAllSalesService = async (): Promise<ServiceResponse<any[]>> => {
+  const sales = await Sales.findAll({
+    include: [
+      { model: Table, as: "Table" },
+      { model: PaymentMethod, as: "PaymentMethod" },
+      { model: Party, as: "Party" },
+      { model: User, as: "User" },
+    ],
+    order: [["createdAt", "DESC"]],
+  });
+
+  return {
+    success: true,
+    data: sales,
+    message: "Sales records retrieved successfully",
+  };
+};
+
+export const getSalesByOrderStatusService = async (
+  orderStatus: string
+): Promise<ServiceResponse<any[]>> => {
+  const sales = await Sales.findAll({
+    where: {
+      orderStatus: orderStatus,
+    },
+    include: [
+      { model: Table, as: "Table" },
+      { model: PaymentMethod, as: "PaymentMethod" },
+      { model: Party, as: "Party" },
+      { model: User, as: "User" },
+    ],
+    order: [["createdAt", "DESC"]],
+  });
+
+  return {
+    success: true,
+    data: sales,
+    message: `Sales records with status ${orderStatus} retrieved successfully`,
+  };
+};
+
+export const getSalesByPaymentStatusService = async (
+  paymentStatus: string
+): Promise<ServiceResponse<any[]>> => {
+  const sales = await Sales.findAll({
+    where: {
+      paymentStatus: paymentStatus,
+    },
+    include: [
+      { model: Table, as: "Table" },
+      { model: PaymentMethod, as: "PaymentMethod" },
+      { model: Party, as: "Party" },
+      { model: User, as: "User" },
+    ],
+    order: [["createdAt", "DESC"]],
+  });
+
+  return {
+    success: true,
+    data: sales,
+    message: `Sales records with payment status ${paymentStatus} retrieved successfully`,
+  };
+};
+
+export const getSalesByTableService = async (
+  tableId: number
+): Promise<ServiceResponse<any[]>> => {
+  const sales = await Sales.findAll({
+    where: {
+      tableId: tableId,
+    },
+    include: [
+      { model: Table, as: "Table" },
+      { model: PaymentMethod, as: "PaymentMethod" },
+      { model: Party, as: "Party" },
+      { model: User, as: "User" },
+    ],
+    order: [["createdAt", "DESC"]],
+  });
+
+  return {
+    success: true,
+    data: sales,
+    message: `Sales records for table ${tableId} retrieved successfully`,
+  };
+};
+
+export const getSalesByPartyService = async (
+  partyId: number
+): Promise<ServiceResponse<any[]>> => {
+  const sales = await Sales.findAll({
+    where: {
+      partyId: partyId,
+    },
+    include: [
+      { model: Table, as: "Table" },
+      { model: PaymentMethod, as: "PaymentMethod" },
+      { model: Party, as: "Party" },
+      { model: User, as: "User" },
+    ],
+    order: [["createdAt", "DESC"]],
+  });
+
+  return {
+    success: true,
+    data: sales,
+    message: `Sales records for party ${partyId} retrieved successfully`,
+  };
+};
+
+export const deleteSalesService = async (
+  id: number
+): Promise<ServiceResponse<any>> => {
+  const sales = await Sales.findByPk(id);
+  if (!sales) {
+    return {
+      success: false,
+      message: "Sales record not found",
+    };
+  }
+
+  await sales.destroy();
+  return {
+    success: true,
+    data: null,
+    message: "Sales record deleted successfully",
+  };
+};
