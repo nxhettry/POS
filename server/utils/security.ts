@@ -42,7 +42,7 @@ export const generateTokens = (payload: JWTPayload): TokenResponse => {
     payload,
     jwtSecret,
     {
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+      expiresIn: process.env.JWT_EXPIRES_IN || '8h', // Set to 8 hours by default
       issuer: 'ratopos-api',
       audience: 'ratopos-client'
     } as jwt.SignOptions

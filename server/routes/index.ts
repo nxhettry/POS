@@ -1,4 +1,5 @@
 import { Router } from "express";
+import authRoutes from "./auth.routes.js";
 import userRoutes from "./user.routes.js";
 import cartRoutes from "./cart.routes.js";
 import salesRoutes from "./sales.routes.js";
@@ -16,19 +17,20 @@ import reportsRoutes from "./reports.routes.js";
 
 const router = Router();
 
+router.use("/auth", authRoutes);
 router.use("/settings", settingsRoutes);
 router.use("/tables", tablesRoutes);
 router.use("/menu", menuRoutes);
 router.use("/inventory", inventoryRoutes);
 router.use("/parties", partyRoutes);
 router.use("/users", userRoutes);
+router.use("/user-sessions", userSessionRoutes);
 router.use("/cart", cartRoutes);
 router.use("/sales", salesRoutes);
 router.use("/sales-items", salesItemRoutes);
 router.use("/expenses", expenseRoutes);
 router.use("/expense-categories", expenseCategoryRoutes);
 router.use("/payment-methods", paymentMethodRoutes);
-router.use("/user-sessions", userSessionRoutes);
 router.use("/reports", reportsRoutes);
 
 export default router;

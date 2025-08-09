@@ -185,7 +185,7 @@ export const endAllActiveSessionsForUserService = async (
   if (activeSessions.length === 0) {
     return {
       success: true,
-      data: null,
+      data: { endedSessions: 0 },
       message: "No active sessions found for user",
     };
   }
@@ -204,6 +204,41 @@ export const endAllActiveSessionsForUserService = async (
     success: true,
     data: { endedSessions: activeSessions.length },
     message: "All active sessions ended successfully",
+  };
+};
+
+export const getCurrentActiveSessionService = async (
+  userId: number,
+  ipAddress?: string,
+  deviceInfo?: string
+): Promise<ServiceResponse<any>> => {
+  const whereClause: any = {
+    userId: userId,
+    logoutTime: null,
+  };
+
+  // If IP address and device info are provided, try to find the specific session
+  if (ipAddress) {
+    whereClause.ipAddress = ipAddress;
+  }
+
+  const session = await UserSession.findOne({
+    where: whereClause,
+    order: [["loginTime", "DESC"]], // Get the most recent session
+    include: ['User']
+  });
+
+  if (!session) {
+    return {
+      success: false,
+      message: "No active session found for user",
+    };
+  }
+
+  return {
+    success: true,
+    data: session,
+    message: "Active session retrieved successfully",
   };
 };
 

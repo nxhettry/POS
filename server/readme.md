@@ -2,22 +2,64 @@
 
 ## 1. AUTHENTICATION & USER MANAGEMENT
 
+### Authentication
+
+- **POST** `/api/auth/login` - User login with automatic session creation and 8-hour JWT token
+  - Request: `{ "username": "string", "password": "string" }`
+  - Response: User info, JWT tokens (8h expiry), and session details
+  
+- **POST** `/api/auth/logout` - User logout with automatic session cleanup
+  - Requires: Bearer token in Authorization header
+  - Response: Logout confirmation with ended sessions count
+  
+- **GET** `/api/auth/profile` - Get current user profile with session info
+  - Requires: Bearer token in Authorization header
+  - Response: User profile and active session details
+  
+- **POST** `/api/auth/refresh` - Refresh JWT token (placeholder)
+  - Request: `{ "refreshToken": "string" }`
+
 ### User Management
 
-- **POST** `/api/auth/register` - Create new user account
-- **POST** `/api/auth/login` - User login with session creation
-- **POST** `/api/auth/logout` - User logout and session cleanup
-- **GET** `/api/auth/profile` - Get current user profile
-- **PUT** `/api/auth/profile` - Update user profile
 - **GET** `/api/users` - List all users (admin only)
+- **POST** `/api/users` - Create new user account
+- **PUT** `/api/users/:id` - Update user profile
 - **PUT** `/api/users/:id/status` - Activate/deactivate user
-- **PUT** `/api/users/:id/role` - Change user role
+- **DELETE** `/api/users/:id` - Delete user account
 
 ### Session Management
 
-- **GET** `/api/auth/sessions` - List active sessions
-- **DELETE** `/api/auth/sessions/:id` - Force logout user session
-- **GET** `/api/auth/sessions/current` - Get current session info
+- **GET** `/api/user-sessions/` - List all user sessions
+- **GET** `/api/user-sessions/status/active` - List active sessions
+- **GET** `/api/user-sessions/user/:userId/active` - Get active sessions for specific user
+- **POST** `/api/user-sessions/` - Create user session (manual)
+- **PATCH** `/api/user-sessions/:id/end` - Force end user session
+- **PATCH** `/api/user-sessions/user/:userId/end-all` - End all sessions for user
+- **DELETE** `/api/user-sessions/:id` - Delete user session record
+
+## Authentication Flow
+
+1. **Login**: `POST /api/auth/login`
+   - Validates credentials
+   - Creates JWT token (8-hour expiry)
+   - Automatically creates user session record
+   - Returns user info + tokens + session details
+
+2. **Protected Routes**: Include `Authorization: Bearer <token>` header
+   - Token is verified by authentication middleware
+   - User info is attached to request object
+
+3. **Logout**: `POST /api/auth/logout`
+   - Requires valid Bearer token
+   - Automatically ends all active sessions for the user
+   - Invalidates the session (client should discard token)
+
+## JWT Token Details
+
+- **Access Token**: 8-hour expiry (`JWT_EXPIRES_IN=8h`)
+- **Refresh Token**: 30-day expiry (`JWT_REFRESH_EXPIRES_IN=30d`)
+- **Issuer**: `ratopos-api`
+- **Audience**: `ratopos-client`
 
 ## 2. MENU MANAGEMENT
 
