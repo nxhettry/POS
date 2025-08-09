@@ -144,7 +144,6 @@ export const getUserByUsername = asyncHandler(
 
 export const validateUserCredentials = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    // This function should not be exposed as a public endpoint for security reasons
     return res
       .status(501)
       .json(

@@ -9,7 +9,7 @@ import apiRoutes from "../routes/index.js";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = Number(process.env.PORT) || 8080;
 
 // Simplified CORS for local offline use
 app.use(
@@ -83,7 +83,7 @@ const startServer = async () => {
       console.log("✅ Database synchronized");
     }
 
-    app.listen(PORT, () => {
+    app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Server is running on http://localhost:${PORT}`);
       console.log(`🔒 Environment: ${process.env.NODE_ENV || "development"}`);
       console.log(`📊 Health check: http://localhost:${PORT}/health`);
