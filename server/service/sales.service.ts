@@ -3,6 +3,8 @@ import Table from "../models/table.model.js";
 import PaymentMethod from "../models/paymentMethod.models.js";
 import Party from "../models/party.models.js";
 import User from "../models/user.models.js";
+import { addSaleTransactionService } from "./daybook.service.js";
+import { isNonCreditPayment } from "../utils/payment.utils.js";
 
 interface ServiceResponse<T> {
   success: boolean;
@@ -23,6 +25,23 @@ export const createSalesService = async (
     ],
   });
 
+  if (salesData.paymentMethodId && salesData.paymentStatus === "paid") {
+    const isNonCredit = await isNonCreditPayment(salesData.paymentMethodId);
+    if (isNonCredit) {
+      try {
+        await addSaleTransactionService(
+          (sales as any).id,
+          salesData.total || 0,
+          salesData.paymentMethodId,
+          undefined,
+          salesData.createdBy?.toString() || "system"
+        );
+      } catch (error) {
+        console.error("Error adding sale to daybook:", error);
+      }
+    }
+  }
+
   return {
     success: true,
     data: salesWithIncludes,
@@ -42,6 +61,9 @@ export const updateSalesService = async (
     };
   }
 
+  const oldPaymentStatus = (sales as any).paymentStatus;
+  const oldPaymentMethodId = (sales as any).paymentMethodId;
+
   await sales.update(salesData);
   const updatedSales = await Sales.findByPk(id, {
     include: [
@@ -51,6 +73,28 @@ export const updateSalesService = async (
       { model: User, as: "User" },
     ],
   });
+
+  if (salesData.paymentStatus === "paid" && oldPaymentStatus !== "paid") {
+    const paymentMethodId = salesData.paymentMethodId || oldPaymentMethodId;
+    if (paymentMethodId) {
+      const isNonCredit = await isNonCreditPayment(paymentMethodId);
+      if (isNonCredit) {
+        try {
+          await addSaleTransactionService(
+            id,
+            salesData.total || (sales as any).total || 0,
+            paymentMethodId,
+            undefined,
+            salesData.createdBy?.toString() ||
+              (sales as any).createdBy?.toString() ||
+              "system"
+          );
+        } catch (error) {
+          console.error("Error adding sale update to daybook:", error);
+        }
+      }
+    }
+  }
 
   return {
     success: true,

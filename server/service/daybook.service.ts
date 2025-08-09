@@ -308,6 +308,23 @@ export const addSaleTransactionService = async (
     return daybookResult;
   }
 
+  // Check if this sale transaction already exists in the daybook
+  const existingTransaction = await DaybookTransaction.findOne({
+    where: {
+      daybookId: daybookResult.data.id,
+      transactionType: "sale",
+      referenceId: saleId,
+    },
+  });
+
+  if (existingTransaction) {
+    return {
+      success: true,
+      data: existingTransaction,
+      message: `Sale transaction #${saleId} already exists in daybook`,
+    };
+  }
+
   return await createDaybookTransactionService({
     daybookId: daybookResult.data.id,
     transactionType: "sale",
@@ -332,6 +349,23 @@ export const addExpenseTransactionService = async (
   );
   if (!daybookResult.success) {
     return daybookResult;
+  }
+
+  // Check if this expense transaction already exists in the daybook
+  const existingTransaction = await DaybookTransaction.findOne({
+    where: {
+      daybookId: daybookResult.data.id,
+      transactionType: "expense",
+      referenceId: expenseId,
+    },
+  });
+
+  if (existingTransaction) {
+    return {
+      success: true,
+      data: existingTransaction,
+      message: `Expense transaction #${expenseId} already exists in daybook`,
+    };
   }
 
   return await createDaybookTransactionService({
