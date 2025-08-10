@@ -35,7 +35,7 @@ class _TablesViewState extends State<TablesView> {
         }
         final tables = snapshot.data ?? <pos_models.Table>[];
         return SizedBox(
-          height: 80, // Fixed height for horizontal scroll
+          height: 80,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(
@@ -46,8 +46,8 @@ class _TablesViewState extends State<TablesView> {
               final table = tables[index];
               final isSelected = selectedTableId == table.id;
               return Container(
-                width: 160, // Fixed width for rectangular cards (similar to w-40)
-                height: 64, // Fixed height (similar to h-16)
+                width: 160,
+                height: 64,
                 margin: EdgeInsets.only(
                   right: ResponsiveUtils.getSpacing(context) * 0.8,
                 ),
