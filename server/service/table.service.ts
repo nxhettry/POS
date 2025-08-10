@@ -69,7 +69,7 @@ export const updateTableService = async (id: number, tableData: TableUpdateData)
     }
 
     const updatedTable = await table.update(tableData);
-    
+
     return {
       success: true,
       data: updatedTable,

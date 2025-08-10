@@ -1,7 +1,7 @@
 import "package:flutter/material.dart";
 import "package:intl/intl.dart";
 import "../../models/models.dart";
-import "../../services/database_helper.dart";
+import "../../services/data_repository.dart";
 import "../../utils/invoice.dart";
 
 class OrderHistory extends StatefulWidget {
@@ -17,7 +17,10 @@ class _OrderHistoryState extends State<OrderHistory> {
   String selectedDateFilter = "Today";
   final List<String> dateFilterOptions = ["Today", "Yesterday", "Last 2 Days"];
   List<Sales> _allSales = [];
+  List<Sales> _filteredSales = [];
   bool _isLoading = true;
+  String _errorMessage = '';
+  final DataRepository _dataRepository = DataRepository();
 
   @override
   void initState() {
@@ -26,64 +29,77 @@ class _OrderHistoryState extends State<OrderHistory> {
   }
 
   Future<void> _loadSales() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+    
     try {
-      final dbHelper = DatabaseHelper();
-      final sales = await dbHelper.getSales();
+      List<Sales> sales;
+      
+      // Get date range based on filter
+      final dateRange = _getDateRange();
+      if (dateRange != null) {
+        sales = await _dataRepository.fetchSalesByDateRange(dateRange['start']!, dateRange['end']!);
+      } else {
+        sales = await _dataRepository.fetchSales();
+      }
+      
       setState(() {
         _allSales = sales;
+        _applyFilters();
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
         _allSales = [];
+        _filteredSales = [];
         _isLoading = false;
+        _errorMessage = 'Failed to load sales: $e';
       });
     }
   }
 
-  List<Sales> get filteredSales {
-    DateTime now = DateTime.now();
-
-    List<Sales> dateFilteredSales;
-    if (selectedDateFilter == "Last 2 Days") {
-      DateTime yesterdayStart = DateTime(now.year, now.month, now.day - 1);
-      DateTime todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59);
-
-      dateFilteredSales = _allSales.where((sale) {
-        return sale.timestamp.isAfter(yesterdayStart) &&
-            sale.timestamp.isBefore(todayEnd.add(Duration(seconds: 1)));
-      }).toList();
-    } else if (selectedDateFilter == "Yesterday") {
-      DateTime yesterdayStart = DateTime(now.year, now.month, now.day - 1);
-      DateTime yesterdayEnd = DateTime(
-        now.year,
-        now.month,
-        now.day - 1,
-        23,
-        59,
-        59,
-      );
-
-      dateFilteredSales = _allSales.where((sale) {
-        return sale.timestamp.isAfter(yesterdayStart) &&
-            sale.timestamp.isBefore(yesterdayEnd.add(Duration(seconds: 1)));
-      }).toList();
-    } else {
-      DateTime todayStart = DateTime(now.year, now.month, now.day);
-      DateTime todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59);
-
-      dateFilteredSales = _allSales.where((sale) {
-        return sale.timestamp.isAfter(todayStart) &&
-            sale.timestamp.isBefore(todayEnd.add(Duration(seconds: 1)));
-      }).toList();
+  Map<String, DateTime>? _getDateRange() {
+    final now = DateTime.now();
+    
+    switch (selectedDateFilter) {
+      case "Today":
+        return {
+          'start': DateTime(now.year, now.month, now.day),
+          'end': DateTime(now.year, now.month, now.day, 23, 59, 59),
+        };
+      case "Yesterday":
+        final yesterday = now.subtract(const Duration(days: 1));
+        return {
+          'start': DateTime(yesterday.year, yesterday.month, yesterday.day),
+          'end': DateTime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59),
+        };
+      case "Last 2 Days":
+        final twoDaysAgo = now.subtract(const Duration(days: 1));
+        return {
+          'start': DateTime(twoDaysAgo.year, twoDaysAgo.month, twoDaysAgo.day),
+          'end': DateTime(now.year, now.month, now.day, 23, 59, 59),
+        };
+      default:
+        return null;
     }
+  }
 
-    if (selectedFilter == "All") {
-      return dateFilteredSales;
+  void _applyFilters() {
+    List<Sales> filtered = List.from(_allSales);
+    
+    // Apply order type filter
+    if (selectedFilter != "All") {
+      filtered = filtered.where((sale) => sale.orderType == selectedFilter).toList();
     }
-    return dateFilteredSales
-        .where((sale) => sale.orderType == selectedFilter)
-        .toList();
+    
+    // Sort by timestamp (most recent first)
+    filtered.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    
+    setState(() {
+      _filteredSales = filtered;
+    });
   }
 
   @override
@@ -143,6 +159,7 @@ class _OrderHistoryState extends State<OrderHistory> {
                               onChanged: (String? newValue) {
                                 setState(() {
                                   selectedFilter = newValue!;
+                                  _applyFilters();
                                 });
                               },
                             ),
@@ -172,6 +189,7 @@ class _OrderHistoryState extends State<OrderHistory> {
                               onChanged: (String? newValue) {
                                 setState(() {
                                   selectedDateFilter = newValue!;
+                                  _loadSales();
                                 });
                               },
                             ),
@@ -184,18 +202,69 @@ class _OrderHistoryState extends State<OrderHistory> {
               ),
             ),
             Expanded(
-              child: filteredSales.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: filteredSales.length,
-                      itemBuilder: (context, index) {
-                        return _buildOrderCard(filteredSales[index]);
-                      },
-                    ),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _errorMessage.isNotEmpty
+                      ? _buildErrorState()
+                      : _filteredSales.isEmpty
+                          ? _buildEmptyState()
+                          : ListView.builder(
+                              padding: const EdgeInsets.all(16),
+                              itemCount: _filteredSales.length,
+                              itemBuilder: (context, index) {
+                                return _buildOrderCard(_filteredSales[index]);
+                              },
+                            ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 64,
+            color: Colors.red[400],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Error Loading Orders',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.red[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Text(
+              _errorMessage,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[500],
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _loadSales,
+            icon: const Icon(Icons.refresh),
+            label: const Text("Retry"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[50],
+              foregroundColor: Colors.red[700],
+              elevation: 0,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -212,29 +281,66 @@ class _OrderHistoryState extends State<OrderHistory> {
           ),
           const SizedBox(height: 16),
           Text(
-            _isLoading
-                ? "Please wait while we fetch your order history"
-                : _getEmptyStateMessage(),
+            _getEmptyStateTitle(),
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _getEmptyStateMessage(),
             style: TextStyle(fontSize: 14, color: Colors.grey[500]),
             textAlign: TextAlign.center,
           ),
-          if (!_isLoading && _allSales.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: ElevatedButton.icon(
-                onPressed: _loadSales,
-                icon: const Icon(Icons.refresh),
-                label: const Text("Refresh"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[50],
-                  foregroundColor: Colors.blue[700],
-                  elevation: 0,
-                ),
-              ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _loadSales,
+            icon: const Icon(Icons.refresh),
+            label: const Text("Refresh"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[50],
+              foregroundColor: Colors.blue[700],
+              elevation: 0,
             ),
+          ),
         ],
       ),
     );
+  }
+
+  String _getEmptyStateTitle() {
+    if (_allSales.isEmpty) {
+      return "No Orders Yet";
+    } else {
+      return "No Orders Found";
+    }
+  }
+
+  String _getEmptyStateMessage() {
+    String dateMessage;
+    switch (selectedDateFilter) {
+      case "Today":
+        dateMessage = "today";
+        break;
+      case "Yesterday":
+        dateMessage = "yesterday";
+        break;
+      case "Last 2 Days":
+        dateMessage = "in the last 2 days";
+        break;
+      default:
+        dateMessage = "for the selected period";
+    }
+
+    if (_allSales.isEmpty) {
+      return "No orders have been placed yet.\nStart by creating your first order.";
+    } else if (selectedFilter == "All") {
+      return "No orders found $dateMessage.\nTry selecting a different date range.";
+    } else {
+      return "No $selectedFilter orders found $dateMessage.\nTry changing the filter or date range.";
+    }
   }
 
   Widget _buildOrderCard(Sales sale) {
@@ -747,33 +853,6 @@ class _OrderHistoryState extends State<OrderHistory> {
         return Icons.delivery_dining;
       default:
         return Icons.receipt;
-    }
-  }
-
-  String _getEmptyStateMessage() {
-    String dateMessage;
-    switch (selectedDateFilter) {
-      case "Today":
-        dateMessage = "today";
-        break;
-      case "Yesterday":
-        dateMessage = "yesterday";
-        break;
-      case "Last 2 Days":
-        dateMessage = "in the last 2 days";
-        break;
-      default:
-        dateMessage = "today";
-    }
-
-    if (selectedFilter == "All") {
-      return _allSales.isEmpty
-          ? "No orders have been placed yet"
-          : "No orders found $dateMessage";
-    } else {
-      return _allSales.isEmpty
-          ? "No orders have been placed yet"
-          : "No $selectedFilter orders found $dateMessage";
     }
   }
 }

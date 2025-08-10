@@ -1,3 +1,11 @@
+/// Utility function to parse boolean from dynamic values
+bool _parseBoolFromDynamic(dynamic value) {
+  if (value is bool) return value;
+  if (value is int) return value == 1;
+  if (value is String) return value.toLowerCase() == 'true' || value == '1';
+  return false;
+}
+
 class Category {
   final int? id;
   final String name;
@@ -24,8 +32,13 @@ class Item {
 class Table {
   final int? id;
   final String name;
+  final String status;
 
-  Table({this.id, required this.name});
+  Table({
+    this.id, 
+    required this.name,
+    this.status = 'available',
+  });
 }
 
 class CartItem {
@@ -105,7 +118,7 @@ class Sales {
       taxRate: (json['taxRate'] as num).toDouble(),
       discount: (json['discount'] as num).toDouble(),
       discountValue: (json['discountValue'] as num).toDouble(),
-      isDiscountPercentage: json['isDiscountPercentage'] as bool,
+      isDiscountPercentage: _parseBoolFromDynamic(json['isDiscountPercentage']),
       total: (json['total'] as num).toDouble(),
       timestamp: DateTime.parse(json['timestamp'] as String),
     );
@@ -129,7 +142,7 @@ class Sales {
       taxRate: (map['taxRate'] as num).toDouble(),
       discount: (map['discount'] as num).toDouble(),
       discountValue: (map['discountValue'] as num).toDouble(),
-      isDiscountPercentage: map['isDiscountPercentage'] as bool,
+      isDiscountPercentage: _parseBoolFromDynamic(map['isDiscountPercentage']),
       total: (map['total'] as num).toDouble(),
       timestamp: DateTime.parse(map['timestamp'] as String),
     );
@@ -180,10 +193,10 @@ class BillSettings {
   factory BillSettings.fromMap(Map<String, dynamic> map) {
     return BillSettings(
       id: map['id'] as int?,
-      includeTax: (map['include_tax'] as int) == 1,
-      includeDiscount: (map['include_discount'] as int) == 1,
-      printCustomerCopy: (map['print_customer_copy'] as int) == 1,
-      printKitchenCopy: (map['print_kitchen_copy'] as int) == 1,
+      includeTax: _parseBoolFromDynamic(map['include_tax']),
+      includeDiscount: _parseBoolFromDynamic(map['include_discount']),
+      printCustomerCopy: _parseBoolFromDynamic(map['print_customer_copy']),
+      printKitchenCopy: _parseBoolFromDynamic(map['print_kitchen_copy']),
     );
   }
 
@@ -277,7 +290,7 @@ class TaxSettings {
       id: map['id'] as int?,
       taxRate: (map['tax_rate'] as num).toDouble(),
       taxName: map['tax_name'] as String,
-      isEnabled: (map['is_enabled'] as int) == 1,
+      isEnabled: _parseBoolFromDynamic(map['is_enabled']),
     );
   }
 

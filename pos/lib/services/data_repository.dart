@@ -60,12 +60,12 @@ class DataRepository {
     return await _apiDataService.getTables();
   }
 
-  Future<Table> createTable(String name) async {
-    return await _apiDataService.createTable(name);
+  Future<Table> createTable(String name, {String status = 'available'}) async {
+    return await _apiDataService.createTable(name, status: status);
   }
 
-  Future<Table> updateTable(int id, String name) async {
-    return await _apiDataService.updateTable(id, name);
+  Future<Table> updateTable(int id, String name, {String? status}) async {
+    return await _apiDataService.updateTable(id, name, status: status);
   }
 
   Future<void> deleteTable(int id) async {
