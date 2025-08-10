@@ -637,6 +637,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 Expanded(
                   flex: 1,
                   child: Text(
+                    'Payment',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Text(
                     'Amount',
                     style: TextStyle(fontWeight: FontWeight.bold),
                     textAlign: TextAlign.right,
@@ -685,7 +692,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     Expanded(
                       flex: 2,
                       child: Text(
-                        expense.description,
+                        expense.description ?? 'No description',
                         style: TextStyle(color: Colors.grey[700]),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -706,6 +713,28 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           category.name,
                           style: TextStyle(
                             color: Colors.blue[700],
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green[50],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          expense.paymentMethod?.name ?? 'Unknown',
+                          style: TextStyle(
+                            color: Colors.green[700],
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),

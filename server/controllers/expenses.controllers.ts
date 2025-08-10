@@ -19,14 +19,30 @@ export const createExpense = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const expenseData = req.body;
 
-    if (!expenseData.title || expenseData.amount === undefined || !expenseData.paymentMethodId || 
-        !expenseData.date || !expenseData.categoryId || !expenseData.createdBy) {
+    console.log("Request received: ", req.body);
+
+    if (
+      !expenseData.title ||
+      expenseData.amount === undefined ||
+      !expenseData.paymentMethodId ||
+      !expenseData.date ||
+      !expenseData.categoryId ||
+      !expenseData.createdBy
+    ) {
       return res
         .status(400)
-        .json(new apiResponse(400, null, "Title, amount, payment method ID, date, category ID, and created by are required"));
+        .json(
+          new apiResponse(
+            400,
+            null,
+            "Title, amount, payment method ID, date, category ID, and created by are required"
+          )
+        );
     }
 
     const validation = validateExpenseData(expenseData);
+
+    console.log("Validation result: ", validation);
 
     if (!validation.isValid) {
       return res
@@ -47,9 +63,7 @@ export const createExpense = asyncHandler(
         .status(201)
         .json(new apiResponse(201, result.data, result.message));
     } else {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, result.message));
+      return res.status(400).json(new apiResponse(400, null, result.message));
     }
   }
 );
@@ -86,9 +100,7 @@ export const updateExpense = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(404)
-        .json(new apiResponse(404, null, result.message));
+      return res.status(404).json(new apiResponse(404, null, result.message));
     }
   }
 );
@@ -110,9 +122,7 @@ export const getExpense = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(404)
-        .json(new apiResponse(404, null, result.message));
+      return res.status(404).json(new apiResponse(404, null, result.message));
     }
   }
 );
@@ -126,9 +136,7 @@ export const getAllExpenses = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, result.message));
+      return res.status(400).json(new apiResponse(400, null, result.message));
     }
   }
 );
@@ -150,9 +158,7 @@ export const getExpensesByCategory = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, result.message));
+      return res.status(400).json(new apiResponse(400, null, result.message));
     }
   }
 );
@@ -174,9 +180,7 @@ export const getExpensesByParty = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, result.message));
+      return res.status(400).json(new apiResponse(400, null, result.message));
     }
   }
 );
@@ -198,9 +202,7 @@ export const getExpensesByCreator = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, result.message));
+      return res.status(400).json(new apiResponse(400, null, result.message));
     }
   }
 );
@@ -212,7 +214,13 @@ export const getExpensesByDateRange = asyncHandler(
     if (!startDate || !endDate) {
       return res
         .status(400)
-        .json(new apiResponse(400, null, "Start date and end date are required as query parameters"));
+        .json(
+          new apiResponse(
+            400,
+            null,
+            "Start date and end date are required as query parameters"
+          )
+        );
     }
 
     // Validate dates
@@ -228,19 +236,26 @@ export const getExpensesByDateRange = asyncHandler(
     if (start > end) {
       return res
         .status(400)
-        .json(new apiResponse(400, null, "Start date must be before or equal to end date"));
+        .json(
+          new apiResponse(
+            400,
+            null,
+            "Start date must be before or equal to end date"
+          )
+        );
     }
 
-    const result = await getExpensesByDateRangeService(startDate as string, endDate as string);
+    const result = await getExpensesByDateRangeService(
+      startDate as string,
+      endDate as string
+    );
 
     if (result.success) {
       return res
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, result.message));
+      return res.status(400).json(new apiResponse(400, null, result.message));
     }
   }
 );
@@ -254,9 +269,7 @@ export const getApprovedExpenses = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, result.message));
+      return res.status(400).json(new apiResponse(400, null, result.message));
     }
   }
 );
@@ -270,9 +283,7 @@ export const getPendingExpenses = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, result.message));
+      return res.status(400).json(new apiResponse(400, null, result.message));
     }
   }
 );
@@ -294,9 +305,7 @@ export const deleteExpense = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(404)
-        .json(new apiResponse(404, null, result.message));
+      return res.status(404).json(new apiResponse(404, null, result.message));
     }
   }
 );

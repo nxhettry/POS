@@ -56,71 +56,93 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
       setState(() {
         _isLoading = false;
       });
-      if (mounted) {
+      
+      // Only show error snackbar for genuine errors, not for empty results
+      final errorString = e.toString().toLowerCase();
+      final isEmptyResult = errorString.contains('400') || 
+                           errorString.contains('404') || 
+                           errorString.contains('no expenses found') ||
+                           errorString.contains('not found') ||
+                           errorString.contains('empty');
+      
+      if (mounted && !isEmptyResult) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error loading data: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
+      } else {
+        // For empty results, just set empty lists silently
+        setState(() {
+          _expenses = [];
+          if (_categories.isEmpty) {
+            _categories = [];
+          }
+        });
       }
     }
   }
 
   Future<List<Expense>> _getFilteredExpenses() async {
-    DateTime startDate;
-    DateTime endDate;
-    final now = DateTime.now();
+    try {
+      DateTime startDate;
+      DateTime endDate;
+      final now = DateTime.now();
 
-    switch (_selectedDateFilter) {
-      case 'Today':
-        startDate = DateTime(now.year, now.month, now.day);
-        endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
-        break;
-      case 'Yesterday':
-        final yesterday = now.subtract(const Duration(days: 1));
-        startDate = DateTime(yesterday.year, yesterday.month, yesterday.day);
-        endDate = DateTime(
-          yesterday.year,
-          yesterday.month,
-          yesterday.day,
-          23,
-          59,
-          59,
-        );
-        break;
-      case 'Last 7 Days':
-        startDate = now.subtract(const Duration(days: 7));
-        endDate = now;
-        break;
-      case 'Last 30 Days':
-        startDate = now.subtract(const Duration(days: 30));
-        endDate = now;
-        break;
-      case 'Custom Range':
-        if (_customStartDate != null && _customEndDate != null) {
-          startDate = _customStartDate!;
-          endDate = _customEndDate!;
-        } else {
+      switch (_selectedDateFilter) {
+        case 'Today':
+          startDate = DateTime(now.year, now.month, now.day);
+          endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
+          break;
+        case 'Yesterday':
+          final yesterday = now.subtract(const Duration(days: 1));
+          startDate = DateTime(yesterday.year, yesterday.month, yesterday.day);
+          endDate = DateTime(
+            yesterday.year,
+            yesterday.month,
+            yesterday.day,
+            23,
+            59,
+            59,
+          );
+          break;
+        case 'Last 7 Days':
+          startDate = now.subtract(const Duration(days: 7));
+          endDate = now;
+          break;
+        case 'Last 30 Days':
+          startDate = now.subtract(const Duration(days: 30));
+          endDate = now;
+          break;
+        case 'Custom Range':
+          if (_customStartDate != null && _customEndDate != null) {
+            startDate = _customStartDate!;
+            endDate = _customEndDate!;
+          } else {
+            return await _dataRepository.fetchExpenses();
+          }
+          break;
+        default:
           return await _dataRepository.fetchExpenses();
-        }
-        break;
-      default:
-        return await _dataRepository.fetchExpenses();
+      }
+
+      final expenses = await _dataRepository.fetchExpensesByDateRange(
+        startDate,
+        endDate,
+      );
+
+      if (_selectedCategoryFilterId != null) {
+        return expenses
+            .where((expense) => expense.categoryId == _selectedCategoryFilterId)
+            .toList();
+      }
+
+      return expenses;
+    } catch (e) {
+      // Return empty list for any errors in filtering
+      return [];
     }
-
-    final expenses = await _dataRepository.fetchExpensesByDateRange(
-      startDate,
-      endDate,
-    );
-
-    if (_selectedCategoryFilterId != null) {
-      return expenses
-          .where((expense) => expense.categoryId == _selectedCategoryFilterId)
-          .toList();
-    }
-
-    return expenses;
   }
 
   void _onDateFilterChanged(String? value) async {
@@ -171,14 +193,27 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     return _expenses.sublist(startIndex, endIndex);
   }
 
-  int get _totalPages => (_expenses.length / _itemsPerPage).ceil();
+  int get _totalPages {
+    if (_expenses.isEmpty) return 0;
+    return (_expenses.length / _itemsPerPage).ceil();
+  }
 
   String _getCategoryName(int categoryId) {
+    if (_categories.isEmpty) {
+      return 'Unknown';
+    }
     final category = _categories.firstWhere(
       (cat) => cat.id == categoryId,
       orElse: () => ExpensesCategory(name: 'Unknown'),
     );
     return category.name;
+  }
+
+  String _getPaymentMethodName(Expense expense) {
+    if (expense.paymentMethod != null) {
+      return expense.paymentMethod!.name;
+    }
+    return 'Unknown';
   }
 
   double get _totalAmount {
@@ -530,6 +565,16 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                                 Expanded(
                                   flex: 1,
                                   child: Text(
+                                    'Payment',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 1,
+                                  child: Text(
                                     'Amount',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
@@ -582,7 +627,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                                       Expanded(
                                         flex: 2,
                                         child: Text(
-                                          expense.description,
+                                          expense.description ?? 'No description',
                                           style: TextStyle(
                                             color: Colors.grey[700],
                                           ),
@@ -609,6 +654,30 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                                             ),
                                             style: TextStyle(
                                               color: Colors.blue[700],
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        flex: 1,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green[50],
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            _getPaymentMethodName(expense),
+                                            style: TextStyle(
+                                              color: Colors.green[700],
                                               fontSize: 12,
                                               fontWeight: FontWeight.w500,
                                             ),
@@ -698,7 +767,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    'Showing ${_currentPage * _itemsPerPage + 1} - ${((_currentPage + 1) * _itemsPerPage).clamp(0, _expenses.length)} of ${_expenses.length}',
+                                    'Showing ${_expenses.isEmpty ? 0 : _currentPage * _itemsPerPage + 1} - ${((_currentPage + 1) * _itemsPerPage).clamp(0, _expenses.length)} of ${_expenses.length}',
                                     style: TextStyle(
                                       color: Colors.grey[600],
                                       fontSize: 14,
@@ -714,7 +783,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                                         icon: const Icon(Icons.chevron_left),
                                       ),
                                       Text(
-                                        '${_currentPage + 1} of $_totalPages',
+                                        '${_totalPages == 0 ? 0 : _currentPage + 1} of $_totalPages',
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w500,
                                         ),

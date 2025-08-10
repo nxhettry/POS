@@ -409,27 +409,141 @@ class ApiDataService {
   // ========== EXPENSES ==========
   
   Future<List<Expense>> getExpenses() async {
-    final response = await _apiService.get(Endpoints.expenses, requiresAuth: true);
-    final data = response['data'] ?? response;
-    return (data as List).map((item) => Expense.fromMap(item)).toList();
+    try {
+      final response = await _apiService.get(Endpoints.expenses, requiresAuth: true);
+      final data = response['data'] ?? response;
+      if (data is List) {
+        return data.map((item) => Expense.fromMap(item)).toList();
+      }
+      return [];
+    } catch (e) {
+      // If error is due to no expenses found or server returns 400/404, return empty list
+      final errorString = e.toString().toLowerCase();
+      if (errorString.contains('400') || 
+          errorString.contains('404') || 
+          errorString.contains('no expenses found') ||
+          errorString.contains('not found') ||
+          errorString.contains('empty')) {
+        return [];
+      }
+      rethrow;
+    }
   }
 
   Future<List<Expense>> getExpensesByDateRange(DateTime startDate, DateTime endDate) async {
-    final queryParams = '?start_date=${startDate.toIso8601String()}&end_date=${endDate.toIso8601String()}';
-    final response = await _apiService.get('${Endpoints.expensesByDateRange}$queryParams', requiresAuth: true);
-    final data = response['data'] ?? response;
-    return (data as List).map((item) => Expense.fromMap(item)).toList();
+    try {
+      final queryParams = '?startDate=${startDate.toIso8601String().split('T')[0]}&endDate=${endDate.toIso8601String().split('T')[0]}';
+      final response = await _apiService.get('${Endpoints.expensesByDateRange}$queryParams', requiresAuth: true);
+      final data = response['data'] ?? response;
+      if (data is List) {
+        return data.map((item) => Expense.fromMap(item)).toList();
+      }
+      return [];
+    } catch (e) {
+      // If error is due to no expenses found or server returns 400/404, return empty list
+      final errorString = e.toString().toLowerCase();
+      if (errorString.contains('400') || 
+          errorString.contains('404') || 
+          errorString.contains('no expenses found') ||
+          errorString.contains('not found') ||
+          errorString.contains('empty')) {
+        return [];
+      }
+      rethrow;
+    }
   }
 
-  Future<Expense> createExpense(String title, String description, double amount, DateTime date, int categoryId) async {
+  Future<List<Expense>> getExpensesByCategory(int categoryId) async {
+    try {
+      final response = await _apiService.get('${Endpoints.expensesByCategory}/$categoryId', requiresAuth: true);
+      final data = response['data'] ?? response;
+      if (data is List) {
+        return data.map((item) => Expense.fromMap(item)).toList();
+      }
+      return [];
+    } catch (e) {
+      // If error is due to no expenses found, return empty list
+      if (e.toString().contains('400') || e.toString().contains('No expenses found')) {
+        return [];
+      }
+      rethrow;
+    }
+  }
+
+  Future<List<Expense>> getExpensesByParty(int partyId) async {
+    try {
+      final response = await _apiService.get('${Endpoints.expensesByParty}/$partyId', requiresAuth: true);
+      final data = response['data'] ?? response;
+      if (data is List) {
+        return data.map((item) => Expense.fromMap(item)).toList();
+      }
+      return [];
+    } catch (e) {
+      // If error is due to no expenses found, return empty list
+      if (e.toString().contains('400') || e.toString().contains('No expenses found')) {
+        return [];
+      }
+      rethrow;
+    }
+  }
+
+  Future<List<Expense>> getApprovedExpenses() async {
+    try {
+      final response = await _apiService.get(Endpoints.approvedExpenses, requiresAuth: true);
+      final data = response['data'] ?? response;
+      if (data is List) {
+        return data.map((item) => Expense.fromMap(item)).toList();
+      }
+      return [];
+    } catch (e) {
+      // If error is due to no expenses found, return empty list
+      if (e.toString().contains('400') || e.toString().contains('No expenses found')) {
+        return [];
+      }
+      rethrow;
+    }
+  }
+
+  Future<List<Expense>> getPendingExpenses() async {
+    try {
+      final response = await _apiService.get(Endpoints.pendingExpenses, requiresAuth: true);
+      final data = response['data'] ?? response;
+      if (data is List) {
+        return data.map((item) => Expense.fromMap(item)).toList();
+      }
+      return [];
+    } catch (e) {
+      // If error is due to no expenses found, return empty list
+      if (e.toString().contains('400') || e.toString().contains('No expenses found')) {
+        return [];
+      }
+      rethrow;
+    }
+  }
+
+  Future<Expense> createExpense({
+    required String title,
+    String? description,
+    required double amount,
+    required int paymentMethodId,
+    required DateTime date,
+    required int categoryId,
+    int? partyId,
+    String? receipt,
+    required int createdBy,
+  }) async {
     final response = await _apiService.post(
       Endpoints.expenses, 
       {
         'title': title,
         'description': description,
         'amount': amount,
+        'paymentMethodId': paymentMethodId,
         'date': date.toIso8601String(),
-        'category_id': categoryId,
+        'categoryId': categoryId,
+        'partyId': partyId,
+        'receipt': receipt,
+        'createdBy': createdBy,
       }, 
       requiresAuth: true,
     );
@@ -437,18 +551,32 @@ class ApiDataService {
     return Expense.fromMap(expenseData);
   }
 
-  Future<Expense> updateExpense(Expense expense) async {
+  Future<Expense> updateExpense(int id, Map<String, dynamic> expenseData) async {
     final response = await _apiService.put(
-      '${Endpoints.expenseById}/${expense.id}', 
-      expense.toMap(), 
+      '${Endpoints.expenseById}/$id', 
+      expenseData, 
       requiresAuth: true,
     );
-    final expenseData = response['data'] ?? response;
-    return Expense.fromMap(expenseData);
+    final data = response['data'] ?? response;
+    return Expense.fromMap(data);
   }
 
   Future<void> deleteExpense(int id) async {
     await _apiService.delete('${Endpoints.expenseById}/$id', requiresAuth: true);
+  }
+
+  // ========== PARTIES ==========
+  
+  Future<List<Party>> getParties() async {
+    final response = await _apiService.get(Endpoints.parties, requiresAuth: true);
+    final data = response['data'] ?? response;
+    return (data as List).map((item) => Party.fromJson(item)).toList();
+  }
+
+  Future<List<Party>> getActiveParties() async {
+    final response = await _apiService.get(Endpoints.activeParties, requiresAuth: true);
+    final data = response['data'] ?? response;
+    return (data as List).map((item) => Party.fromJson(item)).toList();
   }
 
   // ========== EXPENSE CATEGORIES ==========
@@ -469,6 +597,24 @@ class ApiDataService {
     return ExpensesCategory.fromMap(categoryData);
   }
 
+  Future<ExpensesCategory> createExpenseCategoryWithDescription({
+    required String name,
+    String? description,
+  }) async {
+    final Map<String, dynamic> payload = {'name': name};
+    if (description != null && description.isNotEmpty) {
+      payload['description'] = description;
+    }
+    
+    final response = await _apiService.post(
+      Endpoints.expenseCategories, 
+      payload, 
+      requiresAuth: true,
+    );
+    final categoryData = response['data'] ?? response;
+    return ExpensesCategory.fromMap(categoryData);
+  }
+
   Future<ExpensesCategory> updateExpenseCategory(int id, String name) async {
     final response = await _apiService.put(
       '${Endpoints.expenseCategoryById}/$id', 
@@ -481,6 +627,26 @@ class ApiDataService {
 
   Future<void> deleteExpenseCategory(int id) async {
     await _apiService.delete('${Endpoints.expenseCategoryById}/$id', requiresAuth: true);
+  }
+
+  Future<List<ExpensesCategory>> getActiveExpenseCategories() async {
+    final response = await _apiService.get(Endpoints.activeExpenseCategories, requiresAuth: true);
+    final data = response['data'] ?? response;
+    return (data as List).map((item) => ExpensesCategory.fromMap(item)).toList();
+  }
+
+  // ========== UTILITY METHODS FOR EXPENSES ==========
+
+  Future<double> getTotalExpensesForDate(DateTime date) async {
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+    final expenses = await getExpensesByDateRange(startOfDay, endOfDay);
+    return expenses.fold<double>(0.0, (sum, expense) => sum + expense.amount);
+  }
+
+  Future<double> getTotalExpensesForDateRange(DateTime startDate, DateTime endDate) async {
+    final expenses = await getExpensesByDateRange(startDate, endDate);
+    return expenses.fold<double>(0.0, (sum, expense) => sum + expense.amount);
   }
 
   // ========== UTILITY METHODS ==========
@@ -531,17 +697,5 @@ class ApiDataService {
       'averageOrderValue': averageOrderValue,
       'todaysSales': todaysSales,
     };
-  }
-
-  Future<double> getTotalExpensesForDate(DateTime date) async {
-    final startOfDay = DateTime(date.year, date.month, date.day);
-    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
-    final expenses = await getExpensesByDateRange(startOfDay, endOfDay);
-    return expenses.fold<double>(0.0, (total, expense) => total + expense.amount);
-  }
-
-  Future<double> getTotalExpensesForDateRange(DateTime startDate, DateTime endDate) async {
-    final expenses = await getExpensesByDateRange(startDate, endDate);
-    return expenses.fold<double>(0.0, (total, expense) => total + expense.amount);
   }
 }

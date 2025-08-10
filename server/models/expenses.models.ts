@@ -51,6 +51,7 @@ Expense.init(
         model: Party,
         key: "id",
       },
+      allowNull: true,
     },
     receipt: {
       type: DataTypes.STRING,
@@ -61,7 +62,7 @@ Expense.init(
         model: User,
         key: "id",
       },
-      allowNull: false,
+      allowNull: true,
     },
     approvedBy: {
       type: DataTypes.INTEGER,
@@ -69,6 +70,7 @@ Expense.init(
         model: User,
         key: "id",
       },
+      allowNull: true,
     },
     createdAt: {
       type: DataTypes.DATE,

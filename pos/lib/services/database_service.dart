@@ -149,6 +149,8 @@ class DatabaseService {
         amount: amount,
         date: date,
         categoryId: categoryId,
+        paymentMethodId: 1,
+        createdBy: 1,
       ),
     );
   }

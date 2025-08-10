@@ -143,12 +143,48 @@ class DataRepository {
     return await _apiDataService.getExpensesByDateRange(startDate, endDate);
   }
 
-  Future<Expense> createExpense(String title, String description, double amount, DateTime date, int categoryId) async {
-    return await _apiDataService.createExpense(title, description, amount, date, categoryId);
+  Future<List<Expense>> fetchExpensesByCategory(int categoryId) async {
+    return await _apiDataService.getExpensesByCategory(categoryId);
   }
 
-  Future<Expense> updateExpense(Expense expense) async {
-    return await _apiDataService.updateExpense(expense);
+  Future<List<Expense>> fetchExpensesByParty(int partyId) async {
+    return await _apiDataService.getExpensesByParty(partyId);
+  }
+
+  Future<List<Expense>> fetchApprovedExpenses() async {
+    return await _apiDataService.getApprovedExpenses();
+  }
+
+  Future<List<Expense>> fetchPendingExpenses() async {
+    return await _apiDataService.getPendingExpenses();
+  }
+
+  Future<Expense> createExpense({
+    required String title,
+    String? description,
+    required double amount,
+    required int paymentMethodId,
+    required DateTime date,
+    required int categoryId,
+    int? partyId,
+    String? receipt,
+    required int createdBy,
+  }) async {
+    return await _apiDataService.createExpense(
+      title: title,
+      description: description,
+      amount: amount,
+      paymentMethodId: paymentMethodId,
+      date: date,
+      categoryId: categoryId,
+      partyId: partyId,
+      receipt: receipt,
+      createdBy: createdBy,
+    );
+  }
+
+  Future<Expense> updateExpense(int id, Map<String, dynamic> expenseData) async {
+    return await _apiDataService.updateExpense(id, expenseData);
   }
 
   Future<void> deleteExpense(int id) async {
@@ -172,12 +208,35 @@ class DataRepository {
     return await _apiDataService.createExpenseCategory(name);
   }
 
+  Future<ExpensesCategory> createExpenseCategoryWithDescription({
+    required String name,
+    String? description,
+  }) async {
+    return await _apiDataService.createExpenseCategoryWithDescription(
+      name: name,
+      description: description,
+    );
+  }
+
   Future<ExpensesCategory> updateExpenseCategory(int id, String name) async {
     return await _apiDataService.updateExpenseCategory(id, name);
   }
 
   Future<void> deleteExpenseCategory(int id) async {
     await _apiDataService.deleteExpenseCategory(id);
+  }
+
+  Future<List<ExpensesCategory>> fetchActiveExpenseCategories() async {
+    return await _apiDataService.getActiveExpenseCategories();
+  }
+
+  // ========== PARTIES ==========
+  Future<List<Party>> fetchParties() async {
+    return await _apiDataService.getParties();
+  }
+
+  Future<List<Party>> fetchActiveParties() async {
+    return await _apiDataService.getActiveParties();
   }
 
   // ========== SETTINGS ==========

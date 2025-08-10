@@ -626,18 +626,40 @@ class Restaurant {
 class Expense {
   final int? id;
   final String title;
-  final String description;
+  final String? description;
   final double amount;
+  final int paymentMethodId;
   final DateTime date;
   final int categoryId;
+  final int? partyId;
+  final String? receipt;
+  final int createdBy;
+  final int? approvedBy;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  // Populated fields from joins
+  final ExpensesCategory? category;
+  final PaymentMethod? paymentMethod;
+  final Party? party;
 
   Expense({
     this.id,
     required this.title,
-    required this.description,
+    this.description,
     required this.amount,
+    required this.paymentMethodId,
     required this.date,
     required this.categoryId,
+    this.partyId,
+    this.receipt,
+    required this.createdBy,
+    this.approvedBy,
+    this.createdAt,
+    this.updatedAt,
+    this.category,
+    this.paymentMethod,
+    this.party,
   });
 
   Map<String, dynamic> toMap() {
@@ -646,8 +668,13 @@ class Expense {
       'title': title,
       'description': description,
       'amount': amount,
+      'paymentMethodId': paymentMethodId,
       'date': date.toIso8601String(),
-      'category_id': categoryId,
+      'categoryId': categoryId,
+      'partyId': partyId,
+      'receipt': receipt,
+      'createdBy': createdBy,
+      'approvedBy': approvedBy,
     };
   }
 
@@ -655,10 +682,30 @@ class Expense {
     return Expense(
       id: map['id'] as int?,
       title: map['title'] as String,
-      description: map['description'] as String,
+      description: map['description'] as String?,
       amount: (map['amount'] as num).toDouble(),
+      paymentMethodId: map['paymentMethodId'] ?? map['payment_method_id'] as int,
       date: DateTime.parse(map['date'] as String),
-      categoryId: map['category_id'] as int,
+      categoryId: map['categoryId'] ?? map['category_id'] as int,
+      partyId: map['partyId'] ?? map['party_id'] as int?,
+      receipt: map['receipt'] as String?,
+      createdBy: map['createdBy'] ?? map['created_by'] as int,
+      approvedBy: map['approvedBy'] ?? map['approved_by'] as int?,
+      createdAt: map['createdAt'] != null || map['created_at'] != null 
+          ? DateTime.parse(map['createdAt'] ?? map['created_at'])
+          : null,
+      updatedAt: map['updatedAt'] != null || map['updated_at'] != null
+          ? DateTime.parse(map['updatedAt'] ?? map['updated_at'])
+          : null,
+      category: map['ExpenseCategory'] != null 
+          ? ExpensesCategory.fromMap(map['ExpenseCategory'])
+          : null,
+      paymentMethod: map['PaymentMethod'] != null 
+          ? PaymentMethod.fromJson(map['PaymentMethod'])
+          : null,
+      party: map['Party'] != null 
+          ? Party.fromJson(map['Party'])
+          : null,
     );
   }
 
@@ -667,16 +714,36 @@ class Expense {
     String? title,
     String? description,
     double? amount,
+    int? paymentMethodId,
     DateTime? date,
     int? categoryId,
+    int? partyId,
+    String? receipt,
+    int? createdBy,
+    int? approvedBy,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    ExpensesCategory? category,
+    PaymentMethod? paymentMethod,
+    Party? party,
   }) {
     return Expense(
       id: id ?? this.id,
       title: title ?? this.title,
       description: description ?? this.description,
       amount: amount ?? this.amount,
+      paymentMethodId: paymentMethodId ?? this.paymentMethodId,
       date: date ?? this.date,
       categoryId: categoryId ?? this.categoryId,
+      partyId: partyId ?? this.partyId,
+      receipt: receipt ?? this.receipt,
+      createdBy: createdBy ?? this.createdBy,
+      approvedBy: approvedBy ?? this.approvedBy,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      category: category ?? this.category,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      party: party ?? this.party,
     );
   }
 }
@@ -684,18 +751,39 @@ class Expense {
 class ExpensesCategory {
   final int? id;
   final String name;
+  final String? description;
 
-  ExpensesCategory({this.id, required this.name});
+  ExpensesCategory({
+    this.id, 
+    required this.name,
+    this.description,
+  });
 
   Map<String, dynamic> toMap() {
-    return {'id': id, 'name': name};
+    return {
+      'id': id, 
+      'name': name,
+      'description': description,
+    };
   }
 
   factory ExpensesCategory.fromMap(Map<String, dynamic> map) {
-    return ExpensesCategory(id: map['id'] as int?, name: map['name'] as String);
+    return ExpensesCategory(
+      id: map['id'] as int?, 
+      name: map['name'] as String,
+      description: map['description'] as String?,
+    );
   }
 
-  ExpensesCategory copyWith({int? id, String? name}) {
-    return ExpensesCategory(id: id ?? this.id, name: name ?? this.name);
+  ExpensesCategory copyWith({
+    int? id, 
+    String? name,
+    String? description,
+  }) {
+    return ExpensesCategory(
+      id: id ?? this.id, 
+      name: name ?? this.name,
+      description: description ?? this.description,
+    );
   }
 }

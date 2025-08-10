@@ -25,8 +25,10 @@ export const createExpenseService = async (
     ],
   });
 
-  // Add to daybook if payment is not credit and expense is approved (or no approval needed)
-  if (expenseData.paymentMethodId && (expenseData.approvedBy || expenseData.approvedBy === undefined)) {
+  if (
+    expenseData.paymentMethodId &&
+    (expenseData.approvedBy || expenseData.approvedBy === undefined)
+  ) {
     const isNonCredit = await isNonCreditPayment(expenseData.paymentMethodId);
     if (isNonCredit) {
       try {
@@ -39,7 +41,6 @@ export const createExpenseService = async (
         );
       } catch (error) {
         console.error("Error adding expense to daybook:", error);
-        // Don't fail the main transaction, just log the error
       }
     }
   }
@@ -65,7 +66,7 @@ export const updateExpenseService = async (
 
   const oldPaymentMethodId = (expense as any).paymentMethodId;
   const oldApprovedBy = (expense as any).approvedBy;
-  
+
   await expense.update(expenseData);
   const updatedExpense = await Expense.findByPk(id, {
     include: [
@@ -76,12 +77,10 @@ export const updateExpenseService = async (
     ],
   });
 
-  // Add to daybook if:
-  // 1. Payment method changed and it's not credit, OR
-  // 2. Expense was just approved (approvedBy changed from null to something) and it's not credit
   const paymentMethodId = expenseData.paymentMethodId || oldPaymentMethodId;
-  const shouldAddToDaybook = 
-    (expenseData.paymentMethodId && expenseData.paymentMethodId !== oldPaymentMethodId) ||
+  const shouldAddToDaybook =
+    (expenseData.paymentMethodId &&
+      expenseData.paymentMethodId !== oldPaymentMethodId) ||
     (expenseData.approvedBy && !oldApprovedBy);
 
   if (paymentMethodId && shouldAddToDaybook) {
@@ -93,11 +92,12 @@ export const updateExpenseService = async (
           expenseData.amount || (expense as any).amount || 0,
           paymentMethodId,
           expenseData.date || (expense as any).date,
-          expenseData.createdBy?.toString() || (expense as any).createdBy?.toString() || "system"
+          expenseData.createdBy?.toString() ||
+            (expense as any).createdBy?.toString() ||
+            "system"
         );
       } catch (error) {
         console.error("Error adding expense update to daybook:", error);
-        // Don't fail the main transaction, just log the error
       }
     }
   }
@@ -135,7 +135,9 @@ export const getExpenseService = async (
   };
 };
 
-export const getAllExpensesService = async (): Promise<ServiceResponse<any[]>> => {
+export const getAllExpensesService = async (): Promise<
+  ServiceResponse<any[]>
+> => {
   const expenses = await Expense.findAll({
     include: [
       { model: ExpenseCategory, as: "ExpenseCategory" },
@@ -143,7 +145,10 @@ export const getAllExpensesService = async (): Promise<ServiceResponse<any[]>> =
       { model: Party, as: "Party" },
       { model: User, as: "User" },
     ],
-    order: [["date", "DESC"], ["createdAt", "DESC"]],
+    order: [
+      ["date", "DESC"],
+      ["createdAt", "DESC"],
+    ],
   });
 
   return {
@@ -166,7 +171,10 @@ export const getExpensesByCategoryService = async (
       { model: Party, as: "Party" },
       { model: User, as: "User" },
     ],
-    order: [["date", "DESC"], ["createdAt", "DESC"]],
+    order: [
+      ["date", "DESC"],
+      ["createdAt", "DESC"],
+    ],
   });
 
   return {
@@ -189,7 +197,10 @@ export const getExpensesByPartyService = async (
       { model: Party, as: "Party" },
       { model: User, as: "User" },
     ],
-    order: [["date", "DESC"], ["createdAt", "DESC"]],
+    order: [
+      ["date", "DESC"],
+      ["createdAt", "DESC"],
+    ],
   });
 
   return {
@@ -212,7 +223,10 @@ export const getExpensesByCreatorService = async (
       { model: Party, as: "Party" },
       { model: User, as: "User" },
     ],
-    order: [["date", "DESC"], ["createdAt", "DESC"]],
+    order: [
+      ["date", "DESC"],
+      ["createdAt", "DESC"],
+    ],
   });
 
   return {
@@ -229,7 +243,7 @@ export const getExpensesByDateRangeService = async (
   const expenses = await Expense.findAll({
     where: {
       date: {
-        [require('sequelize').Op.between]: [startDate, endDate],
+        [require("sequelize").Op.between]: [startDate, endDate],
       },
     },
     include: [
@@ -238,7 +252,10 @@ export const getExpensesByDateRangeService = async (
       { model: Party, as: "Party" },
       { model: User, as: "User" },
     ],
-    order: [["date", "DESC"], ["createdAt", "DESC"]],
+    order: [
+      ["date", "DESC"],
+      ["createdAt", "DESC"],
+    ],
   });
 
   return {
@@ -248,11 +265,13 @@ export const getExpensesByDateRangeService = async (
   };
 };
 
-export const getApprovedExpensesService = async (): Promise<ServiceResponse<any[]>> => {
+export const getApprovedExpensesService = async (): Promise<
+  ServiceResponse<any[]>
+> => {
   const expenses = await Expense.findAll({
     where: {
       approvedBy: {
-        [require('sequelize').Op.not]: null,
+        [require("sequelize").Op.not]: null,
       },
     },
     include: [
@@ -261,7 +280,10 @@ export const getApprovedExpensesService = async (): Promise<ServiceResponse<any[
       { model: Party, as: "Party" },
       { model: User, as: "User" },
     ],
-    order: [["date", "DESC"], ["createdAt", "DESC"]],
+    order: [
+      ["date", "DESC"],
+      ["createdAt", "DESC"],
+    ],
   });
 
   return {
@@ -271,7 +293,9 @@ export const getApprovedExpensesService = async (): Promise<ServiceResponse<any[
   };
 };
 
-export const getPendingExpensesService = async (): Promise<ServiceResponse<any[]>> => {
+export const getPendingExpensesService = async (): Promise<
+  ServiceResponse<any[]>
+> => {
   const expenses = await Expense.findAll({
     where: {
       approvedBy: null,
@@ -282,7 +306,10 @@ export const getPendingExpensesService = async (): Promise<ServiceResponse<any[]
       { model: Party, as: "Party" },
       { model: User, as: "User" },
     ],
-    order: [["date", "DESC"], ["createdAt", "DESC"]],
+    order: [
+      ["date", "DESC"],
+      ["createdAt", "DESC"],
+    ],
   });
 
   return {
