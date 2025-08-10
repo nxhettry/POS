@@ -1,4 +1,3 @@
-/// Utility function to parse boolean from dynamic values
 bool _parseBoolFromDynamic(dynamic value) {
   if (value is bool) return value;
   if (value is int) return value == 1;
@@ -34,11 +33,7 @@ class Table {
   final String name;
   final String status;
 
-  Table({
-    this.id, 
-    required this.name,
-    this.status = 'available',
-  });
+  Table({this.id, required this.name, this.status = 'available'});
 }
 
 class CartItem {
@@ -54,11 +49,133 @@ class CartItem {
   }
 }
 
+class PaymentMethod {
+  final int? id;
+  final String name;
+  final String type;
+  final bool isActive;
+
+  PaymentMethod({
+    this.id,
+    required this.name,
+    required this.type,
+    this.isActive = true,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'name': name, 'type': type, 'isActive': isActive};
+  }
+
+  factory PaymentMethod.fromJson(Map<String, dynamic> json) {
+    return PaymentMethod(
+      id: json['id'],
+      name: json['name'] ?? '',
+      type: json['type'] ?? 'cash',
+      isActive: _parseBoolFromDynamic(json['isActive'] ?? json['is_active']),
+    );
+  }
+}
+
+class Party {
+  final int? id;
+  final String name;
+  final String type;
+  final String? phone;
+  final String? email;
+  final String? address;
+
+  Party({
+    this.id,
+    required this.name,
+    required this.type,
+    this.phone,
+    this.email,
+    this.address,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'type': type,
+      'phone': phone,
+      'email': email,
+      'address': address,
+    };
+  }
+
+  factory Party.fromJson(Map<String, dynamic> json) {
+    return Party(
+      id: json['id'],
+      name: json['name'] ?? '',
+      type: json['type'] ?? 'customer',
+      phone: json['phone'],
+      email: json['email'],
+      address: json['address'],
+    );
+  }
+}
+
+class SalesItem {
+  final int? id;
+  final int salesId;
+  final int itemId;
+  final String itemName;
+  final double quantity;
+  final double rate;
+  final double totalPrice;
+  final String? notes;
+  final Map<String, dynamic>? menuItem;
+
+  SalesItem({
+    this.id,
+    required this.salesId,
+    required this.itemId,
+    required this.itemName,
+    required this.quantity,
+    required this.rate,
+    required this.totalPrice,
+    this.notes,
+    this.menuItem,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'salesId': salesId,
+      'itemId': itemId,
+      'itemName': itemName,
+      'quantity': quantity,
+      'rate': rate,
+      'totalPrice': totalPrice,
+      'notes': notes,
+      'menuItem': menuItem,
+    };
+  }
+
+  factory SalesItem.fromJson(Map<String, dynamic> json) {
+    return SalesItem(
+      id: json['id'],
+      salesId: json['salesId'] ?? json['sales_id'],
+      itemId: json['itemId'] ?? json['item_id'],
+      itemName: json['itemName'] ?? json['item_name'] ?? '',
+      quantity: (json['quantity'] ?? 0).toDouble(),
+      rate: (json['rate'] ?? 0).toDouble(),
+      totalPrice: (json['totalPrice'] ?? json['total_price'] ?? 0).toDouble(),
+      notes: json['notes'],
+      menuItem: json['MenuItem'] ?? json['menuItem'],
+    );
+  }
+}
+
 class Sales {
+  final int? id;
   final String invoiceNo;
   final String table;
   final String orderType;
-  final List<CartItem> items;
+  final String orderStatus;
+  final String paymentStatus;
+  final List<dynamic> items;
   final double subtotal;
   final double tax;
   final double taxRate;
@@ -67,11 +184,25 @@ class Sales {
   final bool isDiscountPercentage;
   final double total;
   final DateTime timestamp;
+  final int? tableId;
+  final int? paymentMethodId;
+  final int? partyId;
+  final int? createdBy;
+  final int? signedBy;
+
+  final Map<String, dynamic>? tableInfo;
+  final PaymentMethod? paymentMethod;
+  final Party? party;
+  final Map<String, dynamic>? creator;
+  final Map<String, dynamic>? signer;
 
   Sales({
+    this.id,
     required this.invoiceNo,
     required this.table,
     required this.orderType,
+    this.orderStatus = 'pending',
+    this.paymentStatus = 'pending',
     required this.items,
     required this.subtotal,
     required this.tax,
@@ -81,14 +212,35 @@ class Sales {
     required this.isDiscountPercentage,
     required this.total,
     required this.timestamp,
+    this.tableId,
+    this.paymentMethodId,
+    this.partyId,
+    this.createdBy,
+    this.signedBy,
+    this.tableInfo,
+    this.paymentMethod,
+    this.party,
+    this.creator,
+    this.signer,
   });
 
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'invoiceNo': invoiceNo,
       'table': table,
       'orderType': orderType,
-      'items': items.map((item) => item.toJson()).toList(),
+      'orderStatus': orderStatus,
+      'paymentStatus': paymentStatus,
+      'items': items
+          .map(
+            (item) => item is CartItem
+                ? item.toJson()
+                : item is SalesItem
+                ? item.toJson()
+                : item,
+          )
+          .toList(),
       'subtotal': subtotal,
       'tax': tax,
       'taxRate': taxRate,
@@ -97,55 +249,73 @@ class Sales {
       'isDiscountPercentage': isDiscountPercentage,
       'total': total,
       'timestamp': timestamp.toIso8601String(),
+      'tableId': tableId,
+      'paymentMethodId': paymentMethodId,
+      'partyId': partyId,
+      'createdBy': createdBy,
+      'signedBy': signedBy,
+      'tableInfo': tableInfo,
+      'paymentMethod': paymentMethod?.toJson(),
+      'party': party?.toJson(),
+      'creator': creator,
+      'signer': signer,
     };
   }
 
   factory Sales.fromJson(Map<String, dynamic> json) {
     return Sales(
-      invoiceNo: json['invoiceNo'] as String,
-      table: json['table'] as String,
-      orderType: json['orderType'] as String,
-      items: (json['items'] as List)
-          .map(
-            (item) => CartItem(
-              item: item['item'] as Map<String, dynamic>,
-              quantity: item['quantity'] as int,
-            ),
-          )
-          .toList(),
-      subtotal: (json['subtotal'] as num).toDouble(),
-      tax: (json['tax'] as num).toDouble(),
-      taxRate: (json['taxRate'] as num).toDouble(),
-      discount: (json['discount'] as num).toDouble(),
-      discountValue: (json['discountValue'] as num).toDouble(),
-      isDiscountPercentage: _parseBoolFromDynamic(json['isDiscountPercentage']),
-      total: (json['total'] as num).toDouble(),
-      timestamp: DateTime.parse(json['timestamp'] as String),
+      id: json['id'],
+      invoiceNo: json['invoiceNo'] ?? json['invoice_no'] ?? '',
+      table: json['table'] ?? json['Table']?['name'] ?? '',
+      orderType: json['orderType'] ?? json['order_type'] ?? 'Dine In',
+      orderStatus: json['orderStatus'] ?? json['order_status'] ?? 'pending',
+      paymentStatus:
+          json['paymentStatus'] ?? json['payment_status'] ?? 'pending',
+      items: (json['items'] as List? ?? json['SalesItems'] as List? ?? []).map((
+        item,
+      ) {
+        if (item['item'] != null) {
+          return CartItem(
+            item: item['item'] as Map<String, dynamic>,
+            quantity: item['quantity'] as int,
+          );
+        } else {
+          return SalesItem.fromJson(item);
+        }
+      }).toList(),
+      subtotal: (json['subtotal'] ?? json['subTotal'] ?? 0).toDouble(),
+      tax: (json['tax'] ?? 0).toDouble(),
+      taxRate: (json['taxRate'] ?? json['tax_rate'] ?? 0).toDouble(),
+      discount: (json['discount'] ?? 0).toDouble(),
+      discountValue: (json['discountValue'] ?? json['discount_value'] ?? 0)
+          .toDouble(),
+      isDiscountPercentage: _parseBoolFromDynamic(
+        json['isDiscountPercentage'] ?? json['is_discount_percentage'],
+      ),
+      total: (json['total'] ?? 0).toDouble(),
+      timestamp: DateTime.parse(
+        json['timestamp'] ??
+            json['createdAt'] ??
+            json['created_at'] ??
+            DateTime.now().toIso8601String(),
+      ),
+      tableId: json['tableId'] ?? json['table_id'],
+      paymentMethodId: json['paymentMethodId'] ?? json['payment_method_id'],
+      partyId: json['partyId'] ?? json['party_id'],
+      createdBy: json['createdBy'] ?? json['created_by'],
+      signedBy: json['signedBy'] ?? json['signed_by'],
+      tableInfo: json['Table'],
+      paymentMethod: json['PaymentMethod'] != null
+          ? PaymentMethod.fromJson(json['PaymentMethod'])
+          : null,
+      party: json['Party'] != null ? Party.fromJson(json['Party']) : null,
+      creator: json['User'] ?? json['creator'],
+      signer: json['signer'],
     );
   }
 
   static Sales fromMap(Map<String, dynamic> map) {
-    return Sales(
-      invoiceNo: map['invoiceNo'] as String,
-      table: map['table'] as String,
-      orderType: map['orderType'] as String,
-      items: (map['items'] as List)
-          .map(
-            (item) => CartItem(
-              item: item['item'] as Map<String, dynamic>,
-              quantity: item['quantity'] as int,
-            ),
-          )
-          .toList(),
-      subtotal: (map['subtotal'] as num).toDouble(),
-      tax: (map['tax'] as num).toDouble(),
-      taxRate: (map['taxRate'] as num).toDouble(),
-      discount: (map['discount'] as num).toDouble(),
-      discountValue: (map['discountValue'] as num).toDouble(),
-      isDiscountPercentage: _parseBoolFromDynamic(map['isDiscountPercentage']),
-      total: (map['total'] as num).toDouble(),
-      timestamp: DateTime.parse(map['timestamp'] as String),
-    );
+    return Sales.fromJson(map);
   }
 }
 
@@ -196,7 +366,6 @@ class BillSettings {
     };
   }
 
-  // For server API calls
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -212,12 +381,23 @@ class BillSettings {
   factory BillSettings.fromMap(Map<String, dynamic> map) {
     return BillSettings(
       id: map['id'] as int?,
-      includeTax: _parseBoolFromDynamic(map['include_tax'] ?? map['includeTax']),
-      includeDiscount: _parseBoolFromDynamic(map['include_discount'] ?? map['includeDiscount']),
-      printCustomerCopy: _parseBoolFromDynamic(map['print_customer_copy'] ?? map['printCustomerCopy']),
-      printKitchenCopy: _parseBoolFromDynamic(map['print_kitchen_copy'] ?? map['printKitchenCopy']),
-      showItemCode: _parseBoolFromDynamic(map['show_item_code'] ?? map['showItemCode']),
-      billFooter: map['bill_footer'] ?? map['billFooter'] ?? "Thank you for visiting!",
+      includeTax: _parseBoolFromDynamic(
+        map['include_tax'] ?? map['includeTax'],
+      ),
+      includeDiscount: _parseBoolFromDynamic(
+        map['include_discount'] ?? map['includeDiscount'],
+      ),
+      printCustomerCopy: _parseBoolFromDynamic(
+        map['print_customer_copy'] ?? map['printCustomerCopy'],
+      ),
+      printKitchenCopy: _parseBoolFromDynamic(
+        map['print_kitchen_copy'] ?? map['printKitchenCopy'],
+      ),
+      showItemCode: _parseBoolFromDynamic(
+        map['show_item_code'] ?? map['showItemCode'],
+      ),
+      billFooter:
+          map['bill_footer'] ?? map['billFooter'] ?? "Thank you for visiting!",
     );
   }
 
@@ -245,8 +425,8 @@ class BillSettings {
 class SystemSettings {
   final int? id;
   final String currency;
-  final String dateFormat; // "YYYY-MM-DD" or "DD-MM-YYYY"
-  final String language; // "en" or "np"
+  final String dateFormat;
+  final String language;
   final double defaultTaxRate;
   final bool autoBackup;
 
@@ -270,7 +450,6 @@ class SystemSettings {
     };
   }
 
-  // For server API calls
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -288,8 +467,11 @@ class SystemSettings {
       currency: map['currency'] as String,
       dateFormat: map['date_format'] ?? map['dateFormat'] as String,
       language: map['language'] as String,
-      defaultTaxRate: (map['default_tax_rate'] ?? map['defaultTaxRate'] ?? 0.0).toDouble(),
-      autoBackup: _parseBoolFromDynamic(map['auto_backup'] ?? map['autoBackup']),
+      defaultTaxRate: (map['default_tax_rate'] ?? map['defaultTaxRate'] ?? 0.0)
+          .toDouble(),
+      autoBackup: _parseBoolFromDynamic(
+        map['auto_backup'] ?? map['autoBackup'],
+      ),
     );
   }
 
@@ -386,7 +568,7 @@ class Restaurant {
       'address': address,
       'phone': phone,
       'email': email,
-      'pan': panNumber, // Changed to match server expectation
+      'pan': panNumber,
       'website': website,
       'logo': logo,
     };
@@ -399,7 +581,7 @@ class Restaurant {
       'address': address,
       'phone': phone,
       'email': email,
-      'pan_number': panNumber, // Keep for local database compatibility
+      'pan_number': panNumber,
       'website': website,
       'logo': logo,
     };
@@ -412,7 +594,7 @@ class Restaurant {
       address: map['address'] as String,
       phone: map['phone'] as String,
       email: map['email'] as String,
-      panNumber: map['pan'] ?? map['pan_number'] as String, // Handle both formats
+      panNumber: map['pan'] ?? map['pan_number'] as String,
       website: map['website'] as String?,
       logo: map['logo'] as String?,
     );

@@ -32,7 +32,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   List<Expense> allExpenses = [];
   List<ExpensesCategory> expenseCategories = [];
   bool isLoading = true;
-  String selectedView = 'overview'; // overview, charts, detailed, expenses
+  String selectedView = 'overview';
 
   @override
   void initState() {
@@ -70,9 +70,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
       }
 
       final sales = await _dataRepository.fetchSalesByDateRange(startDate, now);
-      final expenses = await _dataRepository.fetchExpensesByDateRange(startDate, now);
+      final expenses = await _dataRepository.fetchExpensesByDateRange(
+        startDate,
+        now,
+      );
       final categories = await _dataRepository.fetchExpenseCategories();
-      
+
       setState(() {
         allSales = sales;
         allExpenses = expenses;
@@ -140,7 +143,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ),
       body: Column(
         children: [
-          // Time Selection Bar
           Container(
             padding: const EdgeInsets.all(16.0),
             decoration: const BoxDecoration(
@@ -199,9 +201,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
       onTap: () {
         setState(() {
           selectedPeriod = period;
-          currentPage = 0; // Reset pagination when period changes
+          currentPage = 0;
         });
-        _loadSalesData(); // Reload data for new period
+        _loadSalesData();
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -380,23 +382,23 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildExpensesView() {
     final filteredExpenses = allExpenses;
-    final totalExpenses = filteredExpenses.fold<double>(0.0, (sum, expense) => sum + expense.amount);
-    
+    final totalExpenses = filteredExpenses.fold<double>(
+      0.0,
+      (sum, expense) => sum + expense.amount,
+    );
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Expense Summary Cards
           _buildExpenseSummaryCards(totalExpenses, filteredExpenses.length),
           const SizedBox(height: 24),
-          
-          // Category breakdown
+
           _buildExpenseCategoryChart(filteredExpenses),
           const SizedBox(height: 24),
-          
-          // Expense records table
+
           _buildExpenseRecordsSection(filteredExpenses),
         ],
       ),
@@ -427,7 +429,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         Expanded(
           child: _buildSummaryCard(
             'Average Expense',
-            expenseCount > 0 
+            expenseCount > 0
                 ? 'NPR ${NumberFormat('#,##0.00').format(totalExpenses / expenseCount)}'
                 : 'NPR 0.00',
             Icons.calculate,
@@ -443,10 +445,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
       return const SizedBox.shrink();
     }
 
-    // Group expenses by category
     final Map<int, double> categoryTotals = {};
     for (final expense in expenses) {
-      categoryTotals[expense.categoryId] = 
+      categoryTotals[expense.categoryId] =
           (categoryTotals[expense.categoryId] ?? 0.0) + expense.amount;
     }
 
@@ -481,8 +482,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
               (cat) => cat.id == entry.key,
               orElse: () => ExpensesCategory(name: 'Unknown'),
             );
-            final percentage = (entry.value / expenses.fold<double>(0.0, (sum, e) => sum + e.amount)) * 100;
-            
+            final percentage =
+                (entry.value /
+                    expenses.fold<double>(0.0, (sum, e) => sum + e.amount)) *
+                100;
+
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
@@ -499,7 +503,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     child: LinearProgressIndicator(
                       value: percentage / 100,
                       backgroundColor: Colors.grey[200],
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.red[400]!),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Colors.red[400]!,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -546,10 +552,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               const SizedBox(height: 12),
               Text(
                 'No expenses found for selected period',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               ),
             ],
           ),
@@ -557,7 +560,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
       );
     }
 
-    final paginatedExpenses = expenses.skip(currentPage * itemsPerPage).take(itemsPerPage).toList();
+    final paginatedExpenses = expenses
+        .skip(currentPage * itemsPerPage)
+        .take(itemsPerPage)
+        .toList();
 
     return Container(
       decoration: BoxDecoration(
@@ -590,15 +596,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
                 Text(
                   'Total: ${expenses.length} expenses',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
                 ),
               ],
             ),
           ),
-          // Table Header
+
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
@@ -610,15 +613,47 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ),
             child: const Row(
               children: [
-                Expanded(flex: 2, child: Text('Title', style: TextStyle(fontWeight: FontWeight.bold))),
-                Expanded(flex: 2, child: Text('Description', style: TextStyle(fontWeight: FontWeight.bold))),
-                Expanded(flex: 1, child: Text('Category', style: TextStyle(fontWeight: FontWeight.bold))),
-                Expanded(flex: 1, child: Text('Amount', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
-                Expanded(flex: 1, child: Text('Date', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'Title',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'Description',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    'Category',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    'Amount',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.right,
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    'Date',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ],
             ),
           ),
-          // Table Body
+
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -629,13 +664,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 (cat) => cat.id == expense.categoryId,
                 orElse: () => ExpensesCategory(name: 'Unknown'),
               );
-              
+
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey[100]!),
-                  ),
+                  border: Border(bottom: BorderSide(color: Colors.grey[100]!)),
                 ),
                 child: Row(
                   children: [
@@ -658,7 +694,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     Expanded(
                       flex: 1,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.blue[50],
                           borderRadius: BorderRadius.circular(12),
@@ -698,7 +737,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               );
             },
           ),
-          // Pagination
+
           if (expenses.length > itemsPerPage)
             Padding(
               padding: const EdgeInsets.all(16),
@@ -726,7 +765,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                       IconButton(
-                        onPressed: currentPage < (expenses.length / itemsPerPage).ceil() - 1
+                        onPressed:
+                            currentPage <
+                                (expenses.length / itemsPerPage).ceil() - 1
                             ? () {
                                 setState(() {
                                   currentPage++;
@@ -750,7 +791,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ? reportData['totalAmount'] / reportData['salesCount']
         : 0.0;
 
-    final totalExpenses = allExpenses.fold<double>(0.0, (sum, expense) => sum + expense.amount);
+    final totalExpenses = allExpenses.fold<double>(
+      0.0,
+      (sum, expense) => sum + expense.amount,
+    );
     final profit = reportData['totalAmount'] - totalExpenses;
 
     return Column(
@@ -1150,9 +1194,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  // Helper methods for insights
   String _calculateGrowthPercentage(Map<String, dynamic> reportData) {
-    // Simple placeholder - in real app, compare with previous period
     return "+12.5";
   }
 
@@ -1173,7 +1215,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return bestDay.key;
   }
 
-  // Chart Methods
   Widget _buildDailySalesChart(List<Sales> sales) {
     return Container(
       width: double.infinity,
@@ -1207,10 +1248,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ? const Center(
                     child: Text(
                       'No sales data available for this period',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                   )
                 : LineChart(
@@ -1302,56 +1340,54 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ? const Center(
                     child: Text(
                       'No item sales data available',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                   )
                 : BarChart(
                     BarChartData(
                       gridData: const FlGridData(show: false),
                       titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 40,
-                      getTitlesWidget: (value, meta) {
-                        return Text(
-                          value.toInt().toString(),
-                          style: const TextStyle(fontSize: 10),
-                        );
-                      },
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 40,
+                            getTitlesWidget: (value, meta) {
+                              return Text(
+                                value.toInt().toString(),
+                                style: const TextStyle(fontSize: 10),
+                              );
+                            },
+                          ),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (value, meta) {
+                              final index = value.toInt();
+                              if (index >= 0 && index < mostSoldItems.length) {
+                                final name =
+                                    mostSoldItems[index]['name'] as String;
+                                return Text(
+                                  name.length > 8
+                                      ? '${name.substring(0, 8)}...'
+                                      : name,
+                                  style: const TextStyle(fontSize: 10),
+                                );
+                              }
+                              return const Text('');
+                            },
+                          ),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      barGroups: _getTopItemsBarGroups(mostSoldItems),
                     ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        final index = value.toInt();
-                        if (index >= 0 && index < mostSoldItems.length) {
-                          final name = mostSoldItems[index]['name'] as String;
-                          return Text(
-                            name.length > 8
-                                ? '${name.substring(0, 8)}...'
-                                : name,
-                            style: const TextStyle(fontSize: 10),
-                          );
-                        }
-                        return const Text('');
-                      },
-                    ),
-                  ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                ),
-                borderData: FlBorderData(show: false),
-                barGroups: _getTopItemsBarGroups(mostSoldItems),
-              ),
                   ),
           ),
         ],
@@ -1452,60 +1488,57 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ? const Center(
                     child: Text(
                       'No hourly sales data available',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
                     ),
                   )
                 : BarChart(
                     BarChartData(
                       gridData: const FlGridData(show: false),
                       titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 50,
-                      getTitlesWidget: (value, meta) {
-                        if (value >= 1000) {
-                          return Text(
-                            'Rs.${(value / 1000).toStringAsFixed(0)}k',
-                            style: const TextStyle(fontSize: 10),
-                          );
-                        } else {
-                          return Text(
-                            'Rs.${value.toInt()}',
-                            style: const TextStyle(fontSize: 10),
-                          );
-                        }
-                      },
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 50,
+                            getTitlesWidget: (value, meta) {
+                              if (value >= 1000) {
+                                return Text(
+                                  'Rs.${(value / 1000).toStringAsFixed(0)}k',
+                                  style: const TextStyle(fontSize: 10),
+                                );
+                              } else {
+                                return Text(
+                                  'Rs.${value.toInt()}',
+                                  style: const TextStyle(fontSize: 10),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (value, meta) {
+                              final hour = value.toInt();
+                              if (hour >= 0 && hour <= 23) {
+                                return Text(
+                                  '${hour}h',
+                                  style: const TextStyle(fontSize: 10),
+                                );
+                              }
+                              return const Text('');
+                            },
+                          ),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      barGroups: _getHourlySalesBarGroups(sales),
                     ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        final hour = value.toInt();
-                        if (hour >= 0 && hour <= 23) {
-                          return Text(
-                            '${hour}h',
-                            style: const TextStyle(fontSize: 10),
-                          );
-                        }
-                        return const Text('');
-                      },
-                    ),
-                  ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                ),
-                borderData: FlBorderData(show: false),
-                barGroups: _getHourlySalesBarGroups(sales),
-              ),
                   ),
           ),
         ],
@@ -1518,10 +1551,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final Map<String, double> hourlyStats = {};
 
     for (final sale in sales) {
-      // Table statistics
       tableStats[sale.table] = (tableStats[sale.table] ?? 0) + 1;
 
-      // Hourly statistics
       final hour = sale.timestamp.hour.toString();
       hourlyStats[hour] = (hourlyStats[hour] ?? 0) + sale.total;
     }
@@ -1638,16 +1669,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  // Chart data helper methods
   List<FlSpot> _getDailySalesSpots(List<Sales> sales) {
     if (sales.isEmpty) return [];
 
-    // Group sales by time period based on selectedPeriod
     final Map<int, double> salesByPeriod = {};
-    
+
     switch (selectedPeriod) {
       case '1day':
-        // Group by hours (0-23)
         for (int i = 0; i < 24; i++) {
           salesByPeriod[i] = 0;
         }
@@ -1656,20 +1684,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
           salesByPeriod[hour] = (salesByPeriod[hour] ?? 0) + sale.total;
         }
         break;
-        
+
       case '7days':
-        // Group by days of week (0-6, Monday to Sunday)
         for (int i = 0; i < 7; i++) {
           salesByPeriod[i] = 0;
         }
         for (final sale in sales) {
-          final dayOfWeek = (sale.timestamp.weekday - 1) % 7; // Monday = 0
-          salesByPeriod[dayOfWeek] = (salesByPeriod[dayOfWeek] ?? 0) + sale.total;
+          final dayOfWeek = (sale.timestamp.weekday - 1) % 7;
+          salesByPeriod[dayOfWeek] =
+              (salesByPeriod[dayOfWeek] ?? 0) + sale.total;
         }
         break;
-        
+
       case '1 month':
-        // Group by days of the month (1-31)
         final now = DateTime.now();
         final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
         for (int i = 1; i <= daysInMonth; i++) {
@@ -1680,24 +1707,27 @@ class _ReportsScreenState extends State<ReportsScreen> {
           salesByPeriod[day] = (salesByPeriod[day] ?? 0) + sale.total;
         }
         break;
-        
+
       case '3months':
       case '6 months':
-        // Group by weeks
         if (sales.isNotEmpty) {
-          final startDate = sales.map((s) => s.timestamp).reduce((a, b) => a.isBefore(b) ? a : b);
-          final endDate = sales.map((s) => s.timestamp).reduce((a, b) => a.isAfter(b) ? a : b);
-          
-          // Calculate number of weeks
+          final startDate = sales
+              .map((s) => s.timestamp)
+              .reduce((a, b) => a.isBefore(b) ? a : b);
+          final endDate = sales
+              .map((s) => s.timestamp)
+              .reduce((a, b) => a.isAfter(b) ? a : b);
+
           final weeksDifference = endDate.difference(startDate).inDays ~/ 7 + 1;
-          
+
           for (int i = 0; i < weeksDifference; i++) {
             salesByPeriod[i] = 0;
           }
-          
+
           for (final sale in sales) {
             final weekIndex = sale.timestamp.difference(startDate).inDays ~/ 7;
-            salesByPeriod[weekIndex] = (salesByPeriod[weekIndex] ?? 0) + sale.total;
+            salesByPeriod[weekIndex] =
+                (salesByPeriod[weekIndex] ?? 0) + sale.total;
           }
         }
         break;
@@ -1706,14 +1736,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return salesByPeriod.entries
         .map((entry) => FlSpot(entry.key.toDouble(), entry.value))
         .toList()
-        ..sort((a, b) => a.x.compareTo(b.x));
+      ..sort((a, b) => a.x.compareTo(b.x));
   }
 
   List<BarChartGroupData> _getTopItemsBarGroups(
     List<Map<String, dynamic>> items,
   ) {
     if (items.isEmpty) return [];
-    
+
     return items.take(5).toList().asMap().entries.map((entry) {
       return BarChartGroupData(
         x: entry.key,
@@ -1805,23 +1835,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
   String _getBottomTitleLabel(int value) {
     switch (selectedPeriod) {
       case '1day':
-        // Return hour labels (0-23)
         return '${value}h';
-        
+
       case '7days':
-        // Return day labels
         final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
         return value >= 0 && value < days.length ? days[value] : '';
-        
+
       case '1 month':
-        // Return day of month labels
         return value.toString();
-        
+
       case '3months':
       case '6 months':
-        // Return week labels
         return 'W${value + 1}';
-        
+
       default:
         return value.toString();
     }
@@ -1958,7 +1984,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     ),
                     DataCell(
                       Text(
-                        '${sale.items.fold(0, (sum, item) => sum + item.quantity)} items',
+                        '${sale.items.fold<int>(0, (sum, item) => sum + (item.quantity is int ? item.quantity as int : (item.quantity as double).round()))} items',
                       ),
                     ),
                     DataCell(
@@ -1983,7 +2009,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ),
           ),
 
-          // Pagination Controls
           if (totalPages > 1)
             Padding(
               padding: const EdgeInsets.all(16),
@@ -2108,9 +2133,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
     double totalDiscount = 0.0;
 
     for (final sale in sales) {
-      totalProductsSold += sale.items.fold(
+      totalProductsSold += sale.items.fold<int>(
         0,
-        (sum, item) => sum + item.quantity,
+        (sum, item) =>
+            sum +
+            (item.quantity is int
+                ? item.quantity as int
+                : (item.quantity as double).round()),
       );
       totalAmount += sale.total;
       totalSubtotal += sale.subtotal;
@@ -2168,10 +2197,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
       var excel = excel_lib.Excel.createExcel();
 
-      // Create Sales Summary Sheet
       var summarySheet = excel['Sales Summary'];
 
-      // Add headers and data for summary
       summarySheet.cell(excel_lib.CellIndex.indexByString('A1')).value =
           excel_lib.TextCellValue('Sales Report Summary');
       summarySheet.cell(excel_lib.CellIndex.indexByString('A2')).value =
@@ -2202,7 +2229,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
       summarySheet.cell(excel_lib.CellIndex.indexByString('B8')).value =
           excel_lib.DoubleCellValue(reportData['totalAmount']);
 
-      // Create Most Sold Items Sheet
       var mostSoldSheet = excel['Most Sold Items'];
       mostSoldSheet.cell(excel_lib.CellIndex.indexByString('A1')).value =
           excel_lib.TextCellValue('Rank');
@@ -2226,7 +2252,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
             excel_lib.DoubleCellValue(item['revenue']);
       }
 
-      // Create Sales Records Sheet
       var salesSheet = excel['Sales Records'];
       salesSheet.cell(excel_lib.CellIndex.indexByString('A1')).value =
           excel_lib.TextCellValue('Invoice No.');
@@ -2264,10 +2289,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
         );
       }
 
-      // Remove default sheet
       excel.delete('Sheet1');
 
-      // Save file
       final directory = await getApplicationDocumentsDirectory();
       final fileName =
           'sales_report_${selectedPeriod}_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.xlsx';

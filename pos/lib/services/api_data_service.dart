@@ -282,90 +282,128 @@ class ApiDataService {
   Future<List<Sales>> getSales() async {
     final response = await _apiService.get(Endpoints.sales, requiresAuth: true);
     final data = response['data'] ?? response;
-    return (data as List).map((item) => _mapSalesResponse(item)).toList();
+    
+    if (data is List) {
+      return data.map((item) => Sales.fromJson(item as Map<String, dynamic>)).toList();
+    }
+    return [];
   }
 
   Future<Sales> getSalesById(int id) async {
     final response = await _apiService.get('${Endpoints.salesById}/$id', requiresAuth: true);
     final salesData = response['data'] ?? response;
-    return _mapSalesResponse(salesData);
+    return Sales.fromJson(salesData as Map<String, dynamic>);
   }
 
   Future<List<Sales>> getSalesByDateRange(DateTime startDate, DateTime endDate) async {
-    final queryParams = '?start_date=${startDate.toIso8601String()}&end_date=${endDate.toIso8601String()}';
-    final response = await _apiService.get('${Endpoints.sales}$queryParams', requiresAuth: true);
+    // Get all sales first, then filter by date range on client side since server doesn't have date range endpoint
+    final sales = await getSales();
+    return sales.where((sale) {
+      return sale.timestamp.isAfter(startDate.subtract(const Duration(seconds: 1))) &&
+             sale.timestamp.isBefore(endDate.add(const Duration(seconds: 1)));
+    }).toList();
+  }
+
+  Future<List<Sales>> getSalesByOrderStatus(String status) async {
+    final response = await _apiService.get('${Endpoints.salesByOrderStatus}/$status', requiresAuth: true);
     final data = response['data'] ?? response;
-    return (data as List).map((item) => _mapSalesResponse(item)).toList();
+    
+    if (data is List) {
+      return data.map((item) => Sales.fromJson(item as Map<String, dynamic>)).toList();
+    }
+    return [];
+  }
+
+  Future<List<Sales>> getSalesByPaymentStatus(String status) async {
+    final response = await _apiService.get('${Endpoints.salesByPaymentStatus}/$status', requiresAuth: true);
+    final data = response['data'] ?? response;
+    
+    if (data is List) {
+      return data.map((item) => Sales.fromJson(item as Map<String, dynamic>)).toList();
+    }
+    return [];
+  }
+
+  Future<List<Sales>> getSalesByTable(int tableId) async {
+    final response = await _apiService.get('${Endpoints.salesByTable}/$tableId', requiresAuth: true);
+    final data = response['data'] ?? response;
+    
+    if (data is List) {
+      return data.map((item) => Sales.fromJson(item as Map<String, dynamic>)).toList();
+    }
+    return [];
   }
 
   Future<Sales> createSale(Sales sale) async {
+    final requestData = {
+      'tableId': sale.tableId,
+      'orderType': sale.orderType,
+      'orderStatus': sale.orderStatus,
+      'paymentStatus': sale.paymentStatus,
+      'paymentMethodId': sale.paymentMethodId,
+      'subTotal': sale.subtotal,
+      'tax': sale.tax,
+      'total': sale.total,
+      'partyId': sale.partyId,
+      'createdBy': sale.createdBy,
+    };
+
     final response = await _apiService.post(
       Endpoints.sales, 
-      _mapSalesToRequest(sale), 
+      requestData, 
       requiresAuth: true,
     );
     final salesData = response['data'] ?? response;
-    return _mapSalesResponse(salesData);
+    return Sales.fromJson(salesData as Map<String, dynamic>);
   }
 
   Future<Sales> updateSale(int id, Sales sale) async {
+    final requestData = {
+      'tableId': sale.tableId,
+      'orderType': sale.orderType,
+      'orderStatus': sale.orderStatus,
+      'paymentStatus': sale.paymentStatus,
+      'paymentMethodId': sale.paymentMethodId,
+      'subTotal': sale.subtotal,
+      'tax': sale.tax,
+      'total': sale.total,
+      'partyId': sale.partyId,
+      'signedBy': sale.signedBy,
+    };
+
     final response = await _apiService.put(
       '${Endpoints.salesById}/$id', 
-      _mapSalesToRequest(sale), 
+      requestData, 
       requiresAuth: true,
     );
     final salesData = response['data'] ?? response;
-    return _mapSalesResponse(salesData);
+    return Sales.fromJson(salesData as Map<String, dynamic>);
   }
 
   Future<void> deleteSale(int id) async {
     await _apiService.delete('${Endpoints.salesById}/$id', requiresAuth: true);
   }
 
-  // Helper method to map sales response from API
-  Sales _mapSalesResponse(Map<String, dynamic> response) {
-    return Sales(
-      invoiceNo: response['invoice_number'] ?? response['invoiceNo'] ?? '',
-      table: response['table_name'] ?? response['table'] ?? '',
-      orderType: response['order_type'] ?? response['orderType'] ?? 'Dine In',
-      items: (response['items'] as List? ?? []).map((item) => CartItem(
-        item: {
-          'id': item['menu_item_id'] ?? item['id'],
-          'itemName': item['item_name'] ?? item['name'],
-          'rate': (item['unit_price'] ?? item['rate'] ?? 0).toDouble(),
-        },
-        quantity: item['quantity'] ?? 1,
-      )).toList(),
-      subtotal: (response['subtotal'] ?? 0).toDouble(),
-      tax: (response['tax_amount'] ?? response['tax'] ?? 0).toDouble(),
-      taxRate: (response['tax_rate'] ?? response['taxRate'] ?? 0).toDouble(),
-      discount: (response['discount_amount'] ?? response['discount'] ?? 0).toDouble(),
-      discountValue: (response['discount_value'] ?? response['discountValue'] ?? 0).toDouble(),
-      isDiscountPercentage: response['discount_type'] == 'percentage' || response['isDiscountPercentage'] == true,
-      total: (response['total_amount'] ?? response['total'] ?? 0).toDouble(),
-      timestamp: DateTime.parse(response['created_at'] ?? response['timestamp'] ?? DateTime.now().toIso8601String()),
-    );
+  // ========== PAYMENT METHODS ==========
+  
+  Future<List<PaymentMethod>> getPaymentMethods() async {
+    final response = await _apiService.get(Endpoints.paymentMethods, requiresAuth: true);
+    final data = response['data'] ?? response;
+    
+    if (data is List) {
+      return data.map((item) => PaymentMethod.fromJson(item as Map<String, dynamic>)).toList();
+    }
+    return [];
   }
 
-  // Helper method to map sales to API request format
-  Map<String, dynamic> _mapSalesToRequest(Sales sale) {
-    return {
-      'invoice_number': sale.invoiceNo,
-      'table_name': sale.table,
-      'order_type': sale.orderType,
-      'subtotal': sale.subtotal,
-      'tax_amount': sale.tax,
-      'tax_rate': sale.taxRate,
-      'discount_amount': sale.discount,
-      'discount_value': sale.discountValue,
-      'discount_type': sale.isDiscountPercentage ? 'percentage' : 'amount',
-      'total_amount': sale.total,
-      'items': sale.items.map((item) => {
-        'menu_item_id': item.item['id'],
-        'quantity': item.quantity,
-        'unit_price': item.item['rate'],
-      }).toList(),
-    };
+  Future<List<PaymentMethod>> getActivePaymentMethods() async {
+    final response = await _apiService.get(Endpoints.activePaymentMethods, requiresAuth: true);
+    final data = response['data'] ?? response;
+    
+    if (data is List) {
+      return data.map((item) => PaymentMethod.fromJson(item as Map<String, dynamic>)).toList();
+    }
+    return [];
   }
 
   // ========== EXPENSES ==========
@@ -448,16 +486,22 @@ class ApiDataService {
   // ========== UTILITY METHODS ==========
 
   Future<String> getNextInvoiceNumber() async {
-    final sales = await getSales();
-    if (sales.isEmpty) {
-      return 'INV-0001';
+    try {
+      final sales = await getSales();
+      if (sales.isEmpty) {
+        return 'INV-0001';
+      }
+      
+      // Extract numeric part from last invoice and increment
+      final lastInvoice = sales.first.invoiceNo; // First because we sort by date DESC
+      final numericPart = int.tryParse(lastInvoice.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      final nextNumber = (numericPart + 1).toString().padLeft(4, '0');
+      return 'INV-$nextNumber';
+    } catch (e) {
+      // Fallback: generate based on timestamp
+      final timestamp = DateTime.now().millisecondsSinceEpoch.toString().substring(7);
+      return 'INV-$timestamp';
     }
-    
-    // Extract numeric part from last invoice and increment
-    final lastInvoice = sales.last.invoiceNo;
-    final numericPart = int.tryParse(lastInvoice.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-    final nextNumber = (numericPart + 1).toString().padLeft(4, '0');
-    return 'INV-$nextNumber';
   }
 
   Future<double> getTotalSalesForDate(DateTime date) async {

@@ -1,4 +1,6 @@
 import Sales from "../models/sales.models.js";
+import SalesItem from "../models/salesItem.models.js";
+import MenuItem from "../models/menuItem.models.js";
 import Table from "../models/table.model.js";
 import PaymentMethod from "../models/paymentMethod.models.js";
 import Party from "../models/party.models.js";
@@ -22,6 +24,11 @@ export const createSalesService = async (
       { model: PaymentMethod, as: "PaymentMethod" },
       { model: Party, as: "Party" },
       { model: User, as: "User" },
+      { 
+        model: SalesItem, 
+        as: "SalesItems",
+        include: [{ model: MenuItem, as: "MenuItem" }]
+      },
     ],
   });
 
@@ -71,6 +78,11 @@ export const updateSalesService = async (
       { model: PaymentMethod, as: "PaymentMethod" },
       { model: Party, as: "Party" },
       { model: User, as: "User" },
+      { 
+        model: SalesItem, 
+        as: "SalesItems",
+        include: [{ model: MenuItem, as: "MenuItem" }]
+      },
     ],
   });
 
@@ -112,6 +124,11 @@ export const getSalesService = async (
       { model: PaymentMethod, as: "PaymentMethod" },
       { model: Party, as: "Party" },
       { model: User, as: "User" },
+      { 
+        model: SalesItem, 
+        as: "SalesItems",
+        include: [{ model: MenuItem, as: "MenuItem" }]
+      },
     ],
   });
 
@@ -136,6 +153,11 @@ export const getAllSalesService = async (): Promise<ServiceResponse<any[]>> => {
       { model: PaymentMethod, as: "PaymentMethod" },
       { model: Party, as: "Party" },
       { model: User, as: "User" },
+      { 
+        model: SalesItem, 
+        as: "SalesItems",
+        include: [{ model: MenuItem, as: "MenuItem" }]
+      },
     ],
     order: [["createdAt", "DESC"]],
   });
@@ -159,6 +181,11 @@ export const getSalesByOrderStatusService = async (
       { model: PaymentMethod, as: "PaymentMethod" },
       { model: Party, as: "Party" },
       { model: User, as: "User" },
+      { 
+        model: SalesItem, 
+        as: "SalesItems",
+        include: [{ model: MenuItem, as: "MenuItem" }]
+      },
     ],
     order: [["createdAt", "DESC"]],
   });
@@ -182,6 +209,11 @@ export const getSalesByPaymentStatusService = async (
       { model: PaymentMethod, as: "PaymentMethod" },
       { model: Party, as: "Party" },
       { model: User, as: "User" },
+      { 
+        model: SalesItem, 
+        as: "SalesItems",
+        include: [{ model: MenuItem, as: "MenuItem" }]
+      },
     ],
     order: [["createdAt", "DESC"]],
   });
@@ -205,6 +237,11 @@ export const getSalesByTableService = async (
       { model: PaymentMethod, as: "PaymentMethod" },
       { model: Party, as: "Party" },
       { model: User, as: "User" },
+      { 
+        model: SalesItem, 
+        as: "SalesItems",
+        include: [{ model: MenuItem, as: "MenuItem" }]
+      },
     ],
     order: [["createdAt", "DESC"]],
   });
@@ -228,6 +265,11 @@ export const getSalesByPartyService = async (
       { model: PaymentMethod, as: "PaymentMethod" },
       { model: Party, as: "Party" },
       { model: User, as: "User" },
+      { 
+        model: SalesItem, 
+        as: "SalesItems",
+        include: [{ model: MenuItem, as: "MenuItem" }]
+      },
     ],
     order: [["createdAt", "DESC"]],
   });

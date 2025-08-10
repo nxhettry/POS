@@ -77,12 +77,36 @@ class DataRepository {
     return await _apiDataService.getSales();
   }
 
+  Future<Sales> getSalesById(int id) async {
+    return await _apiDataService.getSalesById(id);
+  }
+
   Future<Sales> createSale(Sales sale) async {
     return await _apiDataService.createSale(sale);
   }
 
+  Future<Sales> updateSale(int id, Sales sale) async {
+    return await _apiDataService.updateSale(id, sale);
+  }
+
+  Future<void> deleteSale(int id) async {
+    await _apiDataService.deleteSale(id);
+  }
+
   Future<List<Sales>> fetchSalesByDateRange(DateTime startDate, DateTime endDate) async {
     return await _apiDataService.getSalesByDateRange(startDate, endDate);
+  }
+
+  Future<List<Sales>> fetchSalesByOrderStatus(String status) async {
+    return await _apiDataService.getSalesByOrderStatus(status);
+  }
+
+  Future<List<Sales>> fetchSalesByPaymentStatus(String status) async {
+    return await _apiDataService.getSalesByPaymentStatus(status);
+  }
+
+  Future<List<Sales>> fetchSalesByTable(int tableId) async {
+    return await _apiDataService.getSalesByTable(tableId);
   }
 
   Future<String> getNextInvoiceNumber() async {
@@ -99,6 +123,15 @@ class DataRepository {
 
   Future<Map<String, dynamic>> getSalesStatistics() async {
     return await _apiDataService.getSalesStatistics();
+  }
+
+  // ========== PAYMENT METHODS ==========
+  Future<List<PaymentMethod>> fetchPaymentMethods() async {
+    return await _apiDataService.getPaymentMethods();
+  }
+
+  Future<List<PaymentMethod>> fetchActivePaymentMethods() async {
+    return await _apiDataService.getActivePaymentMethods();
   }
 
   // ========== EXPENSES ==========

@@ -15,7 +15,30 @@ class _OrderHistoryState extends State<OrderHistory> {
   String selectedFilter = "All";
   final List<String> filterOptions = ["All", "Dine In", "Takeaway", "Delivery"];
   String selectedDateFilter = "Today";
-  final List<String> dateFilterOptions = ["Today", "Yesterday", "Last 2 Days"];
+  final List<String> dateFilterOptions = [
+    "Today",
+    "Yesterday",
+    "Last 7 Days",
+    "Last 30 Days",
+  ];
+  String selectedStatusFilter = "All Status";
+  final List<String> statusFilterOptions = [
+    "All Status",
+    "Pending",
+    "Preparing",
+    "Ready",
+    "Served",
+    "Cancelled",
+  ];
+  String selectedPaymentFilter = "All Payments";
+  final List<String> paymentFilterOptions = [
+    "All Payments",
+    "Pending",
+    "Paid",
+    "Partial",
+    "Refunded",
+  ];
+
   List<Sales> _allSales = [];
   List<Sales> _filteredSales = [];
   bool _isLoading = true;
@@ -33,18 +56,30 @@ class _OrderHistoryState extends State<OrderHistory> {
       _isLoading = true;
       _errorMessage = '';
     });
-    
+
     try {
       List<Sales> sales;
-      
-      // Get date range based on filter
-      final dateRange = _getDateRange();
-      if (dateRange != null) {
-        sales = await _dataRepository.fetchSalesByDateRange(dateRange['start']!, dateRange['end']!);
+
+      if (selectedStatusFilter != "All Status") {
+        sales = await _dataRepository.fetchSalesByOrderStatus(
+          selectedStatusFilter.toLowerCase(),
+        );
+      } else if (selectedPaymentFilter != "All Payments") {
+        sales = await _dataRepository.fetchSalesByPaymentStatus(
+          selectedPaymentFilter.toLowerCase(),
+        );
       } else {
-        sales = await _dataRepository.fetchSales();
+        final dateRange = _getDateRange();
+        if (dateRange != null) {
+          sales = await _dataRepository.fetchSalesByDateRange(
+            dateRange['start']!,
+            dateRange['end']!,
+          );
+        } else {
+          sales = await _dataRepository.fetchSales();
+        }
       }
-      
+
       setState(() {
         _allSales = sales;
         _applyFilters();
@@ -62,7 +97,7 @@ class _OrderHistoryState extends State<OrderHistory> {
 
   Map<String, DateTime>? _getDateRange() {
     final now = DateTime.now();
-    
+
     switch (selectedDateFilter) {
       case "Today":
         return {
@@ -73,12 +108,33 @@ class _OrderHistoryState extends State<OrderHistory> {
         final yesterday = now.subtract(const Duration(days: 1));
         return {
           'start': DateTime(yesterday.year, yesterday.month, yesterday.day),
-          'end': DateTime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59),
+          'end': DateTime(
+            yesterday.year,
+            yesterday.month,
+            yesterday.day,
+            23,
+            59,
+            59,
+          ),
         };
-      case "Last 2 Days":
-        final twoDaysAgo = now.subtract(const Duration(days: 1));
+      case "Last 7 Days":
+        final sevenDaysAgo = now.subtract(const Duration(days: 6));
         return {
-          'start': DateTime(twoDaysAgo.year, twoDaysAgo.month, twoDaysAgo.day),
+          'start': DateTime(
+            sevenDaysAgo.year,
+            sevenDaysAgo.month,
+            sevenDaysAgo.day,
+          ),
+          'end': DateTime(now.year, now.month, now.day, 23, 59, 59),
+        };
+      case "Last 30 Days":
+        final thirtyDaysAgo = now.subtract(const Duration(days: 29));
+        return {
+          'start': DateTime(
+            thirtyDaysAgo.year,
+            thirtyDaysAgo.month,
+            thirtyDaysAgo.day,
+          ),
           'end': DateTime(now.year, now.month, now.day, 23, 59, 59),
         };
       default:
@@ -88,15 +144,35 @@ class _OrderHistoryState extends State<OrderHistory> {
 
   void _applyFilters() {
     List<Sales> filtered = List.from(_allSales);
-    
-    // Apply order type filter
+
     if (selectedFilter != "All") {
-      filtered = filtered.where((sale) => sale.orderType == selectedFilter).toList();
+      filtered = filtered
+          .where((sale) => sale.orderType == selectedFilter)
+          .toList();
     }
-    
-    // Sort by timestamp (most recent first)
+
+    if (selectedStatusFilter != "All Status") {
+      filtered = filtered
+          .where(
+            (sale) =>
+                sale.orderStatus.toLowerCase() ==
+                selectedStatusFilter.toLowerCase(),
+          )
+          .toList();
+    }
+
+    if (selectedPaymentFilter != "All Payments") {
+      filtered = filtered
+          .where(
+            (sale) =>
+                sale.paymentStatus.toLowerCase() ==
+                selectedPaymentFilter.toLowerCase(),
+          )
+          .toList();
+    }
+
     filtered.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    
+
     setState(() {
       _filteredSales = filtered;
     });
@@ -198,6 +274,90 @@ class _OrderHistoryState extends State<OrderHistory> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: selectedStatusFilter,
+                              isExpanded: true,
+                              icon: const Icon(Icons.keyboard_arrow_down),
+                              items: statusFilterOptions.map((String option) {
+                                return DropdownMenuItem<String>(
+                                  value: option,
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        _getStatusIcon(option),
+                                        size: 16,
+                                        color: _getStatusColor(option),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(option),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  selectedStatusFilter = newValue!;
+                                  _loadSales();
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: selectedPaymentFilter,
+                              isExpanded: true,
+                              icon: const Icon(Icons.keyboard_arrow_down),
+                              items: paymentFilterOptions.map((String option) {
+                                return DropdownMenuItem<String>(
+                                  value: option,
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        _getPaymentStatusIcon(option),
+                                        size: 16,
+                                        color: _getPaymentStatusColor(option),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(option),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  selectedPaymentFilter = newValue!;
+                                  _loadSales();
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -205,16 +365,16 @@ class _OrderHistoryState extends State<OrderHistory> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _errorMessage.isNotEmpty
-                      ? _buildErrorState()
-                      : _filteredSales.isEmpty
-                          ? _buildEmptyState()
-                          : ListView.builder(
-                              padding: const EdgeInsets.all(16),
-                              itemCount: _filteredSales.length,
-                              itemBuilder: (context, index) {
-                                return _buildOrderCard(_filteredSales[index]);
-                              },
-                            ),
+                  ? _buildErrorState()
+                  : _filteredSales.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _filteredSales.length,
+                      itemBuilder: (context, index) {
+                        return _buildOrderCard(_filteredSales[index]);
+                      },
+                    ),
             ),
           ],
         ),
@@ -227,11 +387,7 @@ class _OrderHistoryState extends State<OrderHistory> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.red[400],
-          ),
+          Icon(Icons.error_outline, size: 64, color: Colors.red[400]),
           const SizedBox(height: 16),
           Text(
             'Error Loading Orders',
@@ -246,10 +402,7 @@ class _OrderHistoryState extends State<OrderHistory> {
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Text(
               _errorMessage,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
               textAlign: TextAlign.center,
             ),
           ),
@@ -274,11 +427,7 @@ class _OrderHistoryState extends State<OrderHistory> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.receipt_long_outlined,
-            size: 64,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             _getEmptyStateTitle(),
@@ -327,8 +476,11 @@ class _OrderHistoryState extends State<OrderHistory> {
       case "Yesterday":
         dateMessage = "yesterday";
         break;
-      case "Last 2 Days":
-        dateMessage = "in the last 2 days";
+      case "Last 7 Days":
+        dateMessage = "in the last 7 days";
+        break;
+      case "Last 30 Days":
+        dateMessage = "in the last 30 days";
         break;
       default:
         dateMessage = "for the selected period";
@@ -336,10 +488,26 @@ class _OrderHistoryState extends State<OrderHistory> {
 
     if (_allSales.isEmpty) {
       return "No orders have been placed yet.\nStart by creating your first order.";
-    } else if (selectedFilter == "All") {
-      return "No orders found $dateMessage.\nTry selecting a different date range.";
     } else {
-      return "No $selectedFilter orders found $dateMessage.\nTry changing the filter or date range.";
+      List<String> activeFilters = [];
+
+      if (selectedFilter != "All") {
+        activeFilters.add(selectedFilter);
+      }
+
+      if (selectedStatusFilter != "All Status") {
+        activeFilters.add(selectedStatusFilter.toLowerCase());
+      }
+
+      if (selectedPaymentFilter != "All Payments") {
+        activeFilters.add("${selectedPaymentFilter.toLowerCase()} payment");
+      }
+
+      String filterText = activeFilters.isNotEmpty
+          ? '${activeFilters.join(', ')} '
+          : '';
+
+      return "No ${filterText}orders found $dateMessage.\nTry changing the filters or date range.";
     }
   }
 
@@ -410,10 +578,94 @@ class _OrderHistoryState extends State<OrderHistory> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            sale.table,
+                            sale.table.isEmpty
+                                ? (sale.tableInfo?['name'] ?? 'N/A')
+                                : sale.table,
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _getStatusColor(
+                                sale.orderStatus,
+                              ).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _getStatusColor(
+                                  sale.orderStatus,
+                                ).withOpacity(0.3),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _getStatusIcon(sale.orderStatus),
+                                  size: 12,
+                                  color: _getStatusColor(sale.orderStatus),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  sale.orderStatus.toUpperCase(),
+                                  style: TextStyle(
+                                    color: _getStatusColor(sale.orderStatus),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _getPaymentStatusColor(
+                                sale.paymentStatus,
+                              ).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _getPaymentStatusColor(
+                                  sale.paymentStatus,
+                                ).withOpacity(0.3),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _getPaymentStatusIcon(sale.paymentStatus),
+                                  size: 12,
+                                  color: _getPaymentStatusColor(
+                                    sale.paymentStatus,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  sale.paymentStatus.toUpperCase(),
+                                  style: TextStyle(
+                                    color: _getPaymentStatusColor(
+                                      sale.paymentStatus,
+                                    ),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -444,8 +696,7 @@ class _OrderHistoryState extends State<OrderHistory> {
                 ],
               ),
             ),
-            
-            // Items summary and actions
+
             Container(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -455,10 +706,7 @@ class _OrderHistoryState extends State<OrderHistory> {
                     children: [
                       Text(
                         "${sale.items.length} items",
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
                       ),
                       Row(
                         children: [
@@ -469,7 +717,10 @@ class _OrderHistoryState extends State<OrderHistory> {
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.blue,
                               side: const BorderSide(color: Colors.blue),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                               minimumSize: const Size(0, 32),
                             ),
                           ),
@@ -479,7 +730,10 @@ class _OrderHistoryState extends State<OrderHistory> {
                             child: const Text("View Details"),
                             style: TextButton.styleFrom(
                               foregroundColor: Colors.grey[600],
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                               minimumSize: const Size(0, 32),
                             ),
                           ),
@@ -525,7 +779,6 @@ class _OrderHistoryState extends State<OrderHistory> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Header
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -591,15 +844,13 @@ class _OrderHistoryState extends State<OrderHistory> {
                     ],
                   ),
                 ),
-                
-                // Content
+
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Date and time
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -614,7 +865,9 @@ class _OrderHistoryState extends State<OrderHistory> {
                                   ),
                                 ),
                                 Text(
-                                  DateFormat('MMM dd, yyyy').format(sale.timestamp),
+                                  DateFormat(
+                                    'MMM dd, yyyy',
+                                  ).format(sale.timestamp),
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 16,
@@ -643,10 +896,9 @@ class _OrderHistoryState extends State<OrderHistory> {
                             ),
                           ],
                         ),
-                        
+
                         const SizedBox(height: 24),
-                        
-                        // Items
+
                         Text(
                           "Items Ordered",
                           style: TextStyle(
@@ -656,13 +908,12 @@ class _OrderHistoryState extends State<OrderHistory> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        ...sale.items.map((cartItem) => _buildDetailItemRow(cartItem)),
-                        
+                        ...sale.items.map((item) => _buildDetailItemRow(item)),
+
                         const SizedBox(height: 24),
                         Container(height: 1, color: Colors.grey[200]),
                         const SizedBox(height: 16),
-                        
-                        // Summary
+
                         _buildSummaryRow(
                           "Subtotal",
                           "₹${sale.subtotal.toStringAsFixed(2)}",
@@ -689,8 +940,7 @@ class _OrderHistoryState extends State<OrderHistory> {
                     ),
                   ),
                 ),
-                
-                // Actions
+
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -737,8 +987,34 @@ class _OrderHistoryState extends State<OrderHistory> {
     );
   }
 
-  Widget _buildDetailItemRow(CartItem cartItem) {
-    final String? imagePath = cartItem.item['image'] as String?;
+  Widget _buildDetailItemRow(dynamic item) {
+    String itemName = '';
+    double rate = 0.0;
+    int quantity = 0;
+    double totalPrice = 0.0;
+    String? imagePath;
+
+    if (item is CartItem) {
+      itemName = item.item['item_name'] ?? item.item['itemName'] ?? '';
+      rate = (item.item['rate'] ?? 0).toDouble();
+      quantity = item.quantity;
+      totalPrice = item.totalPrice;
+      imagePath = item.item['image'] as String?;
+    } else if (item is SalesItem) {
+      itemName = item.itemName;
+      rate = item.rate;
+      quantity = item.quantity.toInt();
+      totalPrice = item.totalPrice;
+      imagePath = item.menuItem?['image'] as String?;
+    } else if (item is Map<String, dynamic>) {
+      itemName = item['itemName'] ?? item['item_name'] ?? '';
+      rate = (item['rate'] ?? 0).toDouble();
+      quantity = (item['quantity'] ?? 0).toInt();
+      totalPrice =
+          (item['totalPrice'] ?? item['total_price'] ?? rate * quantity)
+              .toDouble();
+      imagePath = item['image'] as String?;
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -776,21 +1052,21 @@ class _OrderHistoryState extends State<OrderHistory> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  cartItem.item['item_name'],
+                  itemName,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
                   ),
                 ),
                 Text(
-                  "₹${cartItem.item['rate']} × ${cartItem.quantity}",
+                  "₹${rate.toStringAsFixed(2)} × $quantity",
                   style: TextStyle(color: Colors.grey[600], fontSize: 14),
                 ),
               ],
             ),
           ),
           Text(
-            "₹${cartItem.totalPrice.toStringAsFixed(2)}",
+            "₹${totalPrice.toStringAsFixed(2)}",
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
         ],
@@ -853,6 +1129,74 @@ class _OrderHistoryState extends State<OrderHistory> {
         return Icons.delivery_dining;
       default:
         return Icons.receipt;
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case "pending":
+      case "all status":
+        return Colors.orange;
+      case "preparing":
+        return Colors.blue;
+      case "ready":
+        return Colors.purple;
+      case "served":
+        return Colors.green;
+      case "cancelled":
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case "pending":
+      case "all status":
+        return Icons.pending;
+      case "preparing":
+        return Icons.restaurant_menu;
+      case "ready":
+        return Icons.check_circle_outline;
+      case "served":
+        return Icons.check_circle;
+      case "cancelled":
+        return Icons.cancel;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
+  Color _getPaymentStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case "pending":
+      case "all payments":
+        return Colors.orange;
+      case "paid":
+        return Colors.green;
+      case "partial":
+        return Colors.blue;
+      case "refunded":
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getPaymentStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case "pending":
+      case "all payments":
+        return Icons.pending;
+      case "paid":
+        return Icons.check_circle;
+      case "partial":
+        return Icons.incomplete_circle;
+      case "refunded":
+        return Icons.undo;
+      default:
+        return Icons.payment;
     }
   }
 }
