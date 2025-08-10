@@ -1,0 +1,1 @@
+ /Users/nishangautam/Downloads/Work/RatoPos/pos/.dart_tool/flutter_build/c7dbc0679f2dc0569fd568cf526efb5d/native_assets.json: 
