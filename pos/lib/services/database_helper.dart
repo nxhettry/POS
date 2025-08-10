@@ -21,7 +21,7 @@ class DatabaseHelper {
     String dbPath = join(path, 'pos_database.db');
     return await openDatabase(
       dbPath,
-      version: 7,
+      version: 8,
       onCreate: (db, version) async {
         await _createTables(db);
       },
@@ -122,6 +122,15 @@ class DatabaseHelper {
             "INSERT INTO expense_categories (name) VALUES ('Other')",
           );
         }
+        if (oldVersion < 8) {
+          // Add website and logo fields to restaurant table
+          await db.execute('''
+            ALTER TABLE restaurant ADD COLUMN website TEXT
+          ''');
+          await db.execute('''
+            ALTER TABLE restaurant ADD COLUMN logo TEXT
+          ''');
+        }
       },
     );
   }
@@ -190,7 +199,9 @@ class DatabaseHelper {
         address TEXT NOT NULL,
         phone TEXT NOT NULL,
         email TEXT NOT NULL,
-        pan_number TEXT NOT NULL
+        pan_number TEXT NOT NULL,
+        website TEXT,
+        logo TEXT
       )
     ''');
 
@@ -555,7 +566,7 @@ class DatabaseHelper {
   // Restaurant operations
   Future<int> insertRestaurant(Restaurant restaurant) async {
     final db = await database;
-    return await db.insert('restaurant', restaurant.toMap());
+    return await db.insert('restaurant', restaurant.toLocalMap());
   }
 
   Future<Restaurant?> getRestaurant() async {
@@ -575,7 +586,7 @@ class DatabaseHelper {
     final db = await database;
     return await db.update(
       'restaurant',
-      restaurant.toMap(),
+      restaurant.toLocalMap(),
       where: 'id = ?',
       whereArgs: [restaurant.id],
     );

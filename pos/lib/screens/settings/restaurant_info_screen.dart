@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_helper.dart';
+import '../../services/api_data_service.dart';
 
 class RestaurantInfoScreen extends StatefulWidget {
   const RestaurantInfoScreen({super.key});
@@ -12,7 +13,9 @@ class RestaurantInfoScreen extends StatefulWidget {
 class _RestaurantInfoScreenState extends State<RestaurantInfoScreen> {
   final _formKey = GlobalKey<FormState>();
   final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final ApiDataService _apiDataService = ApiDataService();
   bool _isLoading = true;
+  bool _isSaving = false;
 
   // Controllers for form fields
   final _restaurantNameController = TextEditingController();
@@ -20,6 +23,7 @@ class _RestaurantInfoScreenState extends State<RestaurantInfoScreen> {
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _panController = TextEditingController();
+  final _websiteController = TextEditingController();
 
   @override
   void initState() {
@@ -34,6 +38,7 @@ class _RestaurantInfoScreenState extends State<RestaurantInfoScreen> {
     _phoneController.dispose();
     _emailController.dispose();
     _panController.dispose();
+    _websiteController.dispose();
     super.dispose();
   }
 
@@ -114,13 +119,23 @@ class _RestaurantInfoScreenState extends State<RestaurantInfoScreen> {
                 icon: Icons.credit_card,
               ),
 
+              // Website
+              _buildFormField(
+                label: 'Website (Optional)',
+                controller: _websiteController,
+                hint: 'Enter website URL',
+                icon: Icons.language,
+                keyboardType: TextInputType.url,
+                isOptional: true,
+              ),
+
               const SizedBox(height: 32),
 
               // Save Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _saveSettings,
+                  onPressed: _isSaving ? null : _saveSettings,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
@@ -129,10 +144,28 @@ class _RestaurantInfoScreenState extends State<RestaurantInfoScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
-                    'Save Changes',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+                  child: _isSaving
+                      ? const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Text('Saving...'),
+                          ],
+                        )
+                      : const Text(
+                          'Save Changes',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
                 ),
               ),
             ],
@@ -149,6 +182,7 @@ class _RestaurantInfoScreenState extends State<RestaurantInfoScreen> {
     required IconData icon,
     TextInputType? keyboardType,
     int maxLines = 1,
+    bool isOptional = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
@@ -169,18 +203,27 @@ class _RestaurantInfoScreenState extends State<RestaurantInfoScreen> {
             keyboardType: keyboardType,
             maxLines: maxLines,
             validator: (value) {
-              if (value == null || value.trim().isEmpty) {
+              if (!isOptional && (value == null || value.trim().isEmpty)) {
                 return 'Please enter $label';
               }
-              if (keyboardType == TextInputType.emailAddress) {
+              if (keyboardType == TextInputType.emailAddress && 
+                  value != null && value.trim().isNotEmpty) {
                 final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
                 if (!emailRegex.hasMatch(value.trim())) {
                   return 'Please enter a valid email address';
                 }
               }
-              if (keyboardType == TextInputType.phone) {
+              if (keyboardType == TextInputType.phone && 
+                  value != null && value.trim().isNotEmpty) {
                 if (value.trim().length < 10) {
                   return 'Please enter a valid phone number';
+                }
+              }
+              if (keyboardType == TextInputType.url && 
+                  value != null && value.trim().isNotEmpty) {
+                final urlRegex = RegExp(r'^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$');
+                if (!urlRegex.hasMatch(value.trim())) {
+                  return 'Please enter a valid website URL';
                 }
               }
               return null;
@@ -211,6 +254,10 @@ class _RestaurantInfoScreenState extends State<RestaurantInfoScreen> {
 
   void _saveSettings() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isSaving = true;
+      });
+
       try {
         final restaurant = Restaurant(
           name: _restaurantNameController.text.trim(),
@@ -218,18 +265,45 @@ class _RestaurantInfoScreenState extends State<RestaurantInfoScreen> {
           phone: _phoneController.text.trim(),
           email: _emailController.text.trim(),
           panNumber: _panController.text.trim(),
+          website: _websiteController.text.trim().isEmpty 
+              ? null 
+              : _websiteController.text.trim(),
         );
 
-        await _databaseHelper.upsertRestaurant(restaurant);
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Restaurant information saved successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+        // Try to update via API first
+        Restaurant updatedRestaurant;
+        try {
+          updatedRestaurant = await _apiDataService.updateRestaurantSettings(restaurant);
+          
+          // Update local database with the server response
+          await _databaseHelper.upsertRestaurant(updatedRestaurant);
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Restaurant information saved successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } catch (apiError) {
+          // If API fails, try to save locally
+          debugPrint('API error: $apiError');
+          await _databaseHelper.upsertRestaurant(restaurant);
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Saved locally. Server sync failed: ${apiError.toString()}'
+                ),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
         }
+        
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -239,20 +313,50 @@ class _RestaurantInfoScreenState extends State<RestaurantInfoScreen> {
             ),
           );
         }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSaving = false;
+          });
+        }
       }
     }
   }
 
   Future<void> _loadRestaurantInfo() async {
     try {
-      final restaurant = await _databaseHelper.getRestaurant();
+      Restaurant? restaurant;
+      
+      // Try to fetch from API first
+      try {
+        restaurant = await _apiDataService.getRestaurantSettings();
+        
+        // Update local database with server data
+        await _databaseHelper.upsertRestaurant(restaurant);
+        
+      } catch (apiError) {
+        // If API fails, fall back to local database
+        debugPrint('API error during load: $apiError');
+        restaurant = await _databaseHelper.getRestaurant();
+        
+        if (mounted && restaurant == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Unable to connect to server. Loading offline data.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+      
       if (restaurant != null && mounted) {
         setState(() {
-          _restaurantNameController.text = restaurant.name;
+          _restaurantNameController.text = restaurant!.name;
           _addressController.text = restaurant.address;
           _phoneController.text = restaurant.phone;
           _emailController.text = restaurant.email;
           _panController.text = restaurant.panNumber;
+          _websiteController.text = restaurant.website ?? '';
           _isLoading = false;
         });
       } else {
@@ -268,7 +372,7 @@ class _RestaurantInfoScreenState extends State<RestaurantInfoScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error loading restaurant information: $e'),
-            backgroundColor: Colors.orange,
+            backgroundColor: Colors.red,
           ),
         );
       }

@@ -316,6 +316,8 @@ class Restaurant {
   final String phone;
   final String email;
   final String panNumber;
+  final String? website;
+  final String? logo;
 
   Restaurant({
     this.id,
@@ -324,6 +326,8 @@ class Restaurant {
     required this.phone,
     required this.email,
     required this.panNumber,
+    this.website,
+    this.logo,
   });
 
   Map<String, dynamic> toMap() {
@@ -333,7 +337,22 @@ class Restaurant {
       'address': address,
       'phone': phone,
       'email': email,
-      'pan_number': panNumber,
+      'pan': panNumber, // Changed to match server expectation
+      'website': website,
+      'logo': logo,
+    };
+  }
+
+  Map<String, dynamic> toLocalMap() {
+    return {
+      'id': id,
+      'name': name,
+      'address': address,
+      'phone': phone,
+      'email': email,
+      'pan_number': panNumber, // Keep for local database compatibility
+      'website': website,
+      'logo': logo,
     };
   }
 
@@ -344,7 +363,9 @@ class Restaurant {
       address: map['address'] as String,
       phone: map['phone'] as String,
       email: map['email'] as String,
-      panNumber: map['pan_number'] as String,
+      panNumber: map['pan'] ?? map['pan_number'] as String, // Handle both formats
+      website: map['website'] as String?,
+      logo: map['logo'] as String?,
     );
   }
 
@@ -355,6 +376,8 @@ class Restaurant {
     String? phone,
     String? email,
     String? panNumber,
+    String? website,
+    String? logo,
   }) {
     return Restaurant(
       id: id ?? this.id,
@@ -363,6 +386,8 @@ class Restaurant {
       phone: phone ?? this.phone,
       email: email ?? this.email,
       panNumber: panNumber ?? this.panNumber,
+      website: website ?? this.website,
+      logo: logo ?? this.logo,
     );
   }
 }
