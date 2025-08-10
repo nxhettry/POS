@@ -1,0 +1,28 @@
+{
+  "" : {
+    "diagnostics" : "/Users/nishangautam/Downloads/Work/RatoPos/pos/build/macos/Build/Intermediates.noindex/Pods.build/Debug/printing.build/Objects-normal/arm64/printing-master.dia",
+    "emit-module-dependencies" : "/Users/nishangautam/Downloads/Work/RatoPos/pos/build/macos/Build/Intermediates.noindex/Pods.build/Debug/printing.build/Objects-normal/arm64/printing-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/nishangautam/Downloads/Work/RatoPos/pos/build/macos/Build/Intermediates.noindex/Pods.build/Debug/printing.build/Objects-normal/arm64/printing-master-emit-module.dia",
+    "swift-dependencies" : "/Users/nishangautam/Downloads/Work/RatoPos/pos/build/macos/Build/Intermediates.noindex/Pods.build/Debug/printing.build/Objects-normal/arm64/printing-master.swiftdeps"
+  },
+  "/Users/nishangautam/.pub-cache/hosted/pub.dev/printing-5.14.2/macos/Classes/PrintJob.swift" : {
+    "const-values" : "/Users/nishangautam/Downloads/Work/RatoPos/pos/build/macos/Build/Intermediates.noindex/Pods.build/Debug/printing.build/Objects-normal/arm64/PrintJob.swiftconstvalues",
+    "dependencies" : "/Users/nishangautam/Downloads/Work/RatoPos/pos/build/macos/Build/Intermediates.noindex/Pods.build/Debug/printing.build/Objects-normal/arm64/PrintJob.d",
+    "diagnostics" : "/Users/nishangautam/Downloads/Work/RatoPos/pos/build/macos/Build/Intermediates.noindex/Pods.build/Debug/printing.build/Objects-normal/arm64/PrintJob.dia",
+    "index-unit-output-path" : "/Pods.build/Debug/printing.build/Objects-normal/arm64/PrintJob.o",
+    "llvm-bc" : "/Users/nishangautam/Downloads/Work/RatoPos/pos/build/macos/Build/Intermediates.noindex/Pods.build/Debug/printing.build/Objects-normal/arm64/PrintJob.bc",
+    "object" : "/Users/nishangautam/Downloads/Work/RatoPos/pos/build/macos/Build/Intermediates.noindex/Pods.build/Debug/printing.build/Objects-normal/arm64/PrintJob.o",
+    "swift-dependencies" : "/Users/nishangautam/Downloads/Work/RatoPos/pos/build/macos/Build/Intermediates.noindex/Pods.build/Debug/printing.build/Objects-normal/arm64/PrintJob.swiftdeps",
+    "swiftmodule" : "/Users/nishangautam/Downloads/Work/RatoPos/pos/build/macos/Build/Intermediates.noindex/Pods.build/Debug/printing.build/Objects-normal/arm64/PrintJob~partial.swiftmodule"
+  },
+  "/Users/nishangautam/.pub-cache/hosted/pub.dev/printing-5.14.2/macos/Classes/PrintingPlugin.swift" : {
+    "const-values" : "/Users/nishangautam/Downloads/Work/RatoPos/pos/build/macos/Build/Intermediates.noindex/Pods.build/Debug/printing.build/Objects-normal/arm64/PrintingPlugin-a1d82a2b7e762fcb3fadf2f07e4ef280.swiftconstvalues",
+    "dependencies" : "/Users/nishangautam/Downloads/Work/RatoPos/pos/build/macos/Build/Intermediates.noindex/Pods.build/Debug/printing.build/Objects-normal/arm64/PrintingPlugin-a1d82a2b7e762fcb3fadf2f07e4ef280.d",
+    "diagnostics" : "/Users/nishangautam/Downloads/Work/RatoPos/pos/build/macos/Build/Intermediates.noindex/Pods.build/Debug/printing.build/Objects-normal/arm64/PrintingPlugin-a1d82a2b7e762fcb3fadf2f07e4ef280.dia",
+    "index-unit-output-path" : "/Pods.build/Debug/printing.build/Objects-normal/arm64/PrintingPlugin-a1d82a2b7e762fcb3fadf2f07e4ef280.o",
+    "llvm-bc" : "/Users/nishangautam/Downloads/Work/RatoPos/pos/build/macos/Build/Intermediates.noindex/Pods.build/Debug/printing.build/Objects-normal/arm64/PrintingPlugin-a1d82a2b7e762fcb3fadf2f07e4ef280.bc",
+    "object" : "/Users/nishangautam/Downloads/Work/RatoPos/pos/build/macos/Build/Intermediates.noindex/Pods.build/Debug/printing.build/Objects-normal/arm64/PrintingPlugin-a1d82a2b7e762fcb3fadf2f07e4ef280.o",
+    "swift-dependencies" : "/Users/nishangautam/Downloads/Work/RatoPos/pos/build/macos/Build/Intermediates.noindex/Pods.build/Debug/printing.build/Objects-normal/arm64/PrintingPlugin-a1d82a2b7e762fcb3fadf2f07e4ef280.swiftdeps",
+    "swiftmodule" : "/Users/nishangautam/Downloads/Work/RatoPos/pos/build/macos/Build/Intermediates.noindex/Pods.build/Debug/printing.build/Objects-normal/arm64/PrintingPlugin-a1d82a2b7e762fcb3fadf2f07e4ef280~partial.swiftmodule"
+  }
+}
