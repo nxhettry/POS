@@ -33,51 +33,68 @@ class _TablesViewState extends State<TablesView> {
         if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         }
-  final tables = snapshot.data ?? <pos_models.Table>[];
-  return GridView.builder(
-    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: ResponsiveUtils.getGridColumns(context),
-      crossAxisSpacing: ResponsiveUtils.getSpacing(context),
-      mainAxisSpacing: ResponsiveUtils.getSpacing(context),
-      childAspectRatio: 1.5,
-    ),
-    itemCount: tables.length,
-    itemBuilder: (context, index) {
-      final table = tables[index];
-      final isSelected = selectedTableId == table.id;
-      return GestureDetector(
-        onTap: () {
-          setState(() {
-            selectedTableId = table.id;
-          });
-          if (widget.onTableSelected != null) {
-            widget.onTableSelected!(table);
-          }
-        },
-        child: Card(
-          color: isSelected ? Colors.red[100] : Colors.white,
-          elevation: 3,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: isSelected ? Colors.red : Colors.grey[300]!,
-              width: isSelected ? 2 : 1,
+        final tables = snapshot.data ?? <pos_models.Table>[];
+        return SizedBox(
+          height: 80, // Fixed height for horizontal scroll
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(
+              horizontal: ResponsiveUtils.getSpacing(context),
             ),
+            itemCount: tables.length,
+            itemBuilder: (context, index) {
+              final table = tables[index];
+              final isSelected = selectedTableId == table.id;
+              return Container(
+                width: 160, // Fixed width for rectangular cards (similar to w-40)
+                height: 64, // Fixed height (similar to h-16)
+                margin: EdgeInsets.only(
+                  right: ResponsiveUtils.getSpacing(context) * 0.8,
+                ),
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedTableId = table.id;
+                    });
+                    if (widget.onTableSelected != null) {
+                      widget.onTableSelected!(table);
+                    }
+                  },
+                  child: Card(
+                    color: isSelected ? Colors.red[100] : Colors.white,
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(
+                        color: isSelected ? Colors.red : Colors.grey[300]!,
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      child: Center(
+                        child: Text(
+                          table.name,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: isSelected ? Colors.red : Colors.black87,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
-          child: Center(
-            child: Text(
-              table.name,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: ResponsiveUtils.getFontSize(context, 16),
-                color: isSelected ? Colors.red : Colors.black,
-              ),
-            ),
-          ),
-        ),
-      );
-    },
-  );
+        );
       },
     );
   }
