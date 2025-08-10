@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/database_helper.dart';
+import '../../services/api_data_service.dart';
 
 class SystemScreen extends StatefulWidget {
   const SystemScreen({super.key});
@@ -11,30 +12,51 @@ class SystemScreen extends StatefulWidget {
 
 class _SystemScreenState extends State<SystemScreen> {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final ApiDataService _apiDataService = ApiDataService();
   bool _isLoading = true;
-  bool _autoBackup = true;
+  bool _isSaving = false;
+  bool _autoBackup = false;
   bool _enableNotifications = true;
   bool _darkMode = false;
   bool _enableSounds = true;
-  String _selectedLanguage = 'English';
+  String _selectedLanguage = 'en';
   String _selectedCurrency = 'NPR';
-  String _selectedDateFormat = 'dd/MM/yyyy';
+  String _selectedDateFormat = 'YYYY-MM-DD';
   String _selectedTimeZone = 'Asia/Kathmandu';
-  
-  final List<String> _languages = ['English', 'Nepali', 'Hindi'];
+  double _defaultTaxRate = 0.0;
+
+  final TextEditingController _taxRateController = TextEditingController();
+
+  final List<Map<String, String>> _languages = [
+    {'value': 'en', 'label': 'English'},
+    {'value': 'np', 'label': 'Nepali'},
+  ];
+
+  final List<Map<String, String>> _dateFormats = [
+    {'value': 'YYYY-MM-DD', 'label': 'YYYY-MM-DD'},
+    {'value': 'DD-MM-YYYY', 'label': 'DD-MM-YYYY'},
+  ];
+
   final List<String> _currencies = ['NPR', 'USD', 'EUR', 'INR'];
   final List<String> _timeZones = [
     'Asia/Kathmandu',
     'UTC',
     'Asia/Kolkata',
     'America/New_York',
-    'Europe/London'
+    'Europe/London',
   ];
 
   @override
   void initState() {
     super.initState();
+    _taxRateController.text = _defaultTaxRate.toString();
     _loadSystemSettings();
+  }
+
+  @override
+  void dispose() {
+    _taxRateController.dispose();
+    super.dispose();
   }
 
   @override
@@ -63,13 +85,12 @@ class _SystemScreenState extends State<SystemScreen> {
             const SizedBox(height: 8),
             Text(
               'Configure system preferences and general settings',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[600],
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
             ),
             const SizedBox(height: 32),
 
-            // Application Settings
             _buildSection(
               title: 'Application Settings',
               icon: Icons.apps,
@@ -84,7 +105,8 @@ class _SystemScreenState extends State<SystemScreen> {
                   title: 'Enable Notifications',
                   subtitle: 'Show system notifications',
                   value: _enableNotifications,
-                  onChanged: (value) => setState(() => _enableNotifications = value),
+                  onChanged: (value) =>
+                      setState(() => _enableNotifications = value),
                 ),
                 _buildSwitchTile(
                   title: 'Enable Sounds',
@@ -97,16 +119,16 @@ class _SystemScreenState extends State<SystemScreen> {
 
             const SizedBox(height: 24),
 
-            // Localization Settings
             _buildSection(
               title: 'Localization',
               icon: Icons.language,
               children: [
-                _buildDropdownField(
+                _buildDropdownFieldWithOptions(
                   label: 'Language',
                   value: _selectedLanguage,
-                  items: _languages,
-                  onChanged: (value) => setState(() => _selectedLanguage = value!),
+                  options: _languages,
+                  onChanged: (value) =>
+                      setState(() => _selectedLanguage = value!),
                   icon: Icons.translate,
                 ),
                 const SizedBox(height: 16),
@@ -114,15 +136,26 @@ class _SystemScreenState extends State<SystemScreen> {
                   label: 'Currency',
                   value: _selectedCurrency,
                   items: _currencies,
-                  onChanged: (value) => setState(() => _selectedCurrency = value!),
+                  onChanged: (value) =>
+                      setState(() => _selectedCurrency = value!),
                   icon: Icons.currency_exchange,
+                ),
+                const SizedBox(height: 16),
+                _buildDropdownFieldWithOptions(
+                  label: 'Date Format',
+                  value: _selectedDateFormat,
+                  options: _dateFormats,
+                  onChanged: (value) =>
+                      setState(() => _selectedDateFormat = value!),
+                  icon: Icons.calendar_today,
                 ),
                 const SizedBox(height: 16),
                 _buildDropdownField(
                   label: 'Time Zone',
                   value: _selectedTimeZone,
                   items: _timeZones,
-                  onChanged: (value) => setState(() => _selectedTimeZone = value!),
+                  onChanged: (value) =>
+                      setState(() => _selectedTimeZone = value!),
                   icon: Icons.schedule,
                 ),
               ],
@@ -130,11 +163,19 @@ class _SystemScreenState extends State<SystemScreen> {
 
             const SizedBox(height: 24),
 
-            // Data Management
             _buildSection(
               title: 'Data Management',
               icon: Icons.storage,
               children: [
+                _buildTextFormField(
+                  label: 'Default Tax Rate (%)',
+                  controller: _taxRateController,
+                  hintText: 'Enter default tax rate',
+                  onChanged: (value) => setState(
+                    () => _defaultTaxRate = double.tryParse(value) ?? 0.0,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 _buildSwitchTile(
                   title: 'Auto Backup',
                   subtitle: 'Automatically backup data daily',
@@ -165,7 +206,6 @@ class _SystemScreenState extends State<SystemScreen> {
 
             const SizedBox(height: 24),
 
-            // System Information
             _buildSection(
               title: 'System Information',
               icon: Icons.info,
@@ -186,7 +226,6 @@ class _SystemScreenState extends State<SystemScreen> {
 
             const SizedBox(height: 24),
 
-            // Danger Zone
             _buildSection(
               title: 'Danger Zone',
               icon: Icons.warning,
@@ -218,11 +257,10 @@ class _SystemScreenState extends State<SystemScreen> {
 
             const SizedBox(height: 32),
 
-            // Save Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _saveSettings,
+                onPressed: _isSaving ? null : _saveSettings,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
@@ -231,10 +269,35 @@ class _SystemScreenState extends State<SystemScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: const Text(
-                  'Save System Settings',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
+                child: _isSaving
+                    ? const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            'Saving...',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      )
+                    : const Text(
+                        'Save System Settings',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -250,7 +313,7 @@ class _SystemScreenState extends State<SystemScreen> {
     Color? color,
   }) {
     final sectionColor = color ?? Theme.of(context).primaryColor;
-    
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -264,7 +327,9 @@ class _SystemScreenState extends State<SystemScreen> {
             offset: const Offset(0, 2),
           ),
         ],
-        border: color != null ? Border.all(color: color.withOpacity(0.3)) : null,
+        border: color != null
+            ? Border.all(color: color.withOpacity(0.3))
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,10 +380,7 @@ class _SystemScreenState extends State<SystemScreen> {
                 ),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -340,6 +402,8 @@ class _SystemScreenState extends State<SystemScreen> {
     required ValueChanged<String?> onChanged,
     required IconData icon,
   }) {
+    final safeValue = items.contains(value) ? value : items.first;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -353,7 +417,7 @@ class _SystemScreenState extends State<SystemScreen> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: value,
+          value: safeValue,
           onChanged: onChanged,
           decoration: InputDecoration(
             prefixIcon: Icon(icon, color: Colors.grey[600]),
@@ -373,11 +437,106 @@ class _SystemScreenState extends State<SystemScreen> {
             fillColor: Colors.grey[50],
           ),
           items: items.map((String item) {
+            return DropdownMenuItem<String>(value: item, child: Text(item));
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDropdownFieldWithOptions({
+    required String label,
+    required String value,
+    required List<Map<String, String>> options,
+    required ValueChanged<String?> onChanged,
+    required IconData icon,
+  }) {
+    final validValues = options.map((option) => option['value']!).toList();
+    final safeValue = validValues.contains(value) ? value : validValues.first;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: safeValue,
+          onChanged: onChanged,
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: Colors.grey[600]),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Theme.of(context).primaryColor),
+            ),
+            filled: true,
+            fillColor: Colors.grey[50],
+          ),
+          items: options.map((Map<String, String> option) {
             return DropdownMenuItem<String>(
-              value: item,
-              child: Text(item),
+              value: option['value']!,
+              child: Text(option['label']!),
             );
           }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTextFormField({
+    required String label,
+    required TextEditingController controller,
+    required String hintText,
+    required ValueChanged<String> onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          onChanged: onChanged,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            hintText: hintText,
+            prefixIcon: Icon(Icons.percent, color: Colors.grey[600]),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Theme.of(context).primaryColor),
+            ),
+            filled: true,
+            fillColor: Colors.grey[50],
+          ),
         ),
       ],
     );
@@ -415,10 +574,7 @@ class _SystemScreenState extends State<SystemScreen> {
                     ),
                     Text(
                       subtitle,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -445,46 +601,54 @@ class _SystemScreenState extends State<SystemScreen> {
               color: Colors.black87,
             ),
           ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
-          ),
+          Text(value, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
         ],
       ),
     );
   }
 
-  // Action methods
   void _createBackup() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Creating backup...'), backgroundColor: Colors.blue),
+      const SnackBar(
+        content: Text('Creating backup...'),
+        backgroundColor: Colors.blue,
+      ),
     );
   }
 
   void _restoreData() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Restore feature coming soon!'), backgroundColor: Colors.blue),
+      const SnackBar(
+        content: Text('Restore feature coming soon!'),
+        backgroundColor: Colors.blue,
+      ),
     );
   }
 
   void _exportData() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Exporting data...'), backgroundColor: Colors.blue),
+      const SnackBar(
+        content: Text('Exporting data...'),
+        backgroundColor: Colors.blue,
+      ),
     );
   }
 
   void _checkForUpdates() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('You are on the latest version!'), backgroundColor: Colors.green),
+      const SnackBar(
+        content: Text('You are on the latest version!'),
+        backgroundColor: Colors.green,
+      ),
     );
   }
 
   void _clearCache() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cache cleared successfully!'), backgroundColor: Colors.orange),
+      const SnackBar(
+        content: Text('Cache cleared successfully!'),
+        backgroundColor: Colors.orange,
+      ),
     );
   }
 
@@ -493,14 +657,22 @@ class _SystemScreenState extends State<SystemScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Reset Settings'),
-        content: const Text('Are you sure you want to reset all settings to default?'),
+        content: const Text(
+          'Are you sure you want to reset all settings to default?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Settings reset to default!'), backgroundColor: Colors.orange),
+                const SnackBar(
+                  content: Text('Settings reset to default!'),
+                  backgroundColor: Colors.orange,
+                ),
               );
             },
             child: const Text('Reset'),
@@ -515,14 +687,22 @@ class _SystemScreenState extends State<SystemScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Factory Reset'),
-        content: const Text('This will delete ALL data and cannot be undone. Are you sure?'),
+        content: const Text(
+          'This will delete ALL data and cannot be undone. Are you sure?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Factory reset cancelled'), backgroundColor: Colors.red),
+                const SnackBar(
+                  content: Text('Factory reset cancelled'),
+                  backgroundColor: Colors.red,
+                ),
               );
             },
             child: const Text('Reset', style: TextStyle(color: Colors.red)),
@@ -533,22 +713,47 @@ class _SystemScreenState extends State<SystemScreen> {
   }
 
   void _saveSettings() async {
+    if (_isSaving) return;
+
+    setState(() {
+      _isSaving = true;
+    });
+
     try {
       final systemSettings = SystemSettings(
         currency: _selectedCurrency,
         dateFormat: _selectedDateFormat,
         language: _selectedLanguage,
+        defaultTaxRate: _defaultTaxRate,
+        autoBackup: _autoBackup,
       );
 
       await _databaseHelper.upsertSystemSettings(systemSettings);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('System settings saved successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+      try {
+        await _apiDataService.updateSystemSettings(systemSettings);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('System settings saved and synced successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (apiError) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'System settings saved locally. Sync failed: $apiError',
+              ),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+        print('API sync failed: $apiError');
       }
     } catch (e) {
       if (mounted) {
@@ -559,26 +764,81 @@ class _SystemScreenState extends State<SystemScreen> {
           ),
         );
       }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
     }
   }
 
   Future<void> _loadSystemSettings() async {
+    print('Loading system settings...');
     try {
-      final systemSettings = await _databaseHelper.getSystemSettings();
+      SystemSettings? systemSettings;
+
+      try {
+        systemSettings = await _apiDataService.getSystemSettings();
+        print('Loaded systemSettings from API: $systemSettings');
+
+        await _databaseHelper.upsertSystemSettings(systemSettings);
+      } catch (apiError) {
+        print('Failed to load from API, trying local database: $apiError');
+
+        systemSettings = await _databaseHelper.getSystemSettings();
+        print('Loaded systemSettings from local DB: $systemSettings');
+      }
+
       if (systemSettings != null && mounted) {
+        print('systemSettings values:');
+        print('- currency: ${systemSettings.currency}');
+        print('- dateFormat: ${systemSettings.dateFormat}');
+        print('- language: ${systemSettings.language}');
+
         setState(() {
-          _selectedCurrency = systemSettings.currency;
-          _selectedDateFormat = systemSettings.dateFormat;
-          _selectedLanguage = systemSettings.language;
+          _selectedCurrency = _currencies.contains(systemSettings!.currency)
+              ? systemSettings.currency
+              : 'NPR';
+
+          _selectedDateFormat =
+              _dateFormats.any(
+                (format) => format['value'] == systemSettings!.dateFormat,
+              )
+              ? systemSettings.dateFormat
+              : 'YYYY-MM-DD';
+
+          _selectedLanguage =
+              _languages.any(
+                (lang) => lang['value'] == systemSettings!.language,
+              )
+              ? systemSettings.language
+              : 'en';
+
+          _selectedTimeZone = 'Asia/Kathmandu';
+
+          _defaultTaxRate = systemSettings.defaultTaxRate;
+          _autoBackup = systemSettings.autoBackup;
+          _taxRateController.text = _defaultTaxRate.toString();
           _isLoading = false;
+
+          print('Final validated values:');
+          print('- _selectedCurrency: $_selectedCurrency');
+          print('- _selectedDateFormat: $_selectedDateFormat');
+          print('- _selectedLanguage: $_selectedLanguage');
+          print('- _selectedTimeZone: $_selectedTimeZone');
         });
       } else {
         setState(() {
+          _taxRateController.text = _defaultTaxRate.toString();
           _isLoading = false;
         });
+        print('No systemSettings found, using defaults');
       }
     } catch (e) {
+      print('Error loading system settings: $e');
       setState(() {
+        _taxRateController.text = _defaultTaxRate.toString();
         _isLoading = false;
       });
       if (mounted) {

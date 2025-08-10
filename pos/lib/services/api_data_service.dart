@@ -56,7 +56,7 @@ class ApiDataService {
   Future<SystemSettings> updateSystemSettings(SystemSettings settings) async {
     final response = await _apiService.put(
       Endpoints.systemSettings, 
-      settings.toMap(), 
+      settings.toJson(), 
       requiresAuth: true,
     );
     final settingsData = response['data'] ?? response;

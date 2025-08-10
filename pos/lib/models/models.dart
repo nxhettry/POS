@@ -171,13 +171,17 @@ class BillSettings {
   final bool includeDiscount;
   final bool printCustomerCopy;
   final bool printKitchenCopy;
+  final bool showItemCode;
+  final String billFooter;
 
   BillSettings({
     this.id,
     this.includeTax = true,
     this.includeDiscount = true,
     this.printCustomerCopy = true,
-    this.printKitchenCopy = true,
+    this.printKitchenCopy = false,
+    this.showItemCode = true,
+    this.billFooter = "Thank you for visiting!",
   });
 
   Map<String, dynamic> toMap() {
@@ -187,16 +191,33 @@ class BillSettings {
       'include_discount': includeDiscount ? 1 : 0,
       'print_customer_copy': printCustomerCopy ? 1 : 0,
       'print_kitchen_copy': printKitchenCopy ? 1 : 0,
+      'show_item_code': showItemCode ? 1 : 0,
+      'bill_footer': billFooter,
+    };
+  }
+
+  // For server API calls
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'includeTax': includeTax,
+      'includeDiscount': includeDiscount,
+      'printCustomerCopy': printCustomerCopy,
+      'printKitchenCopy': printKitchenCopy,
+      'showItemCode': showItemCode,
+      'billFooter': billFooter,
     };
   }
 
   factory BillSettings.fromMap(Map<String, dynamic> map) {
     return BillSettings(
       id: map['id'] as int?,
-      includeTax: _parseBoolFromDynamic(map['include_tax']),
-      includeDiscount: _parseBoolFromDynamic(map['include_discount']),
-      printCustomerCopy: _parseBoolFromDynamic(map['print_customer_copy']),
-      printKitchenCopy: _parseBoolFromDynamic(map['print_kitchen_copy']),
+      includeTax: _parseBoolFromDynamic(map['include_tax'] ?? map['includeTax']),
+      includeDiscount: _parseBoolFromDynamic(map['include_discount'] ?? map['includeDiscount']),
+      printCustomerCopy: _parseBoolFromDynamic(map['print_customer_copy'] ?? map['printCustomerCopy']),
+      printKitchenCopy: _parseBoolFromDynamic(map['print_kitchen_copy'] ?? map['printKitchenCopy']),
+      showItemCode: _parseBoolFromDynamic(map['show_item_code'] ?? map['showItemCode']),
+      billFooter: map['bill_footer'] ?? map['billFooter'] ?? "Thank you for visiting!",
     );
   }
 
@@ -206,6 +227,8 @@ class BillSettings {
     bool? includeDiscount,
     bool? printCustomerCopy,
     bool? printKitchenCopy,
+    bool? showItemCode,
+    String? billFooter,
   }) {
     return BillSettings(
       id: id ?? this.id,
@@ -213,6 +236,8 @@ class BillSettings {
       includeDiscount: includeDiscount ?? this.includeDiscount,
       printCustomerCopy: printCustomerCopy ?? this.printCustomerCopy,
       printKitchenCopy: printKitchenCopy ?? this.printKitchenCopy,
+      showItemCode: showItemCode ?? this.showItemCode,
+      billFooter: billFooter ?? this.billFooter,
     );
   }
 }
@@ -220,14 +245,18 @@ class BillSettings {
 class SystemSettings {
   final int? id;
   final String currency;
-  final String dateFormat;
-  final String language;
+  final String dateFormat; // "YYYY-MM-DD" or "DD-MM-YYYY"
+  final String language; // "en" or "np"
+  final double defaultTaxRate;
+  final bool autoBackup;
 
   SystemSettings({
     this.id,
     required this.currency,
     required this.dateFormat,
     required this.language,
+    this.defaultTaxRate = 0.0,
+    this.autoBackup = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -236,6 +265,20 @@ class SystemSettings {
       'currency': currency,
       'date_format': dateFormat,
       'language': language,
+      'default_tax_rate': defaultTaxRate,
+      'auto_backup': autoBackup ? 1 : 0,
+    };
+  }
+
+  // For server API calls
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'currency': currency,
+      'dateFormat': dateFormat,
+      'language': language,
+      'defaultTaxRate': defaultTaxRate,
+      'autoBackup': autoBackup,
     };
   }
 
@@ -243,8 +286,10 @@ class SystemSettings {
     return SystemSettings(
       id: map['id'] as int?,
       currency: map['currency'] as String,
-      dateFormat: map['date_format'] as String,
+      dateFormat: map['date_format'] ?? map['dateFormat'] as String,
       language: map['language'] as String,
+      defaultTaxRate: (map['default_tax_rate'] ?? map['defaultTaxRate'] ?? 0.0).toDouble(),
+      autoBackup: _parseBoolFromDynamic(map['auto_backup'] ?? map['autoBackup']),
     );
   }
 
@@ -253,12 +298,16 @@ class SystemSettings {
     String? currency,
     String? dateFormat,
     String? language,
+    double? defaultTaxRate,
+    bool? autoBackup,
   }) {
     return SystemSettings(
       id: id ?? this.id,
       currency: currency ?? this.currency,
       dateFormat: dateFormat ?? this.dateFormat,
       language: language ?? this.language,
+      defaultTaxRate: defaultTaxRate ?? this.defaultTaxRate,
+      autoBackup: autoBackup ?? this.autoBackup,
     );
   }
 }

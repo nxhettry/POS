@@ -21,7 +21,7 @@ class DatabaseHelper {
     String dbPath = join(path, 'pos_database.db');
     return await openDatabase(
       dbPath,
-      version: 8,
+      version: 9,
       onCreate: (db, version) async {
         await _createTables(db);
       },
@@ -64,15 +64,19 @@ class DatabaseHelper {
               include_tax INTEGER NOT NULL DEFAULT 1,
               include_discount INTEGER NOT NULL DEFAULT 1,
               print_customer_copy INTEGER NOT NULL DEFAULT 1,
-              print_kitchen_copy INTEGER NOT NULL DEFAULT 1
+              print_kitchen_copy INTEGER NOT NULL DEFAULT 1,
+              show_item_code INTEGER NOT NULL DEFAULT 1,
+              bill_footer TEXT NOT NULL DEFAULT 'Thank you for visiting!'
             )
           ''');
           await db.execute('''
             CREATE TABLE system_settings (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               currency TEXT NOT NULL DEFAULT 'NPR',
-              date_format TEXT NOT NULL DEFAULT 'dd/MM/yyyy',
-              language TEXT NOT NULL DEFAULT 'English'
+              date_format TEXT NOT NULL DEFAULT 'YYYY-MM-DD',
+              language TEXT NOT NULL DEFAULT 'en',
+              default_tax_rate REAL NOT NULL DEFAULT 0.0,
+              auto_backup INTEGER NOT NULL DEFAULT 0
             )
           ''');
           await db.execute('''
@@ -129,6 +133,23 @@ class DatabaseHelper {
           ''');
           await db.execute('''
             ALTER TABLE restaurant ADD COLUMN logo TEXT
+          ''');
+        }
+        if (oldVersion < 9) {
+          // Add missing fields to bill_settings table
+          await db.execute('''
+            ALTER TABLE bill_settings ADD COLUMN show_item_code INTEGER NOT NULL DEFAULT 1
+          ''');
+          await db.execute('''
+            ALTER TABLE bill_settings ADD COLUMN bill_footer TEXT NOT NULL DEFAULT 'Thank you for visiting!'
+          ''');
+          
+          // Add missing fields to system_settings table
+          await db.execute('''
+            ALTER TABLE system_settings ADD COLUMN default_tax_rate REAL NOT NULL DEFAULT 0.0
+          ''');
+          await db.execute('''
+            ALTER TABLE system_settings ADD COLUMN auto_backup INTEGER NOT NULL DEFAULT 0
           ''');
         }
       },
@@ -211,7 +232,9 @@ class DatabaseHelper {
         include_tax INTEGER NOT NULL DEFAULT 1,
         include_discount INTEGER NOT NULL DEFAULT 1,
         print_customer_copy INTEGER NOT NULL DEFAULT 1,
-        print_kitchen_copy INTEGER NOT NULL DEFAULT 1
+        print_kitchen_copy INTEGER NOT NULL DEFAULT 1,
+        show_item_code INTEGER NOT NULL DEFAULT 1,
+        bill_footer TEXT NOT NULL DEFAULT 'Thank you for visiting!'
       )
     ''');
 
@@ -219,8 +242,10 @@ class DatabaseHelper {
       CREATE TABLE system_settings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         currency TEXT NOT NULL DEFAULT 'NPR',
-        date_format TEXT NOT NULL DEFAULT 'dd/MM/yyyy',
-        language TEXT NOT NULL DEFAULT 'English'
+        date_format TEXT NOT NULL DEFAULT 'YYYY-MM-DD',
+        language TEXT NOT NULL DEFAULT 'en',
+        default_tax_rate REAL NOT NULL DEFAULT 0.0,
+        auto_backup INTEGER NOT NULL DEFAULT 0
       )
     ''');
 

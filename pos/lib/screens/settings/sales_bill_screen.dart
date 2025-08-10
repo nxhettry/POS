@@ -16,16 +16,22 @@ class _SalesBillScreenState extends State<SalesBillScreen> {
   bool _includeDiscount = true;
   bool _printCustomerCopy = true;
   bool _printKitchenCopy = false;
-  String _selectedPaperSize = 'A4';
-  String _selectedTemplate = 'Modern';
-
-  final List<String> _paperSizes = ['A4', 'A5', 'Thermal 80mm', 'Thermal 58mm'];
-  final List<String> _templates = ['Modern', 'Classic', 'Minimal', 'Detailed'];
+  bool _showItemCode = true;
+  String _billFooter = "Thank you for visiting!";
+  
+  final TextEditingController _billFooterController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    _billFooterController.text = _billFooter;
     _loadBillSettings();
+  }
+
+  @override
+  void dispose() {
+    _billFooterController.dispose();
+    super.dispose();
   }
 
   @override
@@ -43,6 +49,7 @@ class _SalesBillScreenState extends State<SalesBillScreen> {
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Text(
               'Sales Bill Configuration',
@@ -54,13 +61,12 @@ class _SalesBillScreenState extends State<SalesBillScreen> {
             const SizedBox(height: 8),
             Text(
               'Configure bill printing settings and format options',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[600],
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
             ),
             const SizedBox(height: 32),
 
-            // Bill Content Section
             _buildSection(
               title: 'Bill Content',
               icon: Icons.receipt_long,
@@ -75,7 +81,21 @@ class _SalesBillScreenState extends State<SalesBillScreen> {
                   title: 'Include Discount',
                   subtitle: 'Show discount information',
                   value: _includeDiscount,
-                  onChanged: (value) => setState(() => _includeDiscount = value),
+                  onChanged: (value) =>
+                      setState(() => _includeDiscount = value),
+                ),
+                _buildSwitchTile(
+                  title: 'Show Item Code',
+                  subtitle: 'Display item codes on bills',
+                  value: _showItemCode,
+                  onChanged: (value) => setState(() => _showItemCode = value),
+                ),
+                const SizedBox(height: 16),
+                _buildTextFormField(
+                  label: 'Bill Footer Text',
+                  controller: _billFooterController,
+                  hintText: 'Enter custom footer message',
+                  onChanged: (value) => setState(() => _billFooter = value),
                 ),
               ],
             ),
@@ -91,38 +111,15 @@ class _SalesBillScreenState extends State<SalesBillScreen> {
                   title: 'Print Customer Copy',
                   subtitle: 'Automatically print customer receipt',
                   value: _printCustomerCopy,
-                  onChanged: (value) => setState(() => _printCustomerCopy = value),
+                  onChanged: (value) =>
+                      setState(() => _printCustomerCopy = value),
                 ),
                 _buildSwitchTile(
                   title: 'Print Kitchen Copy',
                   subtitle: 'Send order to kitchen printer',
                   value: _printKitchenCopy,
-                  onChanged: (value) => setState(() => _printKitchenCopy = value),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Format Settings Section
-            _buildSection(
-              title: 'Format Settings',
-              icon: Icons.format_align_left,
-              children: [
-                _buildDropdownField(
-                  label: 'Paper Size',
-                  value: _selectedPaperSize,
-                  items: _paperSizes,
-                  onChanged: (value) => setState(() => _selectedPaperSize = value!),
-                  icon: Icons.aspect_ratio,
-                ),
-                const SizedBox(height: 16),
-                _buildDropdownField(
-                  label: 'Bill Template',
-                  value: _selectedTemplate,
-                  items: _templates,
-                  onChanged: (value) => setState(() => _selectedTemplate = value!),
-                  icon: Icons.style,
+                  onChanged: (value) =>
+                      setState(() => _printKitchenCopy = value),
                 ),
               ],
             ),
@@ -144,7 +141,10 @@ class _SalesBillScreenState extends State<SalesBillScreen> {
                     ),
                     child: const Text(
                       'Preview Bill',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -162,7 +162,10 @@ class _SalesBillScreenState extends State<SalesBillScreen> {
                     ),
                     child: const Text(
                       'Save Settings',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -242,10 +245,7 @@ class _SalesBillScreenState extends State<SalesBillScreen> {
                 ),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -260,12 +260,11 @@ class _SalesBillScreenState extends State<SalesBillScreen> {
     );
   }
 
-  Widget _buildDropdownField({
+  Widget _buildTextFormField({
     required String label,
-    required String value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-    required IconData icon,
+    required TextEditingController controller,
+    required String hintText,
+    required ValueChanged<String> onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,11 +278,11 @@ class _SalesBillScreenState extends State<SalesBillScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: value,
+        TextFormField(
+          controller: controller,
           onChanged: onChanged,
           decoration: InputDecoration(
-            prefixIcon: Icon(icon, color: Colors.grey[600]),
+            hintText: hintText,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: Colors.grey[300]!),
@@ -299,12 +298,6 @@ class _SalesBillScreenState extends State<SalesBillScreen> {
             filled: true,
             fillColor: Colors.grey[50],
           ),
-          items: items.map((String item) {
-            return DropdownMenuItem<String>(
-              value: item,
-              child: Text(item),
-            );
-          }).toList(),
         ),
       ],
     );
@@ -326,6 +319,8 @@ class _SalesBillScreenState extends State<SalesBillScreen> {
         includeDiscount: _includeDiscount,
         printCustomerCopy: _printCustomerCopy,
         printKitchenCopy: _printKitchenCopy,
+        showItemCode: _showItemCode,
+        billFooter: _billFooter,
       );
 
       await _databaseHelper.upsertBillSettings(billSettings);
@@ -359,15 +354,20 @@ class _SalesBillScreenState extends State<SalesBillScreen> {
           _includeDiscount = billSettings.includeDiscount;
           _printCustomerCopy = billSettings.printCustomerCopy;
           _printKitchenCopy = billSettings.printKitchenCopy;
+          _showItemCode = billSettings.showItemCode;
+          _billFooter = billSettings.billFooter;
+          _billFooterController.text = _billFooter;
           _isLoading = false;
         });
       } else {
         setState(() {
+          _billFooterController.text = _billFooter;
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
+        _billFooterController.text = _billFooter;
         _isLoading = false;
       });
       if (mounted) {
