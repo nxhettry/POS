@@ -1,6 +1,6 @@
 import "package:flutter/material.dart";
-import "package:pos/services/database_service.dart";
-import "package:pos/models/models.dart" as models;
+import "../../services/data_repository.dart";
+import "../../models/models.dart" as models;
 
 class Tables extends StatefulWidget {
   const Tables({super.key});
@@ -11,7 +11,7 @@ class Tables extends StatefulWidget {
 
 class _TablesState extends State<Tables> {
   List<models.Table> currentTables = [];
-  final DatabaseService _dbService = DatabaseService();
+  final DataRepository _dataRepository = DataRepository();
   bool _isLoading = true;
 
   @override
@@ -22,7 +22,7 @@ class _TablesState extends State<Tables> {
 
   Future<void> _loadTables() async {
     try {
-      final tables = await _dbService.getTables();
+      final tables = await _dataRepository.fetchTables();
       setState(() {
         currentTables = tables;
         _isLoading = false;
@@ -62,10 +62,10 @@ class _TablesState extends State<Tables> {
             : currentTables.map((t) => t.id ?? 0).reduce((a, b) => a > b ? a : b) + 1;
         
         final tableName = "Table $newId";
-        final tableId = await _dbService.addTable(tableName);
+        final createdTable = await _dataRepository.createTable(tableName);
         
         setState(() {
-          currentTables.add(models.Table(id: tableId, name: tableName));
+          currentTables.add(createdTable);
         });
       } catch (e) {
         if (context.mounted) {
@@ -102,7 +102,7 @@ class _TablesState extends State<Tables> {
     if (confirmed == true) {
       try {
         if (table.id != null) {
-          await _dbService.deleteTable(table.id!);
+          await _dataRepository.deleteTable(table.id!);
           setState(() {
             currentTables.remove(table);
           });

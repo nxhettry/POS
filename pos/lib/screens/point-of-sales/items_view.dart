@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import "../../services/cart_manager.dart";
-import "../../services/database_service.dart";
+import "../../services/data_repository.dart";
 import "../../models/models.dart";
 import "../../utils/responsive.dart";
 
@@ -15,7 +15,7 @@ class _ItemsViewState extends State<ItemsView> {
   int selectedCategory = 0;
   String searchQuery = "";
   final TextEditingController searchController = TextEditingController();
-  final DatabaseService _databaseService = DatabaseService();
+  final DataRepository _dataRepository = DataRepository();
 
   @override
   void dispose() {
@@ -68,7 +68,7 @@ class _ItemsViewState extends State<ItemsView> {
             ),
             SizedBox(height: ResponsiveUtils.getSpacing(context)),
             FutureBuilder<List<Category>>(
-              future: _databaseService.getCategories(),
+              future: _dataRepository.fetchCategories(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Container(
@@ -88,9 +88,7 @@ class _ItemsViewState extends State<ItemsView> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Center(
-                      child: Text('Error: ${snapshot.error}'),
-                    ),
+                    child: Center(child: Text('Error: ${snapshot.error}')),
                   );
                 }
 
@@ -117,10 +115,15 @@ class _ItemsViewState extends State<ItemsView> {
                               },
                               child: Container(
                                 padding: EdgeInsets.symmetric(
-                                  horizontal: ResponsiveUtils.getSpacing(context),
+                                  horizontal: ResponsiveUtils.getSpacing(
+                                    context,
+                                  ),
                                 ),
                                 margin: EdgeInsets.only(
-                                  right: ResponsiveUtils.getSpacing(context, base: 10),
+                                  right: ResponsiveUtils.getSpacing(
+                                    context,
+                                    base: 10,
+                                  ),
                                 ),
                                 decoration: BoxDecoration(
                                   color: selectedCategory == 0
@@ -136,14 +139,17 @@ class _ItemsViewState extends State<ItemsView> {
                                           ? Colors.red
                                           : Colors.black,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: ResponsiveUtils.getFontSize(context, 14),
+                                      fontSize: ResponsiveUtils.getFontSize(
+                                        context,
+                                        14,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             );
                           }
-                          
+
                           final category = categories[index - 1];
                           return GestureDetector(
                             onTap: () {
@@ -156,7 +162,10 @@ class _ItemsViewState extends State<ItemsView> {
                                 horizontal: ResponsiveUtils.getSpacing(context),
                               ),
                               margin: EdgeInsets.only(
-                                right: ResponsiveUtils.getSpacing(context, base: 10),
+                                right: ResponsiveUtils.getSpacing(
+                                  context,
+                                  base: 10,
+                                ),
                               ),
                               decoration: BoxDecoration(
                                 color: selectedCategory == category.id!
@@ -172,7 +181,10 @@ class _ItemsViewState extends State<ItemsView> {
                                         ? Colors.red
                                         : Colors.black,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: ResponsiveUtils.getFontSize(context, 14),
+                                    fontSize: ResponsiveUtils.getFontSize(
+                                      context,
+                                      14,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -202,12 +214,9 @@ class _ItemsViewState extends State<ItemsView> {
 class Items extends StatelessWidget {
   final int selectedCategory;
   final String searchQuery;
+  final DataRepository _dataRepository = DataRepository();
 
-  const Items({
-    super.key,
-    required this.selectedCategory,
-    required this.searchQuery,
-  });
+  Items({super.key, required this.selectedCategory, required this.searchQuery});
 
   void _showItemPopup(BuildContext context, Item item) {
     showDialog(
@@ -221,10 +230,8 @@ class Items extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final DatabaseService databaseService = DatabaseService();
-
     return FutureBuilder<List<Item>>(
-      future: databaseService.getItems(),
+      future: _dataRepository.fetchItems(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -314,17 +321,24 @@ class Items extends StatelessWidget {
                             ? Image.asset(item.image!, fit: BoxFit.contain)
                             : Icon(
                                 Icons.fastfood,
-                                size: ResponsiveUtils.isSmallDesktop(context) ? 60 : 80,
+                                size: ResponsiveUtils.isSmallDesktop(context)
+                                    ? 60
+                                    : 80,
                                 color: Colors.grey[400],
                               ),
                       ),
-                      SizedBox(height: ResponsiveUtils.getSpacing(context, base: 8)),
+                      SizedBox(
+                        height: ResponsiveUtils.getSpacing(context, base: 8),
+                      ),
                       Column(
                         children: [
                           Text(
                             item.itemName,
                             style: TextStyle(
-                              fontSize: ResponsiveUtils.getFontSize(context, 15),
+                              fontSize: ResponsiveUtils.getFontSize(
+                                context,
+                                15,
+                              ),
                               fontWeight: FontWeight.bold,
                               fontFamily: "Roboto",
                             ),
@@ -332,11 +346,19 @@ class Items extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          SizedBox(height: ResponsiveUtils.getSpacing(context, base: 4)),
+                          SizedBox(
+                            height: ResponsiveUtils.getSpacing(
+                              context,
+                              base: 4,
+                            ),
+                          ),
                           Text(
                             'Rs. ${item.rate.toStringAsFixed(0)}',
                             style: TextStyle(
-                              fontSize: ResponsiveUtils.getFontSize(context, 16),
+                              fontSize: ResponsiveUtils.getFontSize(
+                                context,
+                                16,
+                              ),
                               color: Colors.green,
                               fontWeight: FontWeight.w600,
                             ),
@@ -367,7 +389,7 @@ class ItemPopup extends StatefulWidget {
 class _ItemPopupState extends State<ItemPopup> {
   int quantity = 1;
   final TextEditingController quantityController = TextEditingController();
-  final DatabaseService _databaseService = DatabaseService();
+  final DataRepository _dataRepository = DataRepository();
 
   @override
   void initState() {
@@ -392,7 +414,7 @@ class _ItemPopupState extends State<ItemPopup> {
 
   Future<String> _getCategoryName(int categoryId) async {
     try {
-      final categories = await _databaseService.getCategories();
+      final categories = await _dataRepository.fetchCategories();
       final category = categories.firstWhere(
         (cat) => cat.id == categoryId,
         orElse: () => Category(name: 'Unknown'),
@@ -407,7 +429,7 @@ class _ItemPopupState extends State<ItemPopup> {
   Widget build(BuildContext context) {
     final dialogWidth = ResponsiveUtils.isSmallDesktop(context) ? 350 : 400;
     final imageSize = ResponsiveUtils.isSmallDesktop(context) ? 180 : 200;
-    
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
@@ -451,7 +473,9 @@ class _ItemPopupState extends State<ItemPopup> {
                     ? Image.asset(widget.item.image!, fit: BoxFit.cover)
                     : Icon(
                         Icons.fastfood,
-                        size: ResponsiveUtils.isSmallDesktop(context) ? 80 : 100,
+                        size: ResponsiveUtils.isSmallDesktop(context)
+                            ? 80
+                            : 100,
                         color: Colors.grey[400],
                       ),
               ),
@@ -523,8 +547,12 @@ class _ItemPopupState extends State<ItemPopup> {
                     onPressed: () => _updateQuantity(quantity - 1),
                     icon: const Icon(Icons.remove, color: Colors.grey),
                     constraints: BoxConstraints(
-                      minWidth: ResponsiveUtils.isSmallDesktop(context) ? 40 : 48,
-                      minHeight: ResponsiveUtils.isSmallDesktop(context) ? 40 : 48,
+                      minWidth: ResponsiveUtils.isSmallDesktop(context)
+                          ? 40
+                          : 48,
+                      minHeight: ResponsiveUtils.isSmallDesktop(context)
+                          ? 40
+                          : 48,
                     ),
                   ),
                 ),
@@ -580,8 +608,12 @@ class _ItemPopupState extends State<ItemPopup> {
                     onPressed: () => _updateQuantity(quantity + 1),
                     icon: const Icon(Icons.add, color: Colors.grey),
                     constraints: BoxConstraints(
-                      minWidth: ResponsiveUtils.isSmallDesktop(context) ? 40 : 48,
-                      minHeight: ResponsiveUtils.isSmallDesktop(context) ? 40 : 48,
+                      minWidth: ResponsiveUtils.isSmallDesktop(context)
+                          ? 40
+                          : 48,
+                      minHeight: ResponsiveUtils.isSmallDesktop(context)
+                          ? 40
+                          : 48,
                     ),
                   ),
                 ),
@@ -602,7 +634,7 @@ class _ItemPopupState extends State<ItemPopup> {
                     'rate': widget.item.rate,
                     'image': widget.item.image,
                   };
-                  
+
                   CartManager().addItem(itemMap, quantity);
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -629,7 +661,9 @@ class _ItemPopupState extends State<ItemPopup> {
                       Icons.shopping_cart_outlined,
                       color: Colors.white,
                     ),
-                    SizedBox(width: ResponsiveUtils.getSpacing(context, base: 8)),
+                    SizedBox(
+                      width: ResponsiveUtils.getSpacing(context, base: 8),
+                    ),
                     Text(
                       'Add to Cart - Rs. ${(widget.item.rate * quantity).toStringAsFixed(0)}',
                       style: TextStyle(

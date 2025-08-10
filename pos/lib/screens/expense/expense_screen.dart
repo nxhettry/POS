@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
-import '../../services/database_service.dart';
+import '../../services/data_repository.dart';
 import 'add_expense_dialog.dart';
 
 class ExpenseScreen extends StatefulWidget {
@@ -12,7 +12,7 @@ class ExpenseScreen extends StatefulWidget {
 }
 
 class _ExpenseScreenState extends State<ExpenseScreen> {
-  final DatabaseService _databaseService = DatabaseService();
+  final DataRepository _dataRepository = DataRepository();
   List<Expense> _expenses = [];
   List<ExpensesCategory> _categories = [];
   bool _isLoading = true;
@@ -44,7 +44,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     });
 
     try {
-      final categories = await _databaseService.getExpenseCategories();
+      final categories = await _dataRepository.fetchExpenseCategories();
       final expenses = await _getFilteredExpenses();
 
       setState(() {
@@ -102,14 +102,14 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
           startDate = _customStartDate!;
           endDate = _customEndDate!;
         } else {
-          return await _databaseService.getExpenses();
+          return await _dataRepository.fetchExpenses();
         }
         break;
       default:
-        return await _databaseService.getExpenses();
+        return await _dataRepository.fetchExpenses();
     }
 
-    final expenses = await _databaseService.getExpensesByDateRange(
+    final expenses = await _dataRepository.fetchExpensesByDateRange(
       startDate,
       endDate,
     );
@@ -218,7 +218,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
     if (confirmed == true) {
       try {
-        await _databaseService.deleteExpense(expense.id!);
+        await _dataRepository.deleteExpense(expense.id!);
         _loadData();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

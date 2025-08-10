@@ -46,6 +46,11 @@
 	<string>16F6</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>10.14</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2025 com.example. All rights reserved.</string>
 	<key>NSMainNibFile</key>

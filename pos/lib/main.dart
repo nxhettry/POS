@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';
 import 'package:pos/screens/expense/expense_screen.dart';
 import 'dart:async';
@@ -6,18 +7,21 @@ import "./screens/activity/activity_screen.dart";
 import "screens/point-of-sales/point_of_sales_screen.dart";
 import "screens/reports/reports_screen.dart";
 import "screens/settings/settings_screen.dart";
-import 'services/database_service.dart';
 import 'utils/responsive.dart';
 import 'widgets/drawer_list_item.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  sqfliteFfiInit();
-  databaseFactory = databaseFactoryFfi;
+  // Load environment variables
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    print('Warning: Could not load .env file: $e');
+  }
 
-  await DatabaseService().initializeDatabase();
+  // Initialize API data service (no database initialization needed)
+  // The app will work with API calls instead of local database
 
   runApp(const MyApp());
 }

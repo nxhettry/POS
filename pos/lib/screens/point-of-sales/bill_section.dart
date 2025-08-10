@@ -1,5 +1,5 @@
 import "package:flutter/material.dart";
-import "package:pos/services/database_service.dart";
+import "../../services/data_repository.dart";
 import "../../services/cart_manager.dart";
 import "../../models/models.dart" as models;
 import "../../utils/responsive.dart";
@@ -22,7 +22,7 @@ class _BillSectionState extends State<BillSection> {
   late final CartManager cartManager;
   final TextEditingController discountController = TextEditingController();
   List<models.Table> availableTables = [];
-  final DatabaseService _dbService = DatabaseService();
+  final DataRepository _dataRepository = DataRepository();
 
   @override
   void initState() {
@@ -34,7 +34,7 @@ class _BillSectionState extends State<BillSection> {
 
   Future<void> _loadTables() async {
     try {
-      final tables = await _dbService.getTables();
+      final tables = await _dataRepository.fetchTables();
       setState(() {
         availableTables = tables;
       });
@@ -109,7 +109,7 @@ class _BillSectionState extends State<BillSection> {
     );
 
     try {
-      final invoiceNo = await DatabaseService().getNextInvoiceNumber();
+      final invoiceNo = await _dataRepository.getNextInvoiceNumber();
       developer.log('Generated invoice number: $invoiceNo', name: 'POS');
       
       orderData['invoiceNo'] = invoiceNo;
@@ -117,12 +117,12 @@ class _BillSectionState extends State<BillSection> {
       final sale = models.Sales.fromMap(orderData);
       developer.log('Sales object created: ${sale.invoiceNo}', name: 'POS');
       
-      final saleId = await DatabaseService().saveSale(sale);
-      developer.log('Sale saved with ID: $saleId', name: 'POS');
+      final savedSale = await _dataRepository.createSale(sale);
+      developer.log('Sale saved with invoice: ${savedSale.invoiceNo}', name: 'POS');
       
       try {
-        await reprintInvoice(context, sale);
-        developer.log('Invoice reprinted successfully: ${sale.invoiceNo}', name: 'POS');
+        await reprintInvoice(context, savedSale);
+        developer.log('Invoice reprinted successfully: ${savedSale.invoiceNo}', name: 'POS');
       } catch (billError) {
         developer.log('Error reprinting invoice: $billError', name: 'POS');
       }

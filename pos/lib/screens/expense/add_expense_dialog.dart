@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
-import '../../services/database_service.dart';
+import '../../services/data_repository.dart';
 
 class AddExpenseDialog extends StatefulWidget {
   final Expense? expense;
@@ -25,7 +25,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
   final _amountController = TextEditingController();
   final _dateController = TextEditingController();
 
-  final DatabaseService _databaseService = DatabaseService();
+  final DataRepository _dataRepository = DataRepository();
   List<ExpensesCategory> _categories = [];
   int? _selectedCategoryId;
   DateTime _selectedDate = DateTime.now();
@@ -54,7 +54,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
     });
 
     try {
-      final categories = await _databaseService.getExpenseCategories();
+      final categories = await _dataRepository.fetchExpenseCategories();
       setState(() {
         _categories = categories;
         if (widget.expense != null) {
@@ -113,9 +113,9 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
           date: _selectedDate,
           categoryId: _selectedCategoryId!,
         );
-        await _databaseService.updateExpense(updatedExpense);
+        await _dataRepository.updateExpense(updatedExpense);
       } else {
-        await _databaseService.addExpense(
+        await _dataRepository.createExpense(
           _titleController.text.trim(),
           _descriptionController.text.trim(),
           double.parse(_amountController.text),

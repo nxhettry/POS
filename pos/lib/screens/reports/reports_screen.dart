@@ -5,8 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../models/models.dart';
-import '../../services/database_helper.dart';
-import '../../services/database_service.dart';
+import '../../services/data_repository.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -28,8 +27,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   int currentPage = 0;
   final int itemsPerPage = 20;
   bool isExporting = false;
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
-  final DatabaseService _databaseService = DatabaseService();
+  final DataRepository _dataRepository = DataRepository();
   List<Sales> allSales = [];
   List<Expense> allExpenses = [];
   List<ExpensesCategory> expenseCategories = [];
@@ -71,9 +69,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
           startDate = DateTime(now.year, now.month, now.day);
       }
 
-      final sales = await _databaseHelper.getSalesByDateRange(startDate, now);
-      final expenses = await _databaseService.getExpensesByDateRange(startDate, now);
-      final categories = await _databaseService.getExpenseCategories();
+      final sales = await _dataRepository.fetchSalesByDateRange(startDate, now);
+      final expenses = await _dataRepository.fetchExpensesByDateRange(startDate, now);
+      final categories = await _dataRepository.fetchExpenseCategories();
       
       setState(() {
         allSales = sales;
