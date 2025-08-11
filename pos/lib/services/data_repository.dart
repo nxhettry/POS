@@ -280,6 +280,10 @@ class DataRepository {
     return await _apiDataService.getActiveParties();
   }
 
+  Future<List<Party>> fetchCustomers() async {
+    return await _apiDataService.getCustomers();
+  }
+
   // ========== SETTINGS ==========
   Future<Restaurant> getRestaurantSettings() async {
     return await _apiDataService.getRestaurantSettings();

@@ -5,7 +5,7 @@ import 'dart:convert';
 class ApiService {
   static String? _authToken;
   final String baseUrl =
-      dotenv.env['API_BASE_URL'] ?? 'http://192.168.1.86:8080';
+      dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080';
 
   // Set authentication token
   static void setAuthToken(String token) {

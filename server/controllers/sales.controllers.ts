@@ -17,6 +17,8 @@ export const createSales = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const salesData = req.body;
 
+    console.log("\n\n\n\n request body: ", req.body);
+
     if (!salesData.orderType || !salesData.orderStatus || !salesData.paymentStatus) {
       return res
         .status(400)

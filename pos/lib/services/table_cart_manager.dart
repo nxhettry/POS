@@ -260,7 +260,7 @@ class TableCartManager extends ChangeNotifier {
       'isDiscountPercentage': isDiscountPercentage,
       'total': total,
       'timestamp': DateTime.now().toIso8601String(),
-      'orderStatus': 'pending',
+      'orderStatus': 'served', // Order is completed when creating from POS
       'paymentStatus': 'pending',
       'createdBy': 1, // Admin user
     };

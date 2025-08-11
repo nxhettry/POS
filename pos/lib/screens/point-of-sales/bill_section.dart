@@ -18,12 +18,19 @@ class BillSection extends StatefulWidget {
 class _BillSectionState extends State<BillSection> {
   String? selectedTax = "0%";
   String? selectedOrderType = "dine_in";
+  String? selectedPaymentType = "cash";
+  models.PaymentMethod? selectedPaymentMethod;
+  models.Party? selectedParty;
   double discountValue = 0.00;
   bool isDiscountPercentage = true;
   late final TableCartManager cartManager;
   final TextEditingController discountController = TextEditingController();
   List<models.Table> availableTables = [];
+  List<models.PaymentMethod> paymentMethods = [];
+  List<models.Party> customers = [];
   final DataRepository _dataRepository = DataRepository();
+  bool _isLoadingPaymentMethods = true;
+  bool _isLoadingCustomers = false;
 
   @override
   void initState() {
@@ -31,6 +38,62 @@ class _BillSectionState extends State<BillSection> {
     cartManager = TableCartManager();
     cartManager.addListener(_onCartChanged);
     _loadTables();
+    _loadPaymentMethods();
+  }
+
+  Future<void> _loadPaymentMethods() async {
+    try {
+      setState(() {
+        _isLoadingPaymentMethods = true;
+      });
+      final methods = await _dataRepository.fetchActivePaymentMethods();
+      setState(() {
+        paymentMethods = methods;
+        // Set default payment method for cash
+        if (methods.isNotEmpty) {
+          final cashMethod = methods.firstWhere(
+            (method) => method.name.toLowerCase().contains('cash'),
+            orElse: () => methods.first,
+          );
+          selectedPaymentMethod = cashMethod;
+        }
+        _isLoadingPaymentMethods = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingPaymentMethods = false;
+      });
+      developer.log('Error loading payment methods: $e', name: 'POS');
+    }
+  }
+
+  Future<void> _loadCustomers() async {
+    if (selectedPaymentType != "credit" || _isLoadingCustomers) return;
+    
+    try {
+      setState(() {
+        _isLoadingCustomers = true;
+      });
+      final customerList = await _dataRepository.fetchCustomers();
+      setState(() {
+        customers = customerList;
+        _isLoadingCustomers = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingCustomers = false;
+      });
+      developer.log('Error loading customers: $e', name: 'POS');
+      // Show a snackbar to inform user about the error
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading customers: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -110,9 +173,35 @@ class _BillSectionState extends State<BillSection> {
       return;
     }
 
+    if (selectedPaymentMethod == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please select a payment method.',
+          ),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    if (selectedPaymentType == "credit" && selectedParty == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please select a customer for credit sales.',
+          ),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     final orderData = cartManager.getOrderData(
       widget.selectedTable!.name,
-      selectedOrderType == "dine_in" ? "Dine In" : "Takeaway",
+      selectedOrderType!, // Pass the selected order type directly since it's already in correct format
       taxRate,
       discountValue,
       isDiscountPercentage,
@@ -123,6 +212,9 @@ class _BillSectionState extends State<BillSection> {
       developer.log('Generated invoice number: $invoiceNo', name: 'POS');
       
       orderData['invoiceNo'] = invoiceNo;
+      orderData['paymentMethodId'] = selectedPaymentMethod!.id;
+      orderData['paymentStatus'] = selectedPaymentType == "credit" ? "pending" : "paid";
+      orderData['partyId'] = selectedPaymentType == "credit" ? selectedParty!.id : 1; // Default to admin if not credit
       
       final sale = models.Sales.fromMap(orderData);
       developer.log('Sales object created: ${sale.invoiceNo}', name: 'POS');
@@ -165,6 +257,15 @@ class _BillSectionState extends State<BillSection> {
     setState(() {
       selectedOrderType = "dine_in";
       selectedTax = "0%";
+      selectedPaymentType = "cash";
+      selectedParty = null;
+      if (paymentMethods.isNotEmpty) {
+        final cashMethod = paymentMethods.firstWhere(
+          (method) => method.name.toLowerCase().contains('cash'),
+          orElse: () => paymentMethods.first,
+        );
+        selectedPaymentMethod = cashMethod;
+      }
       discountValue = 0.00;
       discountController.clear();
     });
@@ -288,6 +389,15 @@ class _BillSectionState extends State<BillSection> {
                         value: "takeaway",
                         child: Text(
                           "Takeaway",
+                          style: TextStyle(
+                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                          ),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: "delivery",
+                        child: Text(
+                          "Delivery",
                           style: TextStyle(
                             fontSize: ResponsiveUtils.getFontSize(context, 14),
                           ),
@@ -506,6 +616,166 @@ class _BillSectionState extends State<BillSection> {
                 ),
               ],
             ),
+          ),
+
+          SizedBox(height: ResponsiveUtils.getSpacing(context, base: 12)),
+          
+          // Payment Method Selection Row
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: ResponsiveUtils.isSmallDesktop(context) ? 40 : 45,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.grey[100],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      labelText: "Payment Type",
+                      labelStyle: TextStyle(
+                        fontSize: ResponsiveUtils.getFontSize(context, 12),
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(
+                        vertical: ResponsiveUtils.getSpacing(context, base: 8),
+                        horizontal: ResponsiveUtils.getSpacing(context, base: 10),
+                      ),
+                    ),
+                    value: selectedPaymentType,
+                    style: TextStyle(
+                      fontSize: ResponsiveUtils.getFontSize(context, 14),
+                      color: Colors.black,
+                    ),
+                    items: [
+                      DropdownMenuItem(
+                        value: "cash", 
+                        child: Text(
+                          "Cash",
+                          style: TextStyle(
+                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                          ),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: "credit", 
+                        child: Text(
+                          "Credit",
+                          style: TextStyle(
+                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                          ),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: "fonepay", 
+                        child: Text(
+                          "FonePay",
+                          style: TextStyle(
+                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                          ),
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        selectedPaymentType = value;
+                        selectedParty = null; // Reset party selection when payment type changes
+                        
+                        // Update payment method based on type
+                        if (paymentMethods.isNotEmpty) {
+                          if (value == "cash") {
+                            selectedPaymentMethod = paymentMethods.firstWhere(
+                              (method) => method.name.toLowerCase().contains('cash'),
+                              orElse: () => paymentMethods.first,
+                            );
+                          } else if (value == "fonepay") {
+                            selectedPaymentMethod = paymentMethods.firstWhere(
+                              (method) => method.name.toLowerCase().contains('fonepay'),
+                              orElse: () => paymentMethods.first,
+                            );
+                          } else {
+                            // For credit, use any available method
+                            selectedPaymentMethod = paymentMethods.first;
+                          }
+                        }
+                      });
+                      
+                      if (value == "credit") {
+                        _loadCustomers();
+                      }
+                    },
+                  ),
+                ),
+              ),
+              if (selectedPaymentType == "credit") ...[
+                SizedBox(width: ResponsiveUtils.getSpacing(context, base: 12)),
+                Expanded(
+                  child: Container(
+                    height: ResponsiveUtils.isSmallDesktop(context) ? 40 : 45,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.grey[100],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          blurRadius: 4,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                    child: _isLoadingCustomers
+                        ? Center(
+                            child: SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : DropdownButtonFormField<models.Party>(
+                            decoration: InputDecoration(
+                              labelText: "Customer *",
+                              labelStyle: TextStyle(
+                                fontSize: ResponsiveUtils.getFontSize(context, 12),
+                                color: selectedParty == null ? Colors.red : null,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: ResponsiveUtils.getSpacing(context, base: 8),
+                                horizontal: ResponsiveUtils.getSpacing(context, base: 10),
+                              ),
+                            ),
+                            value: selectedParty,
+                            style: TextStyle(
+                              fontSize: ResponsiveUtils.getFontSize(context, 14),
+                              color: Colors.black,
+                            ),
+                            items: customers.map((customer) => DropdownMenuItem(
+                              value: customer,
+                              child: Text(
+                                customer.name,
+                                style: TextStyle(
+                                  fontSize: ResponsiveUtils.getFontSize(context, 14),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            )).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                selectedParty = value;
+                              });
+                            },
+                          ),
+                  ),
+                ),
+              ],
+            ],
           ),
 
           SizedBox(height: ResponsiveUtils.getSpacing(context, base: 12)),
