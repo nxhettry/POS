@@ -92,4 +92,10 @@ class Endpoints {
   static const String activePaymentMethods = '/api/payment-methods/active/all';
 
   static const String reports = '/api/reports';
+
+  // Daybook endpoints
+  static const String daybookTodaysSummary = '/api/daybook/today-summary';
+  static const String daybookEntries = '/api/daybook/entries';
+  static const String daybookSummary = '/api/daybook/summary';
+  static const String daybookByDate = '/api/daybook/date';
 }

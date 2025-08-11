@@ -1610,6 +1610,9 @@
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/expense/add_category_dialog.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/expense/add_expense_dialog.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/expense/expense_screen.dart
+/Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/finance/daybook_screen.dart
+/Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/finance/finance_list_item.dart
+/Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/finance/finance_screen.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/point-of-sales/bill_section.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/point-of-sales/items_view.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/point-of-sales/point_of_sales_screen.dart
@@ -1625,6 +1628,7 @@
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/services/api_data_service.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/services/data_repository.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/services/database_helper.dart
+/Users/nishangautam/Downloads/Work/RatoPos/pos/lib/services/daybook_service.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/services/table_cart_manager.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/utils/invoice.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/utils/responsive.dart

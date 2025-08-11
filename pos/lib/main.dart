@@ -7,6 +7,7 @@ import "./screens/activity/activity_screen.dart";
 import "screens/point-of-sales/point_of_sales_screen.dart";
 import "screens/reports/reports_screen.dart";
 import "screens/settings/settings_screen.dart";
+import "screens/finance/finance_screen.dart";
 import 'utils/responsive.dart';
 import 'widgets/drawer_list_item.dart';
 
@@ -61,6 +62,7 @@ class _MyHomePageState extends State<MyHomePage> {
     const PointOfSaleScreen(),
     const ActivityScreen(),
     const ExpenseScreen(),
+    const FinanceScreen(),
     const ReportsScreen(),
     const SettingsScreen(),
   ];
@@ -247,8 +249,8 @@ class _MyHomePageState extends State<MyHomePage> {
                           },
                         ),
                         DrawerListItem(
-                          title: 'Reports',
-                          icon: Icons.bar_chart,
+                          title: 'Finance',
+                          icon: Icons.account_balance_wallet,
                           isSelected: _currentIndex == 3,
                           onTap: () {
                             _onItemTapped(3);
@@ -256,11 +258,20 @@ class _MyHomePageState extends State<MyHomePage> {
                           },
                         ),
                         DrawerListItem(
-                          title: 'Settings',
-                          icon: Icons.settings,
+                          title: 'Reports',
+                          icon: Icons.bar_chart,
                           isSelected: _currentIndex == 4,
                           onTap: () {
                             _onItemTapped(4);
+                            Navigator.pop(context);
+                          },
+                        ),
+                        DrawerListItem(
+                          title: 'Settings',
+                          icon: Icons.settings,
+                          isSelected: _currentIndex == 5,
+                          onTap: () {
+                            _onItemTapped(5);
                             Navigator.pop(context);
                           },
                         ),

@@ -904,3 +904,220 @@ class ExpensesCategory {
     );
   }
 }
+
+// Daybook Models
+class DaybookSummary {
+  final String? date;
+  final DaybookBalance openingBalance;
+  final DaybookSales sales;
+  final DaybookExpenses expenses;
+  final double netCash;
+  final double netOnline;
+  final double totalNet;
+
+  DaybookSummary({
+    this.date,
+    required this.openingBalance,
+    required this.sales,
+    required this.expenses,
+    required this.netCash,
+    required this.netOnline,
+    required this.totalNet,
+  });
+
+  factory DaybookSummary.fromJson(Map<String, dynamic> json) {
+    return DaybookSummary(
+      date: json['date'],
+      openingBalance: DaybookBalance.fromJson(json['openingBalance']),
+      sales: DaybookSales.fromJson(json['sales']),
+      expenses: DaybookExpenses.fromJson(json['expenses']),
+      netCash: (json['netCash'] ?? 0).toDouble(),
+      netOnline: (json['netOnline'] ?? 0).toDouble(),
+      totalNet: (json['totalNet'] ?? 0).toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'date': date,
+      'openingBalance': openingBalance.toJson(),
+      'sales': sales.toJson(),
+      'expenses': expenses.toJson(),
+      'netCash': netCash,
+      'netOnline': netOnline,
+      'totalNet': totalNet,
+    };
+  }
+}
+
+class DaybookBalance {
+  final double cash;
+  final double online;
+
+  DaybookBalance({
+    required this.cash,
+    required this.online,
+  });
+
+  factory DaybookBalance.fromJson(Map<String, dynamic> json) {
+    return DaybookBalance(
+      cash: (json['cash'] ?? 0).toDouble(),
+      online: (json['online'] ?? 0).toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'cash': cash,
+      'online': online,
+    };
+  }
+
+  double get total => cash + online;
+}
+
+class DaybookSales {
+  final double cash;
+  final double online;
+  final int? count;
+
+  DaybookSales({
+    required this.cash,
+    required this.online,
+    this.count,
+  });
+
+  factory DaybookSales.fromJson(Map<String, dynamic> json) {
+    return DaybookSales(
+      cash: (json['cash'] ?? 0).toDouble(),
+      online: (json['online'] ?? 0).toDouble(),
+      count: json['count'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'cash': cash,
+      'online': online,
+      'count': count,
+    };
+  }
+
+  double get total => cash + online;
+}
+
+class DaybookExpenses {
+  final double cash;
+  final double online;
+  final int? count;
+
+  DaybookExpenses({
+    required this.cash,
+    required this.online,
+    this.count,
+  });
+
+  factory DaybookExpenses.fromJson(Map<String, dynamic> json) {
+    return DaybookExpenses(
+      cash: (json['cash'] ?? 0).toDouble(),
+      online: (json['online'] ?? 0).toDouble(),
+      count: json['count'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'cash': cash,
+      'online': online,
+      'count': count,
+    };
+  }
+
+  double get total => cash + online;
+}
+
+class DaybookTransaction {
+  final int? id;
+  final int daybookId;
+  final String transactionType; // sale, expense, opening_balance, closing_balance
+  final String paymentMode; // cash, online
+  final int? referenceId;
+  final double amount;
+  final String? description;
+  final DateTime timestamp;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  DaybookTransaction({
+    this.id,
+    required this.daybookId,
+    required this.transactionType,
+    required this.paymentMode,
+    this.referenceId,
+    required this.amount,
+    this.description,
+    required this.timestamp,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory DaybookTransaction.fromJson(Map<String, dynamic> json) {
+    return DaybookTransaction(
+      id: json['id'],
+      daybookId: json['daybookId'],
+      transactionType: json['transactionType'] ?? '',
+      paymentMode: json['paymentMode'] ?? '',
+      referenceId: json['referenceId'],
+      amount: (json['amount'] ?? 0).toDouble(),
+      description: json['description'],
+      timestamp: DateTime.parse(json['timestamp']),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : null,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'daybookId': daybookId,
+      'transactionType': transactionType,
+      'paymentMode': paymentMode,
+      'referenceId': referenceId,
+      'amount': amount,
+      'description': description,
+      'timestamp': timestamp.toIso8601String(),
+      'createdAt': createdAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
+    };
+  }
+
+  DaybookTransaction copyWith({
+    int? id,
+    int? daybookId,
+    String? transactionType,
+    String? paymentMode,
+    int? referenceId,
+    double? amount,
+    String? description,
+    DateTime? timestamp,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return DaybookTransaction(
+      id: id ?? this.id,
+      daybookId: daybookId ?? this.daybookId,
+      transactionType: transactionType ?? this.transactionType,
+      paymentMode: paymentMode ?? this.paymentMode,
+      referenceId: referenceId ?? this.referenceId,
+      amount: amount ?? this.amount,
+      description: description ?? this.description,
+      timestamp: timestamp ?? this.timestamp,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+}

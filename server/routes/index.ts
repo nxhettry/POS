@@ -14,6 +14,7 @@ import menuRoutes from "./menu.routes.js";
 import inventoryRoutes from "./inventory.routes.js";
 import tablesRoutes from "./tables.routes.js";
 import reportsRoutes from "./reports.routes.js";
+import daybookRoutes from "./daybook.routes.js";
 
 const router = Router();
 
@@ -32,5 +33,6 @@ router.use("/expenses", expenseRoutes);
 router.use("/expense-categories", expenseCategoryRoutes);
 router.use("/payment-methods", paymentMethodRoutes);
 router.use("/reports", reportsRoutes);
+router.use("/daybook", daybookRoutes);
 
 export default router;
