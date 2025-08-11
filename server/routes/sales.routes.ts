@@ -9,10 +9,12 @@ import {
   getSalesByTable,
   getSalesByParty,
   deleteSales,
+  getNextInvoiceNumber,
 } from "../controllers/sales.controllers.js";
 
 const router = Router();
 
+router.get("/next-invoice-number", getNextInvoiceNumber);
 router.post("/", createSales);
 router.put("/:id", updateSales);
 router.get("/:id", getSales);

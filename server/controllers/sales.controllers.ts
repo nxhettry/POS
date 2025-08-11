@@ -11,7 +11,12 @@ import {
   getSalesByTableService,
   getSalesByPartyService,
   deleteSalesService,
+  getNextInvoiceNumberService,
 } from "../service/sales.service.js";
+
+const generateInvoiceNumber = (salesId: number): string => {
+  return `INV ${salesId.toString().padStart(3, "0")}`;
+};
 
 export const createSales = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
@@ -19,10 +24,20 @@ export const createSales = asyncHandler(
 
     console.log("\n\n\n\n request body: ", req.body);
 
-    if (!salesData.orderType || !salesData.orderStatus || !salesData.paymentStatus) {
+    if (
+      !salesData.orderType ||
+      !salesData.orderStatus ||
+      !salesData.paymentStatus
+    ) {
       return res
         .status(400)
-        .json(new apiResponse(400, null, "Order type, order status, and payment status are required"));
+        .json(
+          new apiResponse(
+            400,
+            null,
+            "Order type, order status, and payment status are required"
+          )
+        );
     }
 
     const validation = validateSalesData(salesData);
@@ -46,9 +61,7 @@ export const createSales = asyncHandler(
         .status(201)
         .json(new apiResponse(201, result.data, result.message));
     } else {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, result.message));
+      return res.status(400).json(new apiResponse(400, null, result.message));
     }
   }
 );
@@ -85,9 +98,7 @@ export const updateSales = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(404)
-        .json(new apiResponse(404, null, result.message));
+      return res.status(404).json(new apiResponse(404, null, result.message));
     }
   }
 );
@@ -109,9 +120,7 @@ export const getSales = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(404)
-        .json(new apiResponse(404, null, result.message));
+      return res.status(404).json(new apiResponse(404, null, result.message));
     }
   }
 );
@@ -125,9 +134,7 @@ export const getAllSales = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, result.message));
+      return res.status(400).json(new apiResponse(400, null, result.message));
     }
   }
 );
@@ -136,11 +143,23 @@ export const getSalesByOrderStatus = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const { status } = req.params;
 
-    const validStatuses = ["pending", "preparing", "ready", "served", "cancelled"];
+    const validStatuses = [
+      "pending",
+      "preparing",
+      "ready",
+      "served",
+      "cancelled",
+    ];
     if (!validStatuses.includes(status)) {
       return res
         .status(400)
-        .json(new apiResponse(400, null, "Valid order status is required (pending, preparing, ready, served, cancelled)"));
+        .json(
+          new apiResponse(
+            400,
+            null,
+            "Valid order status is required (pending, preparing, ready, served, cancelled)"
+          )
+        );
     }
 
     const result = await getSalesByOrderStatusService(status);
@@ -150,9 +169,7 @@ export const getSalesByOrderStatus = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, result.message));
+      return res.status(400).json(new apiResponse(400, null, result.message));
     }
   }
 );
@@ -165,7 +182,13 @@ export const getSalesByPaymentStatus = asyncHandler(
     if (!validStatuses.includes(status)) {
       return res
         .status(400)
-        .json(new apiResponse(400, null, "Valid payment status is required (pending, paid, partial, refunded)"));
+        .json(
+          new apiResponse(
+            400,
+            null,
+            "Valid payment status is required (pending, paid, partial, refunded)"
+          )
+        );
     }
 
     const result = await getSalesByPaymentStatusService(status);
@@ -175,9 +198,7 @@ export const getSalesByPaymentStatus = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, result.message));
+      return res.status(400).json(new apiResponse(400, null, result.message));
     }
   }
 );
@@ -199,9 +220,7 @@ export const getSalesByTable = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, result.message));
+      return res.status(400).json(new apiResponse(400, null, result.message));
     }
   }
 );
@@ -223,9 +242,7 @@ export const getSalesByParty = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
-      return res
-        .status(400)
-        .json(new apiResponse(400, null, result.message));
+      return res.status(400).json(new apiResponse(400, null, result.message));
     }
   }
 );
@@ -247,9 +264,21 @@ export const deleteSales = asyncHandler(
         .status(200)
         .json(new apiResponse(200, result.data, result.message));
     } else {
+      return res.status(404).json(new apiResponse(404, null, result.message));
+    }
+  }
+);
+
+export const getNextInvoiceNumber = asyncHandler(
+  async (req: Request, res: Response): Promise<any> => {
+    const result = await getNextInvoiceNumberService();
+
+    if (result.success) {
       return res
-        .status(404)
-        .json(new apiResponse(404, null, result.message));
+        .status(200)
+        .json(new apiResponse(200, result.data, result.message));
+    } else {
+      return res.status(400).json(new apiResponse(400, null, result.message));
     }
   }
 );

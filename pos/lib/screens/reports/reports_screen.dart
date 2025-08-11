@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../models/models.dart';
 import '../../services/data_repository.dart';
+import '../../utils/invoice_formatter.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -1979,7 +1980,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
                 return DataRow(
                   cells: [
-                    DataCell(Text(sale.invoiceNo.isNotEmpty ? sale.invoiceNo : 'N/A')),
+                    DataCell(Text(InvoiceFormatter.formatSalesInvoiceNumber(sale))),
                     DataCell(Text(sale.table.isNotEmpty ? sale.table : 'N/A')),
                     DataCell(
                       Container(
@@ -2359,7 +2360,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         final sale = filteredSales[i];
         final row = i + 2;
         salesSheet.cell(excel_lib.CellIndex.indexByString('A$row')).value =
-            excel_lib.TextCellValue(sale.invoiceNo);
+            excel_lib.TextCellValue(InvoiceFormatter.formatSalesInvoiceNumber(sale));
         salesSheet.cell(excel_lib.CellIndex.indexByString('B$row')).value =
             excel_lib.TextCellValue(sale.table);
         salesSheet.cell(excel_lib.CellIndex.indexByString('C$row')).value =

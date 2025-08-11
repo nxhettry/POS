@@ -20,6 +20,11 @@ Sales.init(
       primaryKey: true,
       autoIncrement: true,
     },
+    invoiceNo: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+    },
     tableId: {
       type: DataTypes.INTEGER,
       references: {

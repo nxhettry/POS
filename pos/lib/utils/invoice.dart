@@ -8,6 +8,7 @@ import "package:intl/intl.dart";
 import 'package:windows_printer/windows_printer.dart';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
+import './invoice_formatter.dart';
 
 Future<pw.Document> generateInvoicePdf(Sales sale) async {
   final pdf = pw.Document();
@@ -52,7 +53,7 @@ Future<pw.Document> generateInvoicePdf(Sales sale) async {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
-                      "Invoice No: ${sale.invoiceNo}",
+                      "Invoice No: ${InvoiceFormatter.formatSalesInvoiceNumber(sale)}",
                       style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                     ),
                     pw.Text("Table: ${sale.table}"),
@@ -261,7 +262,7 @@ Future<void> showPdfPrintDialog(BuildContext context, Sales sale) async {
 
     await Printing.layoutPdf(
       onLayout: (format) async => pdf.save(),
-      name: 'Invoice_${sale.invoiceNo}',
+      name: 'Invoice_${InvoiceFormatter.formatSalesInvoiceNumber(sale).replaceAll(' ', '_')}',
     );
   } catch (e) {
     if (context.mounted) {
@@ -285,7 +286,7 @@ Future<void> reprintInvoice(BuildContext context, Sales sale) async {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Invoice ${sale.invoiceNo} sent to printer successfully!',
+            'Invoice ${InvoiceFormatter.formatSalesInvoiceNumber(sale)} sent to printer successfully!',
           ),
           backgroundColor: Colors.green,
         ),
@@ -366,7 +367,7 @@ Future<String> generateThermalBill(Sales sale) async {
     bill.writeln();
 
     // Bill Details (Left aligned)
-    bill.writeln('Bill No: ${sale.invoiceNo}');
+    bill.writeln('Bill No: ${InvoiceFormatter.formatSalesInvoiceNumber(sale)}');
     bill.writeln('Invoice Date: $currentDateTime');
     bill.writeln('Customer: Cash Customer');
     bill.writeln('Table: ${sale.table}');
@@ -430,7 +431,7 @@ Future<String> generateThermalBill(Sales sale) async {
     final outputDir = await getApplicationDocumentsDirectory();
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final file = File(
-      "${outputDir.path}/bill_${sale.invoiceNo}_$timestamp.txt",
+      "${outputDir.path}/bill_${InvoiceFormatter.formatSalesInvoiceNumber(sale).replaceAll(' ', '_')}_$timestamp.txt",
     );
     await file.writeAsString(bill.toString());
 

@@ -824,21 +824,27 @@ class ApiDataService {
 
   Future<String> getNextInvoiceNumber() async {
     try {
-      final sales = await getSales();
-      if (sales.isEmpty) {
-        return 'INV-0001';
-      }
+      final response = await _apiService.get(
+        Endpoints.nextInvoiceNumber,
+      );
 
-      final lastInvoice = sales.first.invoiceNo;
-      final numericPart =
-          int.tryParse(lastInvoice.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-      final nextNumber = (numericPart + 1).toString().padLeft(4, '0');
-      return 'INV-$nextNumber';
+      if (response['success'] == true && response['data'] != null) {
+        return response['data']['invoiceNumber'] ?? 'INV 001';
+      } else {
+        // Fallback to local generation if API fails
+        final sales = await getSales();
+        final nextId = sales.isEmpty ? 1 : (sales.length + 1);
+        return 'INV ${nextId.toString().padLeft(3, '0')}';
+      }
     } catch (e) {
-      final timestamp = DateTime.now().millisecondsSinceEpoch
-          .toString()
-          .substring(7);
-      return 'INV-$timestamp';
+      // Fallback to local generation if API fails
+      try {
+        final sales = await getSales();
+        final nextId = sales.isEmpty ? 1 : (sales.length + 1);
+        return 'INV ${nextId.toString().padLeft(3, '0')}';
+      } catch (localError) {
+        return 'INV 001';
+      }
     }
   }
 

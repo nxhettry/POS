@@ -31,6 +31,8 @@ class _BillSectionState extends State<BillSection> {
   final DataRepository _dataRepository = DataRepository();
   bool _isLoadingPaymentMethods = true;
   bool _isLoadingCustomers = false;
+  String _nextInvoiceNumber = "INV 001";
+  bool _isLoadingInvoiceNumber = true;
 
   @override
   void initState() {
@@ -39,6 +41,26 @@ class _BillSectionState extends State<BillSection> {
     cartManager.addListener(_onCartChanged);
     _loadTables();
     _loadPaymentMethods();
+    _loadNextInvoiceNumber();
+  }
+
+  Future<void> _loadNextInvoiceNumber() async {
+    try {
+      setState(() {
+        _isLoadingInvoiceNumber = true;
+      });
+      final invoiceNumber = await _dataRepository.getNextInvoiceNumber();
+      setState(() {
+        _nextInvoiceNumber = invoiceNumber;
+        _isLoadingInvoiceNumber = false;
+      });
+    } catch (e) {
+      setState(() {
+        _nextInvoiceNumber = "INV 001";
+        _isLoadingInvoiceNumber = false;
+      });
+      developer.log('Error loading next invoice number: $e', name: 'POS');
+    }
   }
 
   Future<void> _loadPaymentMethods() async {
@@ -253,6 +275,9 @@ class _BillSectionState extends State<BillSection> {
     // Clear cart after successful order
     cartManager.clearCart();
 
+    // Refresh the next invoice number for the next order
+    _loadNextInvoiceNumber();
+
     // Reset form fields
     setState(() {
       selectedOrderType = "dine_in";
@@ -296,7 +321,9 @@ class _BillSectionState extends State<BillSection> {
                 ),
                 SizedBox(height: ResponsiveUtils.getSpacing(context, base: 8)),
                 Text(
-                  "Invoice No: #111",
+                  _isLoadingInvoiceNumber 
+                    ? "Invoice No: Loading..."
+                    : "Invoice No: $_nextInvoiceNumber",
                   style: TextStyle(
                     fontSize: ResponsiveUtils.getFontSize(context, 14),
                     color: Colors.grey,

@@ -66,6 +66,7 @@ class Endpoints {
   static const String salesByPaymentStatus = '/api/sales/payment-status';
   static const String salesByTable = '/api/sales/table';
   static const String salesByParty = '/api/sales/party';
+  static const String nextInvoiceNumber = '/api/sales/next-invoice-number';
 
   static const String salesItems = '/api/sales-items';
   static const String salesItemById = '/api/sales-items';

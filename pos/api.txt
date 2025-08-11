@@ -1,6 +1,6 @@
 # POS System API Routes Documentation
 
-Base URL: `/api` (assuming standard API prefix)
+Base URL: `/api`
 
 ## Authentication Routes (`/auth`)
 - `POST /auth/login` - User login (requires validation)

@@ -3,6 +3,7 @@ import "package:intl/intl.dart";
 import "../../models/models.dart";
 import "../../services/database_helper.dart";
 import "../../utils/invoice.dart";
+import "../../utils/invoice_formatter.dart";
 
 class OrderHistory extends StatefulWidget {
   const OrderHistory({super.key});
@@ -272,7 +273,7 @@ class _OrderHistoryState extends State<OrderHistory> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        sale.invoiceNo,
+                        InvoiceFormatter.formatSalesInvoiceNumber(sale),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -436,7 +437,7 @@ class _OrderHistoryState extends State<OrderHistory> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            sale.invoiceNo,
+                            InvoiceFormatter.formatSalesInvoiceNumber(sale),
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
