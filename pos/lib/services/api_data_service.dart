@@ -154,36 +154,39 @@ class ApiDataService {
   Future<List<Category>> getMenuCategories() async {
     final response = await _apiService.get(Endpoints.menuCategories, requiresAuth: false);
     final data = response['data'] as List? ?? [];
-    return data.map((item) => Category(
-      id: item['id'],
-      name: item['name'],
-    )).toList();
+    return data.map((item) => Category.fromJson(item)).toList();
   }
 
   Future<Category> getMenuCategoryById(int id) async {
-    final response = await _apiService.get('${Endpoints.menuCategoryById}/$id', requiresAuth: true);
+    final response = await _apiService.get('${Endpoints.menuCategoryById}/$id', requiresAuth: false);
     final categoryData = response['data'] ?? response;
-    return Category(id: categoryData['id'], name: categoryData['name']);
+    return Category.fromJson(categoryData);
   }
 
-  Future<Category> createMenuCategory(String name) async {
+  Future<Category> createMenuCategory(String name, {String? description}) async {
     final response = await _apiService.post(
       Endpoints.menuCategories, 
-      {'name': name}, 
+      {
+        'name': name, 
+        if (description != null && description.isNotEmpty) 'description': description,
+      }, 
       requiresAuth: true,
     );
     final categoryData = response['data'] ?? response;
-    return Category(id: categoryData['id'], name: categoryData['name']);
+    return Category.fromJson(categoryData);
   }
 
-  Future<Category> updateMenuCategory(int id, String name) async {
+  Future<Category> updateMenuCategory(int id, String name, {String? description}) async {
     final response = await _apiService.put(
       '${Endpoints.menuCategoryById}/$id', 
-      {'name': name}, 
+      {
+        'name': name,
+        if (description != null && description.isNotEmpty) 'description': description,
+      }, 
       requiresAuth: true,
     );
     final categoryData = response['data'] ?? response;
-    return Category(id: categoryData['id'], name: categoryData['name']);
+    return Category.fromJson(categoryData);
   }
 
   Future<void> deleteMenuCategory(int id) async {
@@ -195,13 +198,7 @@ class ApiDataService {
   Future<List<Item>> getMenuItems() async {
     final response = await _apiService.get(Endpoints.menuItems, requiresAuth: false);
     final data = response['data'] as List? ?? [];
-    return data.map((item) => Item(
-      id: item['id'],
-      categoryId: item['categoryId'],
-      itemName: item['itemName'],
-      rate: (item['rate']).toDouble(),
-      image: item['image'],
-    )).toList();
+    return data.map((item) => Item.fromJson(item)).toList();
   }
 
   Future<List<Item>> getMenuItemsByCategory(int categoryId) async {
@@ -210,67 +207,45 @@ class ApiDataService {
       requiresAuth: false,
     );
     final data = response['data'] as List? ?? [];
-    return data.map((item) => Item(
-      id: item['id'],
-      categoryId: item['categoryId'],
-      itemName: item['itemName'],
-      rate: (item['rate']).toDouble(),
-      image: item['image'],
-    )).toList();
+    return data.map((item) => Item.fromJson(item)).toList();
   }
 
   Future<Item> getMenuItemById(int id) async {
-    final response = await _apiService.get('${Endpoints.menuItemById}/$id', requiresAuth: true);
+    final response = await _apiService.get('${Endpoints.menuItemById}/$id', requiresAuth: false);
     final itemData = response['data'] ?? response;
-    return Item(
-      id: itemData['id'],
-      categoryId: itemData['category_id'] ?? itemData['categoryId'],
-      itemName: itemData['name'] ?? itemData['item_name'] ?? itemData['itemName'],
-      rate: (itemData['price'] ?? itemData['rate']).toDouble(),
-      image: itemData['image'],
-    );
+    return Item.fromJson(itemData);
   }
 
-  Future<Item> createMenuItem(int categoryId, String itemName, double rate, {String? image}) async {
+  Future<Item> createMenuItem(int categoryId, String itemName, double rate, {String? description, String? image}) async {
     final response = await _apiService.post(
       Endpoints.menuItems, 
       {
-        'category_id': categoryId,
-        'name': itemName,
-        'price': rate,
+        'categoryId': categoryId,
+        'itemName': itemName,
+        'rate': rate,
+        if (description != null && description.isNotEmpty) 'description': description,
         if (image != null) 'image': image,
       }, 
       requiresAuth: true,
     );
     final itemData = response['data'] ?? response;
-    return Item(
-      id: itemData['id'],
-      categoryId: itemData['category_id'] ?? itemData['categoryId'],
-      itemName: itemData['name'] ?? itemData['item_name'] ?? itemData['itemName'],
-      rate: (itemData['price'] ?? itemData['rate']).toDouble(),
-      image: itemData['image'],
-    );
+    return Item.fromJson(itemData);
   }
 
-  Future<Item> updateMenuItem(int id, int categoryId, String itemName, double rate, {String? image}) async {
+  Future<Item> updateMenuItem(int id, int categoryId, String itemName, double rate, {String? description, String? image}) async {
     final response = await _apiService.put(
       '${Endpoints.menuItemById}/$id', 
       {
-        'category_id': categoryId,
-        'name': itemName,
-        'price': rate,
+        'categoryId': categoryId,
+        'itemName': itemName,
+        'rate': rate,
+        if (description != null && description.isNotEmpty) 'description': description,
         if (image != null) 'image': image,
       }, 
       requiresAuth: true,
     );
     final itemData = response['data'] ?? response;
-    return Item(
-      id: itemData['id'],
-      categoryId: itemData['category_id'] ?? itemData['categoryId'],
-      itemName: itemData['name'] ?? itemData['item_name'] ?? itemData['itemName'],
-      rate: (itemData['price'] ?? itemData['rate']).toDouble(),
-      image: itemData['image'],
-    );
+    return Item.fromJson(itemData);
   }
 
   Future<void> deleteMenuItem(int id) async {

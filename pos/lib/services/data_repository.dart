@@ -22,12 +22,16 @@ class DataRepository {
     return await _apiDataService.getMenuCategories();
   }
 
-  Future<Category> createCategory(String name) async {
-    return await _apiDataService.createMenuCategory(name);
+  Future<Category> getCategoryById(int id) async {
+    return await _apiDataService.getMenuCategoryById(id);
   }
 
-  Future<Category> updateCategory(int id, String name) async {
-    return await _apiDataService.updateMenuCategory(id, name);
+  Future<Category> createCategory(String name, {String? description}) async {
+    return await _apiDataService.createMenuCategory(name, description: description);
+  }
+
+  Future<Category> updateCategory(int id, String name, {String? description}) async {
+    return await _apiDataService.updateMenuCategory(id, name, description: description);
   }
 
   Future<void> deleteCategory(int id) async {
@@ -43,12 +47,16 @@ class DataRepository {
     return await _apiDataService.getMenuItemsByCategory(categoryId);
   }
 
-  Future<Item> createItem(int categoryId, String itemName, double rate, {String? image}) async {
-    return await _apiDataService.createMenuItem(categoryId, itemName, rate, image: image);
+  Future<Item> getItemById(int id) async {
+    return await _apiDataService.getMenuItemById(id);
   }
 
-  Future<Item> updateItem(int id, int categoryId, String itemName, double rate, {String? image}) async {
-    return await _apiDataService.updateMenuItem(id, categoryId, itemName, rate, image: image);
+  Future<Item> createItem(int categoryId, String itemName, double rate, {String? description, String? image}) async {
+    return await _apiDataService.createMenuItem(categoryId, itemName, rate, description: description, image: image);
+  }
+
+  Future<Item> updateItem(int id, int categoryId, String itemName, double rate, {String? description, String? image}) async {
+    return await _apiDataService.updateMenuItem(id, categoryId, itemName, rate, description: description, image: image);
   }
 
   Future<void> deleteItem(int id) async {

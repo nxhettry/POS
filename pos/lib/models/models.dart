@@ -8,24 +8,155 @@ bool _parseBoolFromDynamic(dynamic value) {
 class Category {
   final int? id;
   final String name;
+  final String? description;
+  final bool isActive;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
-  Category({this.id, required this.name});
+  Category({
+    this.id,
+    required this.name,
+    this.description,
+    this.isActive = true,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'isActive': isActive,
+      'createdAt': createdAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
+    };
+  }
+
+  factory Category.fromJson(Map<String, dynamic> json) {
+    return Category(
+      id: json['id'],
+      name: json['name'] ?? '',
+      description: json['description'],
+      isActive: _parseBoolFromDynamic(
+        json['isActive'] ?? json['is_active'] ?? true,
+      ),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : null,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+    );
+  }
+
+  Category copyWith({
+    int? id,
+    String? name,
+    String? description,
+    bool? isActive,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return Category(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 }
 
 class Item {
   final int? id;
   final int categoryId;
   final String itemName;
+  final String? description;
   final double rate;
   final String? image;
+  final bool isAvailable;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final Category? category;
 
   Item({
     this.id,
     required this.categoryId,
     required this.itemName,
+    this.description,
     required this.rate,
     this.image,
+    this.isAvailable = true,
+    this.createdAt,
+    this.updatedAt,
+    this.category,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'categoryId': categoryId,
+      'itemName': itemName,
+      'description': description,
+      'rate': rate,
+      'image': image,
+      'isAvailable': isAvailable,
+      'createdAt': createdAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
+      'category': category?.toJson(),
+    };
+  }
+
+  factory Item.fromJson(Map<String, dynamic> json) {
+    return Item(
+      id: json['id'],
+      categoryId: json['categoryId'] ?? json['category_id'] ?? 0,
+      itemName: json['itemName'] ?? json['item_name'] ?? '',
+      description: json['description'],
+      rate: (json['rate'] ?? json['price'] ?? 0).toDouble(),
+      image: json['image'],
+      isAvailable: _parseBoolFromDynamic(
+        json['isAvailable'] ?? json['is_available'] ?? true,
+      ),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : null,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+      category: json['MenuCategory'] != null
+          ? Category.fromJson(json['MenuCategory'])
+          : null,
+    );
+  }
+
+  Item copyWith({
+    int? id,
+    int? categoryId,
+    String? itemName,
+    String? description,
+    double? rate,
+    String? image,
+    bool? isAvailable,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Category? category,
+  }) {
+    return Item(
+      id: id ?? this.id,
+      categoryId: categoryId ?? this.categoryId,
+      itemName: itemName ?? this.itemName,
+      description: description ?? this.description,
+      rate: rate ?? this.rate,
+      image: image ?? this.image,
+      isAvailable: isAvailable ?? this.isAvailable,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      category: category ?? this.category,
+    );
+  }
 }
 
 class Table {
@@ -638,7 +769,6 @@ class Expense {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-  // Populated fields from joins
   final ExpensesCategory? category;
   final PaymentMethod? paymentMethod;
   final Party? party;
@@ -684,28 +814,27 @@ class Expense {
       title: map['title'] as String,
       description: map['description'] as String?,
       amount: (map['amount'] as num).toDouble(),
-      paymentMethodId: map['paymentMethodId'] ?? map['payment_method_id'] as int,
+      paymentMethodId:
+          map['paymentMethodId'] ?? map['payment_method_id'] as int,
       date: DateTime.parse(map['date'] as String),
       categoryId: map['categoryId'] ?? map['category_id'] as int,
       partyId: map['partyId'] ?? map['party_id'] as int?,
       receipt: map['receipt'] as String?,
       createdBy: map['createdBy'] ?? map['created_by'] as int,
       approvedBy: map['approvedBy'] ?? map['approved_by'] as int?,
-      createdAt: map['createdAt'] != null || map['created_at'] != null 
+      createdAt: map['createdAt'] != null || map['created_at'] != null
           ? DateTime.parse(map['createdAt'] ?? map['created_at'])
           : null,
       updatedAt: map['updatedAt'] != null || map['updated_at'] != null
           ? DateTime.parse(map['updatedAt'] ?? map['updated_at'])
           : null,
-      category: map['ExpenseCategory'] != null 
+      category: map['ExpenseCategory'] != null
           ? ExpensesCategory.fromMap(map['ExpenseCategory'])
           : null,
-      paymentMethod: map['PaymentMethod'] != null 
+      paymentMethod: map['PaymentMethod'] != null
           ? PaymentMethod.fromJson(map['PaymentMethod'])
           : null,
-      party: map['Party'] != null 
-          ? Party.fromJson(map['Party'])
-          : null,
+      party: map['Party'] != null ? Party.fromJson(map['Party']) : null,
     );
   }
 
@@ -753,35 +882,23 @@ class ExpensesCategory {
   final String name;
   final String? description;
 
-  ExpensesCategory({
-    this.id, 
-    required this.name,
-    this.description,
-  });
+  ExpensesCategory({this.id, required this.name, this.description});
 
   Map<String, dynamic> toMap() {
-    return {
-      'id': id, 
-      'name': name,
-      'description': description,
-    };
+    return {'id': id, 'name': name, 'description': description};
   }
 
   factory ExpensesCategory.fromMap(Map<String, dynamic> map) {
     return ExpensesCategory(
-      id: map['id'] as int?, 
+      id: map['id'] as int?,
       name: map['name'] as String,
       description: map['description'] as String?,
     );
   }
 
-  ExpensesCategory copyWith({
-    int? id, 
-    String? name,
-    String? description,
-  }) {
+  ExpensesCategory copyWith({int? id, String? name, String? description}) {
     return ExpensesCategory(
-      id: id ?? this.id, 
+      id: id ?? this.id,
       name: name ?? this.name,
       description: description ?? this.description,
     );

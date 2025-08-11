@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/models.dart';
-import '../../services/database_helper.dart';
+import '../../services/data_repository.dart';
 
 class SetupScreen extends StatefulWidget {
   const SetupScreen({super.key});
@@ -11,23 +11,28 @@ class SetupScreen extends StatefulWidget {
 }
 
 class _SetupScreenState extends State<SetupScreen> {
-  // Controllers for category form
   final _categoryNameController = TextEditingController();
+  final _categoryDescriptionController = TextEditingController();
   final _categoryFormKey = GlobalKey<FormState>();
 
-  // Controllers for item form
   final _itemNameController = TextEditingController();
+  final _itemDescriptionController = TextEditingController();
   final _itemRateController = TextEditingController();
   final _itemFormKey = GlobalKey<FormState>();
 
-  // State variables
+  final DataRepository _dataRepository = DataRepository();
+
   List<Category> _categories = [];
   List<Item> _items = [];
   Category? _selectedCategory;
+  Category? _selectedCategoryForEdit;
   Item? _selectedItemForEdit;
   bool _isEditingCategory = false;
   bool _isEditingItem = false;
-  int _selectedTab = 0; // 0 for categories, 1 for items
+  int _selectedTab = 0;
+  bool _isLoading = true;
+  bool _isSavingCategory = false;
+  bool _isSavingItem = false;
 
   @override
   void initState() {
@@ -38,34 +43,36 @@ class _SetupScreenState extends State<SetupScreen> {
   @override
   void dispose() {
     _categoryNameController.dispose();
+    _categoryDescriptionController.dispose();
     _itemNameController.dispose();
+    _itemDescriptionController.dispose();
     _itemRateController.dispose();
     super.dispose();
   }
 
-  void _loadData() async {
-    try {
-      final dbHelper = DatabaseHelper();
-      
-      // Load categories from database
-      _categories = await dbHelper.getCategories();
-      
-      // Load items from database
-      _items = await dbHelper.getItems();
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+    });
 
-      if (_categories.isNotEmpty) {
-        _selectedCategory = _categories.first;
-      }
-      setState(() {});
+    try {
+      final categories = await _dataRepository.fetchCategories();
+      final items = await _dataRepository.fetchItems();
+
+      setState(() {
+        _categories = categories;
+        _items = items;
+        if (_categories.isNotEmpty && _selectedCategory == null) {
+          _selectedCategory = _categories.first;
+        }
+        _isLoading = false;
+      });
     } catch (e) {
-      // Show error message to user
+      setState(() {
+        _isLoading = false;
+      });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading data: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showErrorMessage('Error loading data: ${e.toString()}');
       }
     }
   }
@@ -77,7 +84,6 @@ class _SetupScreenState extends State<SetupScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Text(
             'Menu Setup',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -94,7 +100,6 @@ class _SetupScreenState extends State<SetupScreen> {
           ),
           const SizedBox(height: 32),
 
-          // Tab Bar
           Container(
             decoration: BoxDecoration(
               color: Colors.grey[100],
@@ -103,11 +108,7 @@ class _SetupScreenState extends State<SetupScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: _buildTabButton(
-                    'Categories',
-                    Icons.category,
-                    0,
-                  ),
+                  child: _buildTabButton('Categories', Icons.category, 0),
                 ),
                 Expanded(
                   child: _buildTabButton(
@@ -122,10 +123,16 @@ class _SetupScreenState extends State<SetupScreen> {
 
           const SizedBox(height: 24),
 
-          // Content
-          Expanded(
-            child: _selectedTab == 0 ? _buildCategoriesTab() : _buildItemsTab(),
-          ),
+          if (_isLoading)
+            const Expanded(
+              child: Center(
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else
+            Expanded(
+              child: _selectedTab == 0 ? _buildCategoriesTab() : _buildItemsTab(),
+            ),
         ],
       ),
     );
@@ -166,7 +173,6 @@ class _SetupScreenState extends State<SetupScreen> {
   Widget _buildCategoriesTab() {
     return Row(
       children: [
-        // Categories List
         Expanded(
           flex: 2,
           child: _buildSection(
@@ -174,7 +180,6 @@ class _SetupScreenState extends State<SetupScreen> {
             icon: Icons.category,
             child: Column(
               children: [
-                // Add Category Button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -193,7 +198,6 @@ class _SetupScreenState extends State<SetupScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Categories List
                 Expanded(
                   child: ListView.builder(
                     itemCount: _categories.length,
@@ -210,7 +214,6 @@ class _SetupScreenState extends State<SetupScreen> {
 
         const SizedBox(width: 24),
 
-        // Category Details/Form
         Expanded(
           flex: 1,
           child: _buildSection(
@@ -228,7 +231,6 @@ class _SetupScreenState extends State<SetupScreen> {
   Widget _buildItemsTab() {
     return Row(
       children: [
-        // Items List
         Expanded(
           flex: 2,
           child: _buildSection(
@@ -236,7 +238,6 @@ class _SetupScreenState extends State<SetupScreen> {
             icon: Icons.restaurant_menu,
             child: Column(
               children: [
-                // Category Filter and Add Item Button
                 Row(
                   children: [
                     Expanded(
@@ -250,12 +251,18 @@ class _SetupScreenState extends State<SetupScreen> {
                           filled: true,
                           fillColor: Colors.grey[50],
                         ),
-                        items: _categories.map((category) {
-                          return DropdownMenuItem(
-                            value: category,
-                            child: Text(category.name),
-                          );
-                        }).toList(),
+                        items: [
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('All Categories'),
+                          ),
+                          ..._categories.map((category) {
+                            return DropdownMenuItem(
+                              value: category,
+                              child: Text(category.name),
+                            );
+                          }),
+                        ],
                         onChanged: (category) {
                           setState(() {
                             _selectedCategory = category;
@@ -265,12 +272,15 @@ class _SetupScreenState extends State<SetupScreen> {
                     ),
                     const SizedBox(width: 16),
                     ElevatedButton.icon(
-                      onPressed: () => _showItemDialog(),
+                      onPressed: _categories.isEmpty
+                          ? null
+                          : () => _showItemDialog(),
                       icon: const Icon(Icons.add),
                       label: const Text('Add Item'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.grey,
                         padding: const EdgeInsets.symmetric(
                           vertical: 12,
                           horizontal: 16,
@@ -282,9 +292,20 @@ class _SetupScreenState extends State<SetupScreen> {
                     ),
                   ],
                 ),
+                if (_categories.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      'Please create at least one category before adding items',
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 16),
 
-                // Items List
                 Expanded(
                   child: ListView.builder(
                     itemCount: _getFilteredItems().length,
@@ -301,15 +322,12 @@ class _SetupScreenState extends State<SetupScreen> {
 
         const SizedBox(width: 24),
 
-        // Item Details/Form
         Expanded(
           flex: 1,
           child: _buildSection(
             title: _isEditingItem ? 'Edit Item' : 'Item Details',
             icon: Icons.info,
-            child: _isEditingItem
-                ? _buildItemForm()
-                : _buildItemDetails(),
+            child: _isEditingItem ? _buildItemForm() : _buildItemDetails(),
           ),
         ),
       ],
@@ -344,9 +362,7 @@ class _SetupScreenState extends State<SetupScreen> {
                 topLeft: Radius.circular(12),
                 topRight: Radius.circular(12),
               ),
-              border: Border(
-                bottom: BorderSide(color: Colors.grey[200]!),
-              ),
+              border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
             ),
             child: Row(
               children: [
@@ -364,10 +380,7 @@ class _SetupScreenState extends State<SetupScreen> {
             ),
           ),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: child,
-            ),
+            child: Padding(padding: const EdgeInsets.all(16), child: child),
           ),
         ],
       ),
@@ -375,8 +388,10 @@ class _SetupScreenState extends State<SetupScreen> {
   }
 
   Widget _buildCategoryCard(Category category) {
-    final itemCount = _items.where((item) => item.categoryId == category.id).length;
-    
+    final itemCount = _items
+        .where((item) => item.categoryId == category.id)
+        .length;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       child: Card(
@@ -386,26 +401,63 @@ class _SetupScreenState extends State<SetupScreen> {
           leading: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.1),
+              color: category.isActive
+                  ? Colors.red.withOpacity(0.1)
+                  : Colors.grey.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(Icons.category, color: Colors.red, size: 20),
+            child: Icon(
+              Icons.category,
+              color: category.isActive ? Colors.red : Colors.grey,
+              size: 20,
+            ),
           ),
           title: Text(
             category.name,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: category.isActive ? Colors.black87 : Colors.grey,
+            ),
           ),
-          subtitle: Text('$itemCount items'),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('$itemCount items'),
+              if (category.description != null && category.description!.isNotEmpty)
+                Text(
+                  category.description!,
+                  style: const TextStyle(fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              if (!category.isActive)
+                const Text(
+                  'Inactive',
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                ),
+            ],
+          ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
+                icon: const Icon(Icons.visibility, color: Colors.green),
+                onPressed: () => _viewCategory(category),
+                tooltip: 'View Details',
+              ),
+              IconButton(
                 icon: const Icon(Icons.edit, color: Colors.blue),
                 onPressed: () => _editCategory(category),
+                tooltip: 'Edit',
               ),
               IconButton(
                 icon: const Icon(Icons.delete, color: Colors.red),
                 onPressed: () => _deleteCategory(category),
+                tooltip: 'Delete',
               ),
             ],
           ),
@@ -415,8 +467,11 @@ class _SetupScreenState extends State<SetupScreen> {
   }
 
   Widget _buildItemCard(Item item) {
-    final category = _categories.firstWhere((cat) => cat.id == item.categoryId);
-    
+    final category = _categories.firstWhere(
+      (cat) => cat.id == item.categoryId,
+      orElse: () => Category(name: 'Unknown'),
+    );
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       child: Card(
@@ -433,7 +488,7 @@ class _SetupScreenState extends State<SetupScreen> {
             child: item.image != null
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.asset(
+                    child: Image.network(
                       item.image!,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
@@ -445,12 +500,22 @@ class _SetupScreenState extends State<SetupScreen> {
           ),
           title: Text(
             item.itemName,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: item.isAvailable ? Colors.black87 : Colors.grey,
+            ),
           ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(category.name),
+              if (item.description != null && item.description!.isNotEmpty)
+                Text(
+                  item.description!,
+                  style: const TextStyle(fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               Text(
                 'Rs. ${item.rate.toStringAsFixed(2)}',
                 style: TextStyle(
@@ -458,18 +523,34 @@ class _SetupScreenState extends State<SetupScreen> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
+              if (!item.isAvailable)
+                const Text(
+                  'Unavailable',
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                ),
             ],
           ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
+                icon: const Icon(Icons.visibility, color: Colors.green),
+                onPressed: () => _viewItem(item),
+                tooltip: 'View Details',
+              ),
+              IconButton(
                 icon: const Icon(Icons.edit, color: Colors.blue),
                 onPressed: () => _editItem(item),
+                tooltip: 'Edit',
               ),
               IconButton(
                 icon: const Icon(Icons.delete, color: Colors.red),
                 onPressed: () => _deleteItem(item),
+                tooltip: 'Delete',
               ),
             ],
           ),
@@ -495,40 +576,51 @@ class _SetupScreenState extends State<SetupScreen> {
               return null;
             },
           ),
-          const Spacer(),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _cancelCategoryEdit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[400],
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Cancel'),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _saveCategoryChanges,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Save'),
-                ),
-              ),
-            ],
+          const SizedBox(height: 16),
+          _buildFormField(
+            label: 'Description (Optional)',
+            controller: _categoryDescriptionController,
+            hint: 'Enter category description',
+            icon: Icons.description,
+            maxLines: 3,
           ),
+          const Spacer(),
+          if (_isSavingCategory)
+            const Center(child: CircularProgressIndicator())
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _cancelCategoryEdit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[400],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _saveCategoryChanges,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Text(_selectedCategoryForEdit == null ? 'Create' : 'Update'),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -552,6 +644,14 @@ class _SetupScreenState extends State<SetupScreen> {
             },
           ),
           const SizedBox(height: 16),
+          _buildFormField(
+            label: 'Description (Optional)',
+            controller: _itemDescriptionController,
+            hint: 'Enter item description',
+            icon: Icons.description,
+            maxLines: 2,
+          ),
+          const SizedBox(height: 16),
           DropdownButtonFormField<Category>(
             value: _selectedCategory,
             decoration: InputDecoration(
@@ -572,7 +672,7 @@ class _SetupScreenState extends State<SetupScreen> {
               filled: true,
               fillColor: Colors.grey[50],
             ),
-            items: _categories.map((category) {
+            items: _categories.where((cat) => cat.isActive).map((category) {
               return DropdownMenuItem(
                 value: category,
                 child: Text(category.name),
@@ -611,46 +711,49 @@ class _SetupScreenState extends State<SetupScreen> {
             },
           ),
           const Spacer(),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _cancelItemEdit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[400],
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+          if (_isSavingItem)
+            const Center(child: CircularProgressIndicator())
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _cancelItemEdit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[400],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
+                    child: const Text('Cancel'),
                   ),
-                  child: const Text('Cancel'),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _saveItemChanges,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _saveItemChanges,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
+                    child: Text(_selectedItemForEdit == null ? 'Create' : 'Update'),
                   ),
-                  child: const Text('Save'),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
         ],
       ),
     );
   }
 
   Widget _buildCategoryDetails() {
-    if (_selectedCategory == null) {
+    if (_selectedCategoryForEdit == null) {
       return const Center(
         child: Text(
           'Select a category to view details',
@@ -659,34 +762,65 @@ class _SetupScreenState extends State<SetupScreen> {
       );
     }
 
-    final categoryItems = _items.where((item) => item.categoryId == _selectedCategory!.id).toList();
+    final categoryItems = _items
+        .where((item) => item.categoryId == _selectedCategoryForEdit!.id)
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          _selectedCategory!.name,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _selectedCategoryForEdit!.name,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: _selectedCategoryForEdit!.isActive
+                    ? Colors.green.withOpacity(0.1)
+                    : Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                _selectedCategoryForEdit!.isActive ? 'Active' : 'Inactive',
+                style: TextStyle(
+                  color: _selectedCategoryForEdit!.isActive ? Colors.green : Colors.orange,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
+        if (_selectedCategoryForEdit!.description != null && 
+            _selectedCategoryForEdit!.description!.isNotEmpty) ...[
+          Text(
+            _selectedCategoryForEdit!.description!,
+            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+        ],
         Text(
           'Items: ${categoryItems.length}',
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 14,
-          ),
+          style: TextStyle(color: Colors.grey[600], fontSize: 14),
         ),
+        if (_selectedCategoryForEdit!.createdAt != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Created: ${_selectedCategoryForEdit!.createdAt.toString().split('.')[0]}',
+            style: TextStyle(color: Colors.grey[500], fontSize: 12),
+          ),
+        ],
         const SizedBox(height: 16),
         if (categoryItems.isNotEmpty) ...[
           const Text(
             'Items in this category:',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
           ),
           const SizedBox(height: 8),
           Expanded(
@@ -696,7 +830,17 @@ class _SetupScreenState extends State<SetupScreen> {
                 final item = categoryItems[index];
                 return ListTile(
                   dense: true,
-                  title: Text(item.itemName),
+                  leading: Icon(
+                    Icons.restaurant_menu,
+                    color: item.isAvailable ? Colors.green : Colors.grey,
+                    size: 16,
+                  ),
+                  title: Text(
+                    item.itemName,
+                    style: TextStyle(
+                      color: item.isAvailable ? Colors.black87 : Colors.grey,
+                    ),
+                  ),
                   trailing: Text(
                     'Rs. ${item.rate.toStringAsFixed(2)}',
                     style: TextStyle(
@@ -725,6 +869,7 @@ class _SetupScreenState extends State<SetupScreen> {
 
     final category = _categories.firstWhere(
       (cat) => cat.id == _selectedItemForEdit!.categoryId,
+      orElse: () => Category(name: 'Unknown'),
     );
 
     return Column(
@@ -740,30 +885,59 @@ class _SetupScreenState extends State<SetupScreen> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
+              child: Image.network(
                 _selectedItemForEdit!.image!,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
-                  return Icon(Icons.restaurant, size: 50, color: Colors.grey[600]);
+                  return Icon(
+                    Icons.restaurant,
+                    size: 50,
+                    color: Colors.grey[600],
+                  );
                 },
               ),
             ),
           ),
         const SizedBox(height: 16),
-        Text(
-          _selectedItemForEdit!.itemName,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _selectedItemForEdit!.itemName,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: _selectedItemForEdit!.isAvailable
+                    ? Colors.green.withOpacity(0.1)
+                    : Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                _selectedItemForEdit!.isAvailable ? 'Available' : 'Unavailable',
+                style: TextStyle(
+                  color: _selectedItemForEdit!.isAvailable ? Colors.green : Colors.orange,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
+        if (_selectedItemForEdit!.description != null && 
+            _selectedItemForEdit!.description!.isNotEmpty) ...[
+          Text(
+            _selectedItemForEdit!.description!,
+            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+        ],
         Text(
           'Category: ${category.name}',
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 14,
-          ),
+          style: TextStyle(color: Colors.grey[600], fontSize: 14),
         ),
         const SizedBox(height: 8),
         Text(
@@ -774,6 +948,13 @@ class _SetupScreenState extends State<SetupScreen> {
             fontSize: 16,
           ),
         ),
+        if (_selectedItemForEdit!.createdAt != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Created: ${_selectedItemForEdit!.createdAt.toString().split('.')[0]}',
+            style: TextStyle(color: Colors.grey[500], fontSize: 12),
+          ),
+        ],
       ],
     );
   }
@@ -786,6 +967,7 @@ class _SetupScreenState extends State<SetupScreen> {
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
+    int maxLines = 1,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -804,6 +986,7 @@ class _SetupScreenState extends State<SetupScreen> {
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
           validator: validator,
+          maxLines: maxLines,
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: Icon(icon, color: Colors.grey[600]),
@@ -831,14 +1014,18 @@ class _SetupScreenState extends State<SetupScreen> {
     if (_selectedCategory == null) {
       return _items;
     }
-    return _items.where((item) => item.categoryId == _selectedCategory!.id).toList();
+    return _items
+        .where((item) => item.categoryId == _selectedCategory!.id)
+        .toList();
   }
 
   void _showCategoryDialog() {
     _categoryNameController.clear();
+    _categoryDescriptionController.clear();
+    _selectedCategoryForEdit = null;
     _isEditingCategory = false;
     setState(() {});
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -849,10 +1036,19 @@ class _SetupScreenState extends State<SetupScreen> {
             TextFormField(
               controller: _categoryNameController,
               decoration: const InputDecoration(
-                labelText: 'Category Name',
+                labelText: 'Category Name *',
                 border: OutlineInputBorder(),
               ),
               autofocus: true,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _categoryDescriptionController,
+              decoration: const InputDecoration(
+                labelText: 'Description (Optional)',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
             ),
           ],
         ),
@@ -877,10 +1073,18 @@ class _SetupScreenState extends State<SetupScreen> {
 
   void _showItemDialog() {
     _itemNameController.clear();
+    _itemDescriptionController.clear();
     _itemRateController.clear();
+    _selectedItemForEdit = null;
     _isEditingItem = false;
-    setState(() {});
     
+    // Set default category if none selected
+    if (_selectedCategory == null && _categories.isNotEmpty) {
+      _selectedCategory = _categories.first;
+    }
+    
+    setState(() {});
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -891,19 +1095,28 @@ class _SetupScreenState extends State<SetupScreen> {
             TextFormField(
               controller: _itemNameController,
               decoration: const InputDecoration(
-                labelText: 'Item Name',
+                labelText: 'Item Name *',
                 border: OutlineInputBorder(),
               ),
               autofocus: true,
             ),
             const SizedBox(height: 16),
+            TextFormField(
+              controller: _itemDescriptionController,
+              decoration: const InputDecoration(
+                labelText: 'Description (Optional)',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+            ),
+            const SizedBox(height: 16),
             DropdownButtonFormField<Category>(
               value: _selectedCategory,
               decoration: const InputDecoration(
-                labelText: 'Category',
+                labelText: 'Category *',
                 border: OutlineInputBorder(),
               ),
-              items: _categories.map((category) {
+              items: _categories.where((cat) => cat.isActive).map((category) {
                 return DropdownMenuItem(
                   value: category,
                   child: Text(category.name),
@@ -919,7 +1132,7 @@ class _SetupScreenState extends State<SetupScreen> {
             TextFormField(
               controller: _itemRateController,
               decoration: const InputDecoration(
-                labelText: 'Price (Rs.)',
+                labelText: 'Price (Rs.) *',
                 border: OutlineInputBorder(),
               ),
               keyboardType: TextInputType.number,
@@ -950,204 +1163,301 @@ class _SetupScreenState extends State<SetupScreen> {
     );
   }
 
-  void _addCategory() async {
+  Future<void> _addCategory() async {
     try {
-      final dbHelper = DatabaseHelper();
-      final newCategory = Category(
-        name: _categoryNameController.text,
+      final newCategory = await _dataRepository.createCategory(
+        _categoryNameController.text.trim(),
+        description: _categoryDescriptionController.text.trim().isEmpty 
+            ? null 
+            : _categoryDescriptionController.text.trim(),
       );
-      
-      final id = await dbHelper.insertCategory(newCategory);
-      final categoryWithId = Category(id: id, name: newCategory.name);
-      
+
       setState(() {
-        _categories.add(categoryWithId);
+        _categories.add(newCategory);
+        _selectedCategory ??= newCategory;
       });
+      
       _showSuccessMessage('Category added successfully!');
     } catch (e) {
-      _showErrorMessage('Error adding category: $e');
+      _showErrorMessage('Error adding category: ${e.toString()}');
     }
   }
 
   void _editCategory(Category category) {
     _categoryNameController.text = category.name;
-    _selectedCategory = category;
+    _categoryDescriptionController.text = category.description ?? '';
+    _selectedCategoryForEdit = category;
     setState(() {
       _isEditingCategory = true;
     });
   }
 
-  void _addItem() async {
+  void _viewCategory(Category category) {
+    setState(() {
+      _selectedCategoryForEdit = category;
+      _isEditingCategory = false;
+    });
+  }
+
+  Future<void> _addItem() async {
     try {
-      final dbHelper = DatabaseHelper();
-      final newItem = Item(
-        categoryId: _selectedCategory!.id!,
-        itemName: _itemNameController.text,
-        rate: double.parse(_itemRateController.text),
+      final newItem = await _dataRepository.createItem(
+        _selectedCategory!.id!,
+        _itemNameController.text.trim(),
+        double.parse(_itemRateController.text),
+        description: _itemDescriptionController.text.trim().isEmpty 
+            ? null 
+            : _itemDescriptionController.text.trim(),
       );
-      
-      final id = await dbHelper.insertItem(newItem);
-      final itemWithId = Item(
-        id: id,
-        categoryId: newItem.categoryId,
-        itemName: newItem.itemName,
-        rate: newItem.rate,
-        image: newItem.image,
-      );
-      
+
       setState(() {
-        _items.add(itemWithId);
+        _items.add(newItem);
       });
+      
       _showSuccessMessage('Item added successfully!');
     } catch (e) {
-      _showErrorMessage('Error adding item: $e');
+      _showErrorMessage('Error adding item: ${e.toString()}');
     }
   }
 
   void _editItem(Item item) {
     _itemNameController.text = item.itemName;
+    _itemDescriptionController.text = item.description ?? '';
     _itemRateController.text = item.rate.toString();
-    _selectedCategory = _categories.firstWhere((cat) => cat.id == item.categoryId);
+    _selectedCategory = _categories.firstWhere(
+      (cat) => cat.id == item.categoryId,
+    );
     _selectedItemForEdit = item;
     setState(() {
       _isEditingItem = true;
     });
   }
 
-  void _deleteCategory(Category category) {
-    showDialog(
+  void _viewItem(Item item) {
+    setState(() {
+      _selectedItemForEdit = item;
+      _isEditingItem = false;
+    });
+  }
+
+  Future<void> _deleteCategory(Category category) async {
+    final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Category'),
-        content: Text('Are you sure you want to delete "${category.name}"? This will also delete all items in this category.'),
+        content: Text(
+          'Are you sure you want to delete "${category.name}"? This will also delete all items in this category.',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () async {
-              try {
-                final dbHelper = DatabaseHelper();
-                await dbHelper.deleteCategory(category.id!);
-                
-                setState(() {
-                  _categories.removeWhere((cat) => cat.id == category.id);
-                  _items.removeWhere((item) => item.categoryId == category.id);
-                  // Reset selected category if it was deleted
-                  if (_selectedCategory?.id == category.id) {
-                    _selectedCategory = _categories.isNotEmpty ? _categories.first : null;
-                  }
-                });
-                Navigator.pop(context);
-                _showSuccessMessage('Category deleted successfully!');
-              } catch (e) {
-                Navigator.pop(context);
-                _showErrorMessage('Error deleting category: $e');
-              }
-            },
+            onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
       ),
     );
+
+    if (result == true) {
+      try {
+        await _dataRepository.deleteCategory(category.id!);
+
+        setState(() {
+          _categories.removeWhere((cat) => cat.id == category.id);
+          _items.removeWhere((item) => item.categoryId == category.id);
+
+          if (_selectedCategory?.id == category.id) {
+            _selectedCategory = _categories.isNotEmpty
+                ? _categories.first
+                : null;
+          }
+          
+          if (_selectedCategoryForEdit?.id == category.id) {
+            _selectedCategoryForEdit = null;
+          }
+        });
+        
+        _showSuccessMessage('Category deleted successfully!');
+      } catch (e) {
+        _showErrorMessage('Error deleting category: ${e.toString()}');
+      }
+    }
   }
 
-  void _deleteItem(Item item) {
-    showDialog(
+  Future<void> _deleteItem(Item item) async {
+    final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Item'),
         content: Text('Are you sure you want to delete "${item.itemName}"?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () async {
-              try {
-                final dbHelper = DatabaseHelper();
-                await dbHelper.deleteItem(item.id!);
-                
-                setState(() {
-                  _items.removeWhere((i) => i.id == item.id);
-                });
-                Navigator.pop(context);
-                _showSuccessMessage('Item deleted successfully!');
-              } catch (e) {
-                Navigator.pop(context);
-                _showErrorMessage('Error deleting item: $e');
-              }
-            },
+            onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
       ),
     );
-  }
 
-  void _saveCategoryChanges() async {
-    if (_categoryFormKey.currentState!.validate()) {
+    if (result == true) {
       try {
-        final dbHelper = DatabaseHelper();
-        final updatedCategory = Category(
-          id: _selectedCategory!.id,
-          name: _categoryNameController.text,
-        );
+        await _dataRepository.deleteItem(item.id!);
+
+        setState(() {
+          _items.removeWhere((i) => i.id == item.id);
+          if (_selectedItemForEdit?.id == item.id) {
+            _selectedItemForEdit = null;
+          }
+        });
         
-        await dbHelper.updateCategory(updatedCategory);
-        
-        final index = _categories.indexWhere((cat) => cat.id == _selectedCategory!.id);
-        if (index != -1) {
-          setState(() {
-            _categories[index] = updatedCategory;
-            _selectedCategory = updatedCategory;
-            _isEditingCategory = false;
-          });
-          _showSuccessMessage('Category updated successfully!');
-        }
+        _showSuccessMessage('Item deleted successfully!');
       } catch (e) {
-        _showErrorMessage('Error updating category: $e');
+        _showErrorMessage('Error deleting item: ${e.toString()}');
       }
     }
   }
 
-  void _saveItemChanges() async {
-    if (_itemFormKey.currentState!.validate()) {
-      try {
-        final dbHelper = DatabaseHelper();
-        final updatedItem = Item(
-          id: _selectedItemForEdit!.id,
-          categoryId: _selectedCategory!.id!,
-          itemName: _itemNameController.text,
-          rate: double.parse(_itemRateController.text),
-          image: _selectedItemForEdit!.image,
+  Future<void> _saveCategoryChanges() async {
+    if (!_categoryFormKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _isSavingCategory = true;
+    });
+
+    try {
+      Category updatedCategory;
+      
+      if (_selectedCategoryForEdit == null) {
+        // Create new category
+        updatedCategory = await _dataRepository.createCategory(
+          _categoryNameController.text.trim(),
+          description: _categoryDescriptionController.text.trim().isEmpty 
+              ? null 
+              : _categoryDescriptionController.text.trim(),
         );
         
-        await dbHelper.updateItem(updatedItem);
+        setState(() {
+          _categories.add(updatedCategory);
+        });
+      } else {
+        // Update existing category
+        updatedCategory = await _dataRepository.updateCategory(
+          _selectedCategoryForEdit!.id!,
+          _categoryNameController.text.trim(),
+          description: _categoryDescriptionController.text.trim().isEmpty 
+              ? null 
+              : _categoryDescriptionController.text.trim(),
+        );
+
+        final index = _categories.indexWhere(
+          (cat) => cat.id == _selectedCategoryForEdit!.id,
+        );
+        if (index != -1) {
+          setState(() {
+            _categories[index] = updatedCategory;
+          });
+        }
+      }
+
+      setState(() {
+        _selectedCategoryForEdit = updatedCategory;
+        _isEditingCategory = false;
+        _isSavingCategory = false;
+      });
+      
+      _showSuccessMessage(_selectedCategoryForEdit == null 
+          ? 'Category created successfully!'
+          : 'Category updated successfully!');
+    } catch (e) {
+      setState(() {
+        _isSavingCategory = false;
+      });
+      _showErrorMessage('Error saving category: ${e.toString()}');
+    }
+  }
+
+  Future<void> _saveItemChanges() async {
+    if (!_itemFormKey.currentState!.validate() || _selectedCategory == null) {
+      return;
+    }
+
+    setState(() {
+      _isSavingItem = true;
+    });
+
+    try {
+      Item updatedItem;
+      
+      if (_selectedItemForEdit == null) {
+        // Create new item
+        updatedItem = await _dataRepository.createItem(
+          _selectedCategory!.id!,
+          _itemNameController.text.trim(),
+          double.parse(_itemRateController.text),
+          description: _itemDescriptionController.text.trim().isEmpty 
+              ? null 
+              : _itemDescriptionController.text.trim(),
+        );
         
-        final index = _items.indexWhere((item) => item.id == _selectedItemForEdit!.id);
+        setState(() {
+          _items.add(updatedItem);
+        });
+      } else {
+        // Update existing item
+        updatedItem = await _dataRepository.updateItem(
+          _selectedItemForEdit!.id!,
+          _selectedCategory!.id!,
+          _itemNameController.text.trim(),
+          double.parse(_itemRateController.text),
+          description: _itemDescriptionController.text.trim().isEmpty 
+              ? null 
+              : _itemDescriptionController.text.trim(),
+        );
+
+        final index = _items.indexWhere(
+          (item) => item.id == _selectedItemForEdit!.id,
+        );
         if (index != -1) {
           setState(() {
             _items[index] = updatedItem;
-            _selectedItemForEdit = updatedItem;
-            _isEditingItem = false;
           });
-          _showSuccessMessage('Item updated successfully!');
         }
-      } catch (e) {
-        _showErrorMessage('Error updating item: $e');
       }
+
+      setState(() {
+        _selectedItemForEdit = updatedItem;
+        _isEditingItem = false;
+        _isSavingItem = false;
+      });
+      
+      _showSuccessMessage(_selectedItemForEdit == null 
+          ? 'Item created successfully!'
+          : 'Item updated successfully!');
+    } catch (e) {
+      setState(() {
+        _isSavingItem = false;
+      });
+      _showErrorMessage('Error saving item: ${e.toString()}');
     }
   }
 
   void _cancelCategoryEdit() {
     setState(() {
       _isEditingCategory = false;
+      _selectedCategoryForEdit = null;
       _categoryNameController.clear();
+      _categoryDescriptionController.clear();
     });
   }
 
@@ -1156,6 +1466,7 @@ class _SetupScreenState extends State<SetupScreen> {
       _isEditingItem = false;
       _selectedItemForEdit = null;
       _itemNameController.clear();
+      _itemDescriptionController.clear();
       _itemRateController.clear();
     });
   }
