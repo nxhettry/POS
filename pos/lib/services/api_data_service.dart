@@ -786,4 +786,92 @@ class ApiDataService {
       'todaysSales': todaysSales,
     };
   }
+
+  // Cart methods
+  Future<Map<String, dynamic>> getCartByTable(int tableId) async {
+    final response = await _apiService.get(
+      '${Endpoints.cartsByTable}/$tableId',
+      requiresAuth: true,
+    );
+    return response['data'] ?? response;
+  }
+
+  Future<Map<String, dynamic>> createCart(int tableId) async {
+    final response = await _apiService.post(
+      Endpoints.carts,
+      {
+        'tableId': tableId,
+        'userId': 1, // Admin user
+        'status': 'open',
+      },
+      requiresAuth: true,
+    );
+    return response['data'] ?? response;
+  }
+
+  Future<void> addItemToCart(int cartId, int itemId, int quantity, double rate) async {
+    await _apiService.post(
+      Endpoints.cartItems,
+      {
+        'cartId': cartId,
+        'itemId': itemId,
+        'quantity': quantity,
+        'rate': rate,
+        'totalPrice': quantity * rate,
+      },
+      requiresAuth: true,
+    );
+  }
+
+  Future<void> updateCartItem(int cartItemId, int quantity, double rate) async {
+    await _apiService.put(
+      '${Endpoints.cartItemById}/$cartItemId',
+      {
+        'quantity': quantity,
+        'rate': rate,
+        'totalPrice': quantity * rate,
+      },
+      requiresAuth: true,
+    );
+  }
+
+  Future<void> removeCartItem(int cartItemId) async {
+    await _apiService.delete(
+      '${Endpoints.cartItemById}/$cartItemId',
+      requiresAuth: true,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getCartItems(int cartId) async {
+    final response = await _apiService.get(
+      '${Endpoints.itemsByCart}/$cartId/items',
+      requiresAuth: true,
+    );
+    final data = response['data'] as List? ?? [];
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+  Future<void> clearCartItems(int cartId) async {
+    await _apiService.delete(
+      '${Endpoints.clearCart}/$cartId/clear',
+      requiresAuth: true,
+    );
+  }
+
+  Future<Map<String, dynamic>> checkout(int cartId, Map<String, dynamic> orderData) async {
+    final response = await _apiService.post(
+      '${Endpoints.sales}',
+      orderData,
+      requiresAuth: true,
+    );
+    
+    // After successful checkout, close the cart
+    await _apiService.put(
+      '${Endpoints.cartById}/$cartId',
+      {'status': 'closed'},
+      requiresAuth: true,
+    );
+    
+    return response['data'] ?? response;
+  }
 }

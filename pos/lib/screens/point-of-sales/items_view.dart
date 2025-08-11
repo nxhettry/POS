@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import "../../services/cart_manager.dart";
+import "../../services/table_cart_manager.dart";
 import "../../services/data_repository.dart";
 import "../../models/models.dart";
 import "../../utils/responsive.dart";
@@ -635,7 +635,7 @@ class _ItemPopupState extends State<ItemPopup> {
                     'image': widget.item.image,
                   };
 
-                  CartManager().addItem(itemMap, quantity);
+                  TableCartManager().addItem(itemMap, quantity);
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(

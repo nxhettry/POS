@@ -238,6 +238,39 @@ class DataRepository {
     return await _apiDataService.getActiveExpenseCategories();
   }
 
+  // ========== CARTS ==========
+  Future<Map<String, dynamic>> getCartByTable(int tableId) async {
+    return await _apiDataService.getCartByTable(tableId);
+  }
+
+  Future<Map<String, dynamic>> createCart(int tableId) async {
+    return await _apiDataService.createCart(tableId);
+  }
+
+  Future<void> addItemToCart(int cartId, int itemId, int quantity, double rate) async {
+    await _apiDataService.addItemToCart(cartId, itemId, quantity, rate);
+  }
+
+  Future<void> updateCartItem(int cartItemId, int quantity, double rate) async {
+    await _apiDataService.updateCartItem(cartItemId, quantity, rate);
+  }
+
+  Future<void> removeCartItem(int cartItemId) async {
+    await _apiDataService.removeCartItem(cartItemId);
+  }
+
+  Future<List<Map<String, dynamic>>> getCartItems(int cartId) async {
+    return await _apiDataService.getCartItems(cartId);
+  }
+
+  Future<void> clearCartItems(int cartId) async {
+    await _apiDataService.clearCartItems(cartId);
+  }
+
+  Future<Map<String, dynamic>> checkout(int cartId, Map<String, dynamic> orderData) async {
+    return await _apiDataService.checkout(cartId, orderData);
+  }
+
   // ========== PARTIES ==========
   Future<List<Party>> fetchParties() async {
     return await _apiDataService.getParties();

@@ -1,25 +1,26 @@
 import "package:flutter/material.dart";
 import "../../services/data_repository.dart";
-import "../../services/cart_manager.dart";
+import "../../services/table_cart_manager.dart";
 import "../../models/models.dart" as models;
 import "../../utils/responsive.dart";
 import "../../utils/invoice.dart";
 import 'dart:developer' as developer;
 
 class BillSection extends StatefulWidget {
-  const BillSection({super.key});
+  final models.Table? selectedTable;
+  
+  const BillSection({super.key, this.selectedTable});
 
   @override
   State<BillSection> createState() => _BillSectionState();
 }
 
 class _BillSectionState extends State<BillSection> {
-  String? selectedTable;
   String? selectedTax = "0%";
   String? selectedOrderType = "dine_in";
   double discountValue = 0.00;
   bool isDiscountPercentage = true;
-  late final CartManager cartManager;
+  late final TableCartManager cartManager;
   final TextEditingController discountController = TextEditingController();
   List<models.Table> availableTables = [];
   final DataRepository _dataRepository = DataRepository();
@@ -27,9 +28,18 @@ class _BillSectionState extends State<BillSection> {
   @override
   void initState() {
     super.initState();
-    cartManager = CartManager();
+    cartManager = TableCartManager();
     cartManager.addListener(_onCartChanged);
     _loadTables();
+  }
+
+  @override
+  void didUpdateWidget(BillSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // When selected table changes, update cart manager
+    if (oldWidget.selectedTable?.id != widget.selectedTable?.id) {
+      cartManager.setSelectedTable(widget.selectedTable?.id);
+    }
   }
 
   Future<void> _loadTables() async {
@@ -87,7 +97,7 @@ class _BillSectionState extends State<BillSection> {
       return;
     }
 
-    if (selectedTable == null || selectedTable!.isEmpty) {
+    if (widget.selectedTable == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -101,7 +111,7 @@ class _BillSectionState extends State<BillSection> {
     }
 
     final orderData = cartManager.getOrderData(
-      selectedTable,
+      widget.selectedTable!.name,
       selectedOrderType == "dine_in" ? "Dine In" : "Takeaway",
       taxRate,
       discountValue,
@@ -153,7 +163,6 @@ class _BillSectionState extends State<BillSection> {
 
     // Reset form fields
     setState(() {
-      selectedTable = null;
       selectedOrderType = "dine_in";
       selectedTax = "0%";
       discountValue = 0.00;
@@ -211,48 +220,30 @@ class _BillSectionState extends State<BillSection> {
                       ),
                     ],
                   ),
-                  child: DropdownButtonFormField(
-                    decoration: InputDecoration(
-                      labelText: "Table No",
-                      labelStyle: TextStyle(
-                        fontSize: ResponsiveUtils.getFontSize(context, 14),
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
-                        vertical: ResponsiveUtils.getSpacing(context, base: 12),
-                        horizontal: ResponsiveUtils.getSpacing(context, base: 12),
-                      ),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      vertical: ResponsiveUtils.getSpacing(context, base: 12),
+                      horizontal: ResponsiveUtils.getSpacing(context, base: 12),
                     ),
-                    value: selectedTable,
-                    items: [
-                      DropdownMenuItem<String>(
-                        value: null,
-                        child: Text(
-                          availableTables.isEmpty 
-                            ? "Loading tables..." 
-                            : "Select a Table",
+                    child: Row(
+                      children: [
+                        Text(
+                          "Table: ",
                           style: TextStyle(
-                            color: Colors.grey,
                             fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            color: Colors.grey[600],
                           ),
                         ),
-                      ),
-                      for (var table in availableTables)
-                        DropdownMenuItem<String>(
-                          value: table.name,
-                          child: Text(
-                            table.name,
-                            style: TextStyle(
-                              fontSize: ResponsiveUtils.getFontSize(context, 14),
-                            ),
+                        Text(
+                          widget.selectedTable?.name ?? "No Table Selected",
+                          style: TextStyle(
+                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            fontWeight: FontWeight.w600,
+                            color: widget.selectedTable != null ? Colors.black : Colors.grey,
                           ),
                         ),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        selectedTable = value;
-                      });
-                    },
+                      ],
+                    ),
                   ),
                 ),
               ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../services/data_repository.dart';
+import '../../services/table_cart_manager.dart';
 import '../../models/models.dart' as pos_models;
 import '../../utils/responsive.dart';
+import '../../data.dart';
 
 class TablesView extends StatefulWidget {
   final int? selectedTableId;
@@ -15,6 +17,7 @@ class TablesView extends StatefulWidget {
 class _TablesViewState extends State<TablesView> {
   int? selectedTableId;
   final DataRepository _dataRepository = DataRepository();
+  final TableCartManager _cartManager = TableCartManager();
 
   @override
   void initState() {
@@ -56,17 +59,23 @@ class _TablesViewState extends State<TablesView> {
                     setState(() {
                       selectedTableId = table.id;
                     });
+                    
+                    // Update cart manager with selected table
+                    _cartManager.setSelectedTable(table.id);
+                    
                     if (widget.onTableSelected != null) {
                       widget.onTableSelected!(table);
                     }
                   },
                   child: Card(
-                    color: isSelected ? Colors.red[100] : Colors.white,
+                    color: isSelected ? Colors.red[100] : 
+                           (DummyData.tableHasActiveCart(table.id ?? 0) ? Colors.orange[50] : Colors.white),
                     elevation: 2,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                       side: BorderSide(
-                        color: isSelected ? Colors.red : Colors.grey[300]!,
+                        color: isSelected ? Colors.red : 
+                               (DummyData.tableHasActiveCart(table.id ?? 0) ? Colors.orange : Colors.grey[300]!),
                         width: isSelected ? 2 : 1,
                       ),
                     ),
@@ -75,18 +84,45 @@ class _TablesViewState extends State<TablesView> {
                         horizontal: 12,
                         vertical: 8,
                       ),
-                      child: Center(
-                        child: Text(
-                          table.name,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: isSelected ? Colors.red : Colors.black87,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            table.name,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: isSelected ? Colors.red : 
+                                     (DummyData.tableHasActiveCart(table.id ?? 0) ? Colors.orange[800] : Colors.black87),
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                          if (DummyData.tableHasActiveCart(table.id ?? 0))
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.shopping_cart,
+                                    size: 12,
+                                    color: Colors.orange[800],
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    '${DummyData.getTableCartItemCount(table.id ?? 0)} items',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.orange[800],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),

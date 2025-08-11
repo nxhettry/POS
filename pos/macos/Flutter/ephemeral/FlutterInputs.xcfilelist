@@ -1601,6 +1601,7 @@
 /Users/nishangautam/Downloads/Work/RatoPos/pos/assets/images/rato_khata.png
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/api/api_service.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/api/endpoints.dart
+/Users/nishangautam/Downloads/Work/RatoPos/pos/lib/data.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/main.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/models/models.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/activity/activity_screen.dart
@@ -1622,9 +1623,9 @@
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/settings/system_screen.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/settings/tax_screen.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/services/api_data_service.dart
-/Users/nishangautam/Downloads/Work/RatoPos/pos/lib/services/cart_manager.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/services/data_repository.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/services/database_helper.dart
+/Users/nishangautam/Downloads/Work/RatoPos/pos/lib/services/table_cart_manager.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/utils/invoice.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/utils/responsive.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/widgets/drawer_list_item.dart

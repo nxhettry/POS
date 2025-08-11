@@ -1,13 +1,16 @@
 import 'package:flutter/foundation.dart';
 import '../models/models.dart';
+import '../data.dart';
 
 class CartManager extends ChangeNotifier {
   static final CartManager _instance = CartManager._internal();
   factory CartManager() => _instance;
   CartManager._internal();
 
+  int? _selectedTableId;
   final List<CartItem> _cartItems = [];
 
+  int? get selectedTableId => _selectedTableId;
   List<CartItem> get cartItems => List.unmodifiable(_cartItems);
 
   bool get isEmpty => _cartItems.isEmpty;
@@ -17,7 +20,52 @@ class CartManager extends ChangeNotifier {
   double get subtotal =>
       _cartItems.fold(0, (sum, item) => sum + item.totalPrice);
 
+  // Set the selected table and load its cart data
+  void setSelectedTable(int? tableId) {
+    if (_selectedTableId != tableId) {
+      _selectedTableId = tableId;
+      _loadTableCart();
+      notifyListeners();
+    }
+  }
+
+  // Load cart items for the selected table from dummy data
+  void _loadTableCart() {
+    _cartItems.clear();
+    if (_selectedTableId != null) {
+      final tableCartItems = DummyData.getTableCartItems(_selectedTableId!);
+      _cartItems.addAll(tableCartItems);
+    }
+  }
+
+  // Save cart to dummy data when items change
+  void _saveTableCart() {
+    if (_selectedTableId != null) {
+      // Clear existing cart items for this table
+      DummyData.clearTableCart(_selectedTableId!);
+      
+      // Add current cart items back to dummy data
+      for (final cartItem in _cartItems) {
+        final menuItem = {
+          'id': cartItem.item['id'],
+          'itemName': cartItem.item['item_name'],
+          'description': cartItem.item['description'],
+          'rate': cartItem.item['rate'],
+          'image': cartItem.item['image'],
+          'categoryId': cartItem.item['categoryId'],
+          'isAvailable': cartItem.item['isAvailable'] ?? true,
+        };
+        DummyData.addItemToTableCart(_selectedTableId!, menuItem, cartItem.quantity);
+      }
+    }
+  }
+
   void addItem(Map<String, dynamic> item, int quantity) {
+    if (_selectedTableId == null) {
+      // If no table is selected, don't add items
+      return;
+    }
+
     final existingIndex = _cartItems.indexWhere(
       (cartItem) => cartItem.item['id'] == item['id'],
     );
@@ -28,10 +76,13 @@ class CartManager extends ChangeNotifier {
       _cartItems.add(CartItem(item: item, quantity: quantity));
     }
 
+    _saveTableCart();
     notifyListeners();
   }
 
   void updateItemQuantity(int itemId, int newQuantity) {
+    if (_selectedTableId == null) return;
+
     final index = _cartItems.indexWhere(
       (cartItem) => cartItem.item['id'] == itemId,
     );
@@ -42,17 +93,24 @@ class CartManager extends ChangeNotifier {
       } else {
         _cartItems[index].quantity = newQuantity;
       }
+      _saveTableCart();
       notifyListeners();
     }
   }
 
   void removeItem(int itemId) {
+    if (_selectedTableId == null) return;
+
     _cartItems.removeWhere((cartItem) => cartItem.item['id'] == itemId);
+    _saveTableCart();
     notifyListeners();
   }
 
   void clearCart() {
     _cartItems.clear();
+    if (_selectedTableId != null) {
+      DummyData.clearTableCart(_selectedTableId!);
+    }
     notifyListeners();
   }
 

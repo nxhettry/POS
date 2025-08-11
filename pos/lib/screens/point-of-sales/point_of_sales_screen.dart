@@ -3,9 +3,23 @@ import 'package:pos/screens/point-of-sales/bill_section.dart';
 import 'package:pos/screens/point-of-sales/items_view.dart';
 import 'package:pos/screens/point-of-sales/tables_view.dart';
 import '../../utils/responsive.dart';
+import '../../models/models.dart' as models;
 
-class PointOfSaleScreen extends StatelessWidget {
+class PointOfSaleScreen extends StatefulWidget {
   const PointOfSaleScreen({super.key});
+
+  @override
+  State<PointOfSaleScreen> createState() => _PointOfSaleScreenState();
+}
+
+class _PointOfSaleScreenState extends State<PointOfSaleScreen> {
+  models.Table? selectedTable;
+
+  void _onTableSelected(models.Table? table) {
+    setState(() {
+      selectedTable = table;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +36,10 @@ class PointOfSaleScreen extends StatelessWidget {
                   children: [
                     SizedBox(
                       height: 120,
-                      child: TablesView(),
+                      child: TablesView(
+                        selectedTableId: selectedTable?.id,
+                        onTableSelected: _onTableSelected,
+                      ),
                     ),
                     Expanded(child: ItemsView()),
                   ],
@@ -31,7 +48,7 @@ class PointOfSaleScreen extends StatelessWidget {
               SizedBox(width: ResponsiveUtils.getSpacing(context)),
               Expanded(
                 flex: ResponsiveUtils.getBillSectionFlex(context).round(),
-                child: const BillSection(),
+                child: BillSection(selectedTable: selectedTable),
               ),
             ],
           ),
