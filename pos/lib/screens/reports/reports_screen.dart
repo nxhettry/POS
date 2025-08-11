@@ -31,16 +31,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
   List<Sales> allSales = [];
   List<Expense> allExpenses = [];
   List<ExpensesCategory> expenseCategories = [];
+  Map<String, dynamic> analyticsData = {};
   bool isLoading = true;
   String selectedView = 'overview';
 
   @override
   void initState() {
     super.initState();
-    _loadSalesData();
+    _loadReportsData();
   }
 
-  Future<void> _loadSalesData() async {
+  Future<void> _loadReportsData() async {
     setState(() {
       isLoading = true;
     });
@@ -69,17 +70,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
           startDate = DateTime(now.year, now.month, now.day);
       }
 
-      final sales = await _dataRepository.fetchSalesByDateRange(startDate, now);
-      final expenses = await _dataRepository.fetchExpensesByDateRange(
-        startDate,
-        now,
-      );
-      final categories = await _dataRepository.fetchExpenseCategories();
+      // Fetch data in parallel for better performance
+      final results = await Future.wait([
+        _dataRepository.fetchSalesByDateRange(startDate, now),
+        _dataRepository.fetchExpensesByDateRange(startDate, now),
+        _dataRepository.fetchExpenseCategories(),
+        _dataRepository.getSalesAnalytics(startDate, now),
+      ]);
 
       setState(() {
-        allSales = sales;
-        allExpenses = expenses;
-        expenseCategories = categories;
+        allSales = results[0] as List<Sales>;
+        allExpenses = results[1] as List<Expense>;
+        expenseCategories = results[2] as List<ExpensesCategory>;
+        analyticsData = results[3] as Map<String, dynamic>;
         isLoading = false;
       });
     } catch (e) {
@@ -87,6 +90,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         allSales = [];
         allExpenses = [];
         expenseCategories = [];
+        analyticsData = {};
         isLoading = false;
       });
 
@@ -124,7 +128,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadSalesData,
+            onPressed: _loadReportsData,
           ),
           isExporting
               ? const Padding(
@@ -179,7 +183,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
           Expanded(
             child: RefreshIndicator(
-              onRefresh: _loadSalesData,
+              onRefresh: _loadReportsData,
               child: allSales.isEmpty
                   ? _buildEmptyState()
                   : _buildSelectedView(
@@ -203,7 +207,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           selectedPeriod = period;
           currentPage = 0;
         });
-        _loadSalesData();
+        _loadReportsData();
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -321,19 +325,23 @@ class _ReportsScreenState extends State<ReportsScreen> {
     Map<String, dynamic> reportData,
     List<Map<String, dynamic>> mostSoldItems,
   ) {
+    // Use analytics data if available, fallback to calculated data
+    final summary = analyticsData['summary'] ?? {};
+    final topItems = analyticsData['topItems'] ?? mostSoldItems;
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildEnhancedSummaryCards(reportData),
+          _buildEnhancedSummaryCards(summary),
           const SizedBox(height: 24),
-          _buildQuickInsights(reportData),
+          _buildQuickInsights(summary),
           const SizedBox(height: 24),
-          _buildTopItemsOverview(mostSoldItems),
+          _buildTopItemsOverview(topItems),
           const SizedBox(height: 24),
-          _buildRecentPerformance(reportData),
+          _buildRecentPerformance(summary),
         ],
       ),
     );
@@ -344,17 +352,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
     Map<String, dynamic> reportData,
     List<Map<String, dynamic>> mostSoldItems,
   ) {
+    // Use analytics data if available
+    final dailySales = analyticsData['dailySales'] ?? {};
+    final topItems = analyticsData['topItems'] ?? mostSoldItems;
+    final orderTypeStats = analyticsData['orderTypeStats'] ?? {};
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildDailySalesChart(filteredSales),
+          _buildDailySalesChart(dailySales),
           const SizedBox(height: 24),
-          _buildTopItemsChart(mostSoldItems),
+          _buildTopItemsChart(topItems),
           const SizedBox(height: 24),
-          _buildOrderTypeChart(filteredSales),
+          _buildOrderTypeChart(orderTypeStats),
           const SizedBox(height: 24),
           _buildHourlySalesChart(filteredSales),
         ],
@@ -382,10 +395,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildExpensesView() {
     final filteredExpenses = allExpenses;
-    final totalExpenses = filteredExpenses.fold<double>(
-      0.0,
-      (sum, expense) => sum + expense.amount,
-    );
+    final totalExpenses = analyticsData['summary']?['totalExpenses']?.toDouble() ?? 
+        filteredExpenses.fold<double>(0.0, (sum, expense) => sum + expense.amount);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -395,10 +406,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
         children: [
           _buildExpenseSummaryCards(totalExpenses, filteredExpenses.length),
           const SizedBox(height: 24),
-
           _buildExpenseCategoryChart(filteredExpenses),
           const SizedBox(height: 24),
-
           _buildExpenseRecordsSection(filteredExpenses),
         ],
       ),
@@ -815,16 +824,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildEnhancedSummaryCards(Map<String, dynamic> reportData) {
-    final averageOrderValue = reportData['salesCount'] > 0
-        ? reportData['totalAmount'] / reportData['salesCount']
-        : 0.0;
-
-    final totalExpenses = allExpenses.fold<double>(
-      0.0,
-      (sum, expense) => sum + expense.amount,
-    );
-    final profit = reportData['totalAmount'] - totalExpenses;
+  Widget _buildEnhancedSummaryCards(Map<String, dynamic> summary) {
+    final totalRevenue = summary['totalSales']?.toDouble() ?? 0.0;
+    final totalExpenses = summary['totalExpenses']?.toDouble() ?? 0.0;
+    final netProfit = summary['netProfit']?.toDouble() ?? (totalRevenue - totalExpenses);
+    final totalOrders = summary['totalOrders']?.toInt() ?? 0;
+    final totalItemsSold = summary['totalItemsSold']?.toInt() ?? 0;
+    final averageOrderValue = summary['averageOrderValue']?.toDouble() ?? 0.0;
 
     return Column(
       children: [
@@ -833,7 +839,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             Expanded(
               child: _buildSummaryCard(
                 'Total Revenue',
-                'NPR ${NumberFormat('#,##0.00').format(reportData['totalAmount'] ?? 0.0)}',
+                'NPR ${NumberFormat('#,##0.00').format(totalRevenue)}',
                 Icons.trending_up,
                 Colors.green,
               ),
@@ -855,16 +861,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
             Expanded(
               child: _buildSummaryCard(
                 'Net Profit',
-                'NPR ${NumberFormat('#,##0.00').format(profit)}',
+                'NPR ${NumberFormat('#,##0.00').format(netProfit)}',
                 Icons.account_balance_wallet,
-                profit >= 0 ? Colors.green : Colors.red,
+                netProfit >= 0 ? Colors.green : Colors.red,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildSummaryCard(
                 'Total Orders',
-                '${reportData['salesCount']}',
+                '$totalOrders',
                 Icons.receipt_long,
                 Colors.blue,
               ),
@@ -877,7 +883,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             Expanded(
               child: _buildSummaryCard(
                 'Items Sold',
-                '${reportData['productsSold']}',
+                '$totalItemsSold',
                 Icons.shopping_cart,
                 Colors.orange,
               ),
@@ -999,7 +1005,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildTopItemsOverview(List<Map<String, dynamic>> mostSoldItems) {
+  Widget _buildTopItemsOverview(List<dynamic> topItems) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -1026,13 +1032,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          ...mostSoldItems.take(5).map((item) => _buildTopItemRow(item)),
+          ...topItems.take(5).map((item) => _buildTopItemRow(item)),
         ],
       ),
     );
   }
 
-  Widget _buildTopItemRow(Map<String, dynamic> item) {
+  Widget _buildTopItemRow(dynamic item) {
+    final itemName = item is Map ? item['name']?.toString() ?? 'Unknown' : 'Unknown';
+    final quantity = item is Map ? item['quantity']?.toString() ?? '0' : '0';
+    final revenue = item is Map ? item['revenue']?.toDouble() ?? 0.0 : 0.0;
+    
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -1052,7 +1062,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item['name'],
+                  itemName,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -1060,7 +1070,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   ),
                 ),
                 Text(
-                  '${item['quantity']} sold • Rs. ${item['revenue'].toStringAsFixed(2)}',
+                  '$quantity sold • Rs. ${revenue.toStringAsFixed(2)}',
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],
@@ -1223,6 +1233,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
+  Color _getPaymentStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'paid':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      case 'partial':
+        return Colors.yellow;
+      case 'refunded':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
   String _calculateGrowthPercentage(Map<String, dynamic> reportData) {
     return "+12.5";
   }
@@ -1244,7 +1269,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return bestDay.key;
   }
 
-  Widget _buildDailySalesChart(List<Sales> sales) {
+  Widget _buildDailySalesChart(Map<String, dynamic> dailySalesData) {
     return Container(
       width: double.infinity,
       height: 300,
@@ -1273,7 +1298,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ),
           const SizedBox(height: 20),
           Expanded(
-            child: _getDailySalesSpots(sales).isEmpty
+            child: dailySalesData.isEmpty
                 ? const Center(
                     child: Text(
                       'No sales data available for this period',
@@ -1317,7 +1342,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       borderData: FlBorderData(show: false),
                       lineBarsData: [
                         LineChartBarData(
-                          spots: _getDailySalesSpots(sales),
+                          spots: _getDailySalesSpotsFromAnalytics(dailySalesData),
                           isCurved: true,
                           color: Colors.blue,
                           barWidth: 3,
@@ -1336,7 +1361,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildTopItemsChart(List<Map<String, dynamic>> mostSoldItems) {
+  List<FlSpot> _getDailySalesSpotsFromAnalytics(Map<String, dynamic> dailySalesData) {
+    if (dailySalesData.isEmpty) return [];
+    
+    final spots = <FlSpot>[];
+    final sortedKeys = dailySalesData.keys.toList()..sort();
+    
+    for (int i = 0; i < sortedKeys.length; i++) {
+      final key = sortedKeys[i];
+      final value = dailySalesData[key]?.toDouble() ?? 0.0;
+      spots.add(FlSpot(i.toDouble(), value));
+    }
+    
+    return spots;
+  }
+
+  Widget _buildTopItemsChart(List<dynamic> topItems) {
     return Container(
       width: double.infinity,
       height: 300,
@@ -1365,7 +1405,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ),
           const SizedBox(height: 20),
           Expanded(
-            child: mostSoldItems.isEmpty
+            child: topItems.isEmpty
                 ? const Center(
                     child: Text(
                       'No item sales data available',
@@ -1393,13 +1433,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             showTitles: true,
                             getTitlesWidget: (value, meta) {
                               final index = value.toInt();
-                              if (index >= 0 && index < mostSoldItems.length) {
-                                final name =
-                                    mostSoldItems[index]['name'] as String;
+                              if (index >= 0 && index < topItems.length) {
+                                final item = topItems[index];
+                                final name = item is Map ? item['name']?.toString() ?? '' : '';
                                 return Text(
-                                  name.length > 8
-                                      ? '${name.substring(0, 8)}...'
-                                      : name,
+                                  name.length > 8 ? '${name.substring(0, 8)}...' : name,
                                   style: const TextStyle(fontSize: 10),
                                 );
                               }
@@ -1415,7 +1453,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         ),
                       ),
                       borderData: FlBorderData(show: false),
-                      barGroups: _getTopItemsBarGroups(mostSoldItems),
+                      barGroups: _getTopItemsBarGroupsFromAnalytics(topItems),
                     ),
                   ),
           ),
@@ -1424,7 +1462,31 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildOrderTypeChart(List<Sales> sales) {
+  List<BarChartGroupData> _getTopItemsBarGroupsFromAnalytics(List<dynamic> items) {
+    if (items.isEmpty) return [];
+
+    return items.take(5).toList().asMap().entries.map((entry) {
+      final item = entry.value;
+      final quantity = item is Map ? item['quantity']?.toDouble() ?? 0.0 : 0.0;
+      
+      return BarChartGroupData(
+        x: entry.key,
+        barRods: [
+          BarChartRodData(
+            toY: quantity,
+            color: Colors.blue,
+            width: 20,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(4),
+              topRight: Radius.circular(4),
+            ),
+          ),
+        ],
+      );
+    }).toList();
+  }
+
+  Widget _buildOrderTypeChart(Map<String, dynamic> orderTypeStats) {
     return Container(
       width: double.infinity,
       height: 300,
@@ -1459,7 +1521,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   flex: 2,
                   child: PieChart(
                     PieChartData(
-                      sections: _getOrderTypePieChartSections(sales),
+                      sections: _getOrderTypePieChartSectionsFromAnalytics(orderTypeStats),
                       centerSpaceRadius: 40,
                       sectionsSpace: 2,
                     ),
@@ -1482,6 +1544,39 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ],
       ),
     );
+  }
+
+  List<PieChartSectionData> _getOrderTypePieChartSectionsFromAnalytics(Map<String, dynamic> orderTypeStats) {
+    final dineInCount = orderTypeStats['dineIn']?.toInt() ?? 0;
+    final takeawayCount = orderTypeStats['takeaway']?.toInt() ?? 0;
+    final total = dineInCount + takeawayCount;
+    
+    if (total == 0) return [];
+
+    return [
+      PieChartSectionData(
+        value: dineInCount.toDouble(),
+        title: '${((dineInCount / total) * 100).toStringAsFixed(1)}%',
+        color: Colors.blue,
+        radius: 60,
+        titleStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      ),
+      PieChartSectionData(
+        value: takeawayCount.toDouble(),
+        title: '${((takeawayCount / total) * 100).toStringAsFixed(1)}%',
+        color: Colors.orange,
+        radius: 60,
+        titleStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      ),
+    ];
   }
 
   Widget _buildHourlySalesChart(List<Sales> sales) {
@@ -1698,140 +1793,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  List<FlSpot> _getDailySalesSpots(List<Sales> sales) {
-    if (sales.isEmpty) return [];
-
-    final Map<int, double> salesByPeriod = {};
-
-    switch (selectedPeriod) {
-      case '1day':
-        for (int i = 0; i < 24; i++) {
-          salesByPeriod[i] = 0;
-        }
-        for (final sale in sales) {
-          final hour = sale.timestamp.hour;
-          salesByPeriod[hour] = (salesByPeriod[hour] ?? 0) + sale.total;
-        }
-        break;
-
-      case '7days':
-        for (int i = 0; i < 7; i++) {
-          salesByPeriod[i] = 0;
-        }
-        for (final sale in sales) {
-          final dayOfWeek = (sale.timestamp.weekday - 1) % 7;
-          salesByPeriod[dayOfWeek] =
-              (salesByPeriod[dayOfWeek] ?? 0) + sale.total;
-        }
-        break;
-
-      case '1 month':
-        final now = DateTime.now();
-        final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
-        for (int i = 1; i <= daysInMonth; i++) {
-          salesByPeriod[i] = 0;
-        }
-        for (final sale in sales) {
-          final day = sale.timestamp.day;
-          salesByPeriod[day] = (salesByPeriod[day] ?? 0) + sale.total;
-        }
-        break;
-
-      case '3months':
-      case '6 months':
-        if (sales.isNotEmpty) {
-          final startDate = sales
-              .map((s) => s.timestamp)
-              .reduce((a, b) => a.isBefore(b) ? a : b);
-          final endDate = sales
-              .map((s) => s.timestamp)
-              .reduce((a, b) => a.isAfter(b) ? a : b);
-
-          final weeksDifference = endDate.difference(startDate).inDays ~/ 7 + 1;
-
-          for (int i = 0; i < weeksDifference; i++) {
-            salesByPeriod[i] = 0;
-          }
-
-          for (final sale in sales) {
-            final weekIndex = sale.timestamp.difference(startDate).inDays ~/ 7;
-            salesByPeriod[weekIndex] =
-                (salesByPeriod[weekIndex] ?? 0) + sale.total;
-          }
-        }
-        break;
-    }
-
-    return salesByPeriod.entries
-        .map((entry) => FlSpot(entry.key.toDouble(), entry.value))
-        .toList()
-      ..sort((a, b) => a.x.compareTo(b.x));
-  }
-
-  List<BarChartGroupData> _getTopItemsBarGroups(
-    List<Map<String, dynamic>> items,
-  ) {
-    if (items.isEmpty) return [];
-
-    return items.take(5).toList().asMap().entries.map((entry) {
-      return BarChartGroupData(
-        x: entry.key,
-        barRods: [
-          BarChartRodData(
-            toY: entry.value['quantity'].toDouble(),
-            color: Colors.blue,
-            width: 20,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(4),
-              topRight: Radius.circular(4),
-            ),
-          ),
-        ],
-      );
-    }).toList();
-  }
-
-  List<PieChartSectionData> _getOrderTypePieChartSections(List<Sales> sales) {
-    int dineInCount = 0;
-    int takeawayCount = 0;
-
-    for (final sale in sales) {
-      if (sale.orderType == 'Dine In') {
-        dineInCount++;
-      } else {
-        takeawayCount++;
-      }
-    }
-
-    final total = dineInCount + takeawayCount;
-    if (total == 0) return [];
-
-    return [
-      PieChartSectionData(
-        value: dineInCount.toDouble(),
-        title: '${((dineInCount / total) * 100).toStringAsFixed(1)}%',
-        color: Colors.blue,
-        radius: 60,
-        titleStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-      ),
-      PieChartSectionData(
-        value: takeawayCount.toDouble(),
-        title: '${((takeawayCount / total) * 100).toStringAsFixed(1)}%',
-        color: Colors.orange,
-        radius: 60,
-        titleStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-      ),
-    ];
-  }
-
   List<BarChartGroupData> _getHourlySalesBarGroups(List<Sales> sales) {
     final Map<int, double> hourlyRevenue = {};
     for (int i = 0; i < 24; i++) {
@@ -1966,7 +1927,25 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
                 DataColumn(
                   label: Text(
-                    'Items',
+                    'Payment Status',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Items Count',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Subtotal',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Tax',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -1984,10 +1963,24 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
               ],
               rows: paginatedSales.map((sale) {
+                // Calculate total items from SalesItems if available
+                int totalItems = 0;
+                if (sale.items.isNotEmpty) {
+                  for (var item in sale.items) {
+                    if (item is SalesItem) {
+                      totalItems += item.quantity.toInt();
+                    } else if (item is CartItem) {
+                      totalItems += item.quantity;
+                    } else if (item is Map) {
+                      totalItems += ((item['quantity'] ?? 0) as num).toInt();
+                    }
+                  }
+                }
+
                 return DataRow(
                   cells: [
-                    DataCell(Text(sale.invoiceNo)),
-                    DataCell(Text(sale.table)),
+                    DataCell(Text(sale.invoiceNo.isNotEmpty ? sale.invoiceNo : 'N/A')),
+                    DataCell(Text(sale.table.isNotEmpty ? sale.table : 'N/A')),
                     DataCell(
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -1995,7 +1988,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: sale.orderType == 'Dine In'
+                          color: sale.orderType == 'Dine In' || sale.orderType == 'dine-in'
                               ? Colors.blue.withOpacity(0.1)
                               : Colors.orange.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
@@ -2003,7 +1996,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         child: Text(
                           sale.orderType,
                           style: TextStyle(
-                            color: sale.orderType == 'Dine In'
+                            color: sale.orderType == 'Dine In' || sale.orderType == 'dine-in'
                                 ? Colors.blue
                                 : Colors.orange,
                             fontWeight: FontWeight.w500,
@@ -2012,15 +2005,48 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       ),
                     ),
                     DataCell(
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getPaymentStatusColor(sale.paymentStatus).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          sale.paymentStatus,
+                          style: TextStyle(
+                            color: _getPaymentStatusColor(sale.paymentStatus),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                    DataCell(Text('$totalItems items')),
+                    DataCell(
                       Text(
-                        '${sale.items.fold<int>(0, (sum, item) => sum + (item.quantity is int ? item.quantity as int : (item.quantity as double).round()))} items',
+                        'Rs. ${sale.subtotal.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    DataCell(
+                      Text(
+                        'Rs. ${sale.tax.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          color: Colors.blue,
+                        ),
                       ),
                     ),
                     DataCell(
                       Text(
                         'Rs. ${sale.total.toStringAsFixed(2)}',
                         style: const TextStyle(
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.bold,
                           color: Colors.green,
                         ),
                       ),
@@ -2162,14 +2188,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
     double totalDiscount = 0.0;
 
     for (final sale in sales) {
-      totalProductsSold += sale.items.fold<int>(
-        0,
-        (sum, item) =>
-            sum +
-            (item.quantity is int
-                ? item.quantity as int
-                : (item.quantity as double).round()),
-      );
+      // Calculate total products sold
+      for (final item in sale.items) {
+        int itemQuantity = 0;
+        
+        if (item is CartItem) {
+          itemQuantity = item.quantity;
+        } else if (item is SalesItem) {
+          itemQuantity = item.quantity.round();
+        } else if (item is Map<String, dynamic>) {
+          itemQuantity = ((item['quantity'] ?? 0) as num).round();
+        }
+        
+        totalProductsSold += itemQuantity;
+      }
+      
       totalAmount += sale.total;
       totalSubtotal += sale.subtotal;
       totalTax += sale.tax;
@@ -2190,10 +2223,37 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final Map<String, Map<String, dynamic>> itemData = {};
 
     for (final sale in sales) {
-      for (final cartItem in sale.items) {
-        final itemName = cartItem.item['item_name'] as String;
-        final quantity = cartItem.quantity;
-        final revenue = cartItem.totalPrice;
+      for (final item in sale.items) {
+        String itemName;
+        double quantity;
+        double revenue;
+
+        if (item is CartItem) {
+          itemName = item.item['item_name'] ?? item.item['itemName'] ?? 'Unknown';
+          quantity = item.quantity.toDouble();
+          revenue = item.totalPrice;
+        } else if (item is SalesItem) {
+          itemName = item.itemName;
+          quantity = item.quantity;
+          revenue = item.totalPrice;
+        } else if (item is Map<String, dynamic>) {
+          // Handle raw data from API
+          if (item.containsKey('item')) {
+            // CartItem format
+            final itemMap = item['item'] as Map<String, dynamic>;
+            itemName = itemMap['item_name'] ?? itemMap['itemName'] ?? 'Unknown';
+            quantity = (item['quantity'] ?? 0).toDouble();
+            revenue = (item['totalPrice'] ?? 0).toDouble();
+          } else {
+            // SalesItem format
+            itemName = item['itemName'] ?? 'Unknown';
+            quantity = (item['quantity'] ?? 0).toDouble();
+            revenue = (item['totalPrice'] ?? 0).toDouble();
+          }
+        } else {
+          // Skip unknown item types
+          continue;
+        }
 
         if (itemData.containsKey(itemName)) {
           itemData[itemName]!['quantity'] += quantity;

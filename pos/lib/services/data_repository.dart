@@ -133,6 +133,11 @@ class DataRepository {
     return await _apiDataService.getSalesStatistics();
   }
 
+  // ========== REPORTS ==========
+  Future<Map<String, dynamic>> getSalesAnalytics(DateTime startDate, DateTime endDate) async {
+    return await _apiDataService.getSalesAnalytics(startDate, endDate);
+  }
+
   // ========== PAYMENT METHODS ==========
   Future<List<PaymentMethod>> fetchPaymentMethods() async {
     return await _apiDataService.getPaymentMethods();

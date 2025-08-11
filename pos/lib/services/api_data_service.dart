@@ -306,13 +306,30 @@ class ApiDataService {
     DateTime startDate,
     DateTime endDate,
   ) async {
-    final sales = await getSales();
-    return sales.where((sale) {
-      return sale.timestamp.isAfter(
-            startDate.subtract(const Duration(seconds: 1)),
-          ) &&
-          sale.timestamp.isBefore(endDate.add(const Duration(seconds: 1)));
-    }).toList();
+    try {
+      final response = await _apiService.get(
+        '${Endpoints.reports}/sales?startDate=${startDate.toIso8601String()}&endDate=${endDate.toIso8601String()}',
+        requiresAuth: true,
+      );
+      final data = response['data'] ?? response;
+
+      if (data is List) {
+        return data
+            .map((item) => Sales.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching sales by date range: $e');
+      // Fallback to client-side filtering if API fails
+      final sales = await getSales();
+      return sales.where((sale) {
+        return sale.timestamp.isAfter(
+              startDate.subtract(const Duration(seconds: 1)),
+            ) &&
+            sale.timestamp.isBefore(endDate.add(const Duration(seconds: 1)));
+      }).toList();
+    }
   }
 
   Future<List<Sales>> getSalesByOrderStatus(String status) async {
@@ -526,10 +543,8 @@ class ApiDataService {
     DateTime endDate,
   ) async {
     try {
-      final queryParams =
-          '?startDate=${startDate.toIso8601String().split('T')[0]}&endDate=${endDate.toIso8601String().split('T')[0]}';
       final response = await _apiService.get(
-        '${Endpoints.expensesByDateRange}$queryParams',
+        '${Endpoints.reports}/expenses?startDate=${startDate.toIso8601String()}&endDate=${endDate.toIso8601String()}',
         requiresAuth: true,
       );
       final data = response['data'] ?? response;
@@ -538,15 +553,23 @@ class ApiDataService {
       }
       return [];
     } catch (e) {
-      final errorString = e.toString().toLowerCase();
-      if (errorString.contains('400') ||
-          errorString.contains('404') ||
-          errorString.contains('no expenses found') ||
-          errorString.contains('not found') ||
-          errorString.contains('empty')) {
-        return [];
+      print('Error fetching expenses by date range: $e');
+      // Fallback to client-side filtering if API fails
+      try {
+        final queryParams =
+            '?startDate=${startDate.toIso8601String().split('T')[0]}&endDate=${endDate.toIso8601String().split('T')[0]}';
+        final response = await _apiService.get(
+          '${Endpoints.expensesByDateRange}$queryParams',
+          requiresAuth: true,
+        );
+        final data = response['data'] ?? response;
+        if (data is List) {
+          return data.map((item) => Expense.fromMap(item)).toList();
+        }
+      } catch (fallbackError) {
+        print('Fallback also failed: $fallbackError');
       }
-      rethrow;
+      return [];
     }
   }
 
@@ -940,5 +963,22 @@ class ApiDataService {
     );
     
     return response['data'] ?? response;
+  }
+
+  // ========== REPORTS ==========
+  Future<Map<String, dynamic>> getSalesAnalytics(
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    try {
+      final response = await _apiService.get(
+        '${Endpoints.reports}/analytics?startDate=${startDate.toIso8601String()}&endDate=${endDate.toIso8601String()}',
+        requiresAuth: true,
+      );
+      return response['data'] ?? response;
+    } catch (e) {
+      print('Error fetching sales analytics: $e');
+      return {};
+    }
   }
 }
