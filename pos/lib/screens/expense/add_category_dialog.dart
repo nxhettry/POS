@@ -77,9 +77,13 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
         width: 500,
-        height: 350,
+        constraints: const BoxConstraints(
+          minHeight: 350,
+          maxHeight: 500,
+        ),
         padding: const EdgeInsets.all(24),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -99,10 +103,11 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
               ],
             ),
             const SizedBox(height: 24),
-            Expanded(
+            Flexible(
               child: Form(
                 key: _formKey,
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     TextFormField(
                       controller: _nameController,

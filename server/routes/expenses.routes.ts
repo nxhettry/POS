@@ -16,13 +16,21 @@ import {
 const router = Router();
 
 router.post("/", createExpense);
+router.get(
+  "/date-range",
+  (req, res, next) => {
+    console.log("Request received");
+    console.log("Query Parameters:", req.query);
+    next();
+  },
+  getExpensesByDateRange
+);
+router.get("/category/:categoryId", getExpensesByCategory);
+router.get("/creator/:createdBy", getExpensesByCreator);
+router.get("/party/:partyId", getExpensesByParty);
 router.put("/:id", updateExpense);
 router.get("/:id", getExpense);
 router.get("/", getAllExpenses);
-router.get("/category/:categoryId", getExpensesByCategory);
-router.get("/party/:partyId", getExpensesByParty);
-router.get("/creator/:createdBy", getExpensesByCreator);
-router.get("/date-range", getExpensesByDateRange);
 router.get("/approved/all", getApprovedExpenses);
 router.get("/pending/all", getPendingExpenses);
 router.delete("/:id", deleteExpense);

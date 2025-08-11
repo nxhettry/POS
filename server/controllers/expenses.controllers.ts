@@ -19,7 +19,9 @@ export const createExpense = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const expenseData = req.body;
 
-    console.log("Request received: ", req.body);
+    console.log("=== CREATE EXPENSE REQUEST ===");
+    console.log("Request received: ", JSON.stringify(expenseData, null, 2));
+    console.log("Request timestamp: ", new Date().toISOString());
 
     if (
       !expenseData.title ||
@@ -29,6 +31,7 @@ export const createExpense = asyncHandler(
       !expenseData.categoryId ||
       !expenseData.createdBy
     ) {
+      console.log("Validation failed - missing required fields");
       return res
         .status(400)
         .json(
@@ -45,6 +48,7 @@ export const createExpense = asyncHandler(
     console.log("Validation result: ", validation);
 
     if (!validation.isValid) {
+      console.log("Validation failed: ", validation.errors);
       return res
         .status(400)
         .json(
@@ -56,14 +60,23 @@ export const createExpense = asyncHandler(
         );
     }
 
-    const result = await createExpenseService(expenseData);
+    try {
+      console.log("Calling createExpenseService with data:", JSON.stringify(expenseData, null, 2));
+      const result = await createExpenseService(expenseData);
+      console.log("Service result:", JSON.stringify(result, null, 2));
 
-    if (result.success) {
-      return res
-        .status(201)
-        .json(new apiResponse(201, result.data, result.message));
-    } else {
-      return res.status(400).json(new apiResponse(400, null, result.message));
+      if (result.success) {
+        console.log("Expense created successfully:", result.data);
+        return res
+          .status(201)
+          .json(new apiResponse(201, result.data, result.message));
+      } else {
+        console.log("Service returned error:", result.message);
+        return res.status(400).json(new apiResponse(400, null, result.message));
+      }
+    } catch (error) {
+      console.error("Error in createExpense controller:", error);
+      return res.status(500).json(new apiResponse(500, null, "Internal server error"));
     }
   }
 );
@@ -223,7 +236,6 @@ export const getExpensesByDateRange = asyncHandler(
         );
     }
 
-    // Validate dates
     const start = new Date(startDate as string);
     const end = new Date(endDate as string);
 

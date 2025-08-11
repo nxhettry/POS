@@ -31,7 +31,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
   List<ExpensesCategory> _categories = [];
   List<PaymentMethod> _paymentMethods = [];
   List<Party> _parties = [];
-  
+
   int? _selectedCategoryId;
   int? _selectedPaymentMethodId;
   int? _selectedPartyId;
@@ -55,6 +55,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
     _loadData();
 
     if (widget.expense != null) {
+      // Editing existing expense
       _titleController.text = widget.expense!.title;
       _descriptionController.text = widget.expense!.description ?? '';
       _amountController.text = widget.expense!.amount.toString();
@@ -65,6 +66,8 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
       _selectedPaymentMethodId = widget.expense!.paymentMethodId;
       _selectedPartyId = widget.expense!.partyId;
     } else {
+      // New expense - always set date to today and don't allow changes
+      _selectedDate = DateTime.now();
       _dateController.text = DateFormat('yyyy-MM-dd').format(_selectedDate);
     }
   }
@@ -78,12 +81,12 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
       final categories = await _dataRepository.fetchExpenseCategories();
       final paymentMethods = await _dataRepository.fetchActivePaymentMethods();
       final parties = await _dataRepository.fetchActiveParties();
-      
+
       setState(() {
         _categories = categories;
         _paymentMethods = paymentMethods;
         _parties = parties;
-        
+
         if (widget.expense == null) {
           // Set defaults for new expense
           if (categories.isNotEmpty) {
@@ -93,7 +96,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
             _selectedPaymentMethodId = paymentMethods.first.id;
           }
         }
-        
+
         _isLoading = false;
       });
     } catch (e) {
@@ -112,6 +115,10 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
   }
 
   Future<void> _selectDate() async {
+    if (widget.expense == null) {
+      return;
+    }
+
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -158,17 +165,28 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
   }
 
   Future<void> _saveExpense() async {
-    if (!_formKey.currentState!.validate() || 
-        _selectedCategoryId == null || 
+    print('=== SAVE EXPENSE CALLED ===');
+    print('Form valid: ${_formKey.currentState!.validate()}');
+    print('Category ID: $_selectedCategoryId');
+    print('Payment Method ID: $_selectedPaymentMethodId');
+    print('Is credit payment: $_isCreditPayment');
+    print('Party ID: $_selectedPartyId');
+
+    if (!_formKey.currentState!.validate() ||
+        _selectedCategoryId == null ||
         _selectedPaymentMethodId == null) {
+      print('Validation failed - returning early');
       return;
     }
 
     // Additional validation for credit payments
     if (_isCreditPayment && _selectedPartyId == null) {
+      print('Credit payment validation failed - no party selected');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select a supplier/party for credit transactions'),
+          content: Text(
+            'Please select a supplier/party for credit transactions',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -179,37 +197,71 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
       _isSaving = true;
     });
 
+    print('Starting to save expense...');
+
     try {
       if (widget.expense != null) {
+        print('Updating existing expense with ID: ${widget.expense!.id}');
         // Update existing expense
         final updateData = {
           'title': _titleController.text.trim(),
-          'description': _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
+          'description': _descriptionController.text.trim().isEmpty
+              ? null
+              : _descriptionController.text.trim(),
           'amount': double.parse(_amountController.text),
           'paymentMethodId': _selectedPaymentMethodId!,
           'date': _selectedDate.toIso8601String(),
           'categoryId': _selectedCategoryId!,
           'partyId': _selectedPartyId,
-          'receipt': _receiptController.text.trim().isEmpty ? null : _receiptController.text.trim(),
+          'receipt': _receiptController.text.trim().isEmpty
+              ? null
+              : _receiptController.text.trim(),
         };
+        print('Update data: $updateData');
         await _dataRepository.updateExpense(widget.expense!.id!, updateData);
+        print('Expense updated successfully');
       } else {
+        print('Creating new expense');
+        final expenseData = {
+          'title': _titleController.text.trim(),
+          'description': _descriptionController.text.trim().isEmpty
+              ? null
+              : _descriptionController.text.trim(),
+          'amount': double.parse(_amountController.text),
+          'paymentMethodId': _selectedPaymentMethodId!,
+          'date': _selectedDate,
+          'categoryId': _selectedCategoryId!,
+          'partyId': _selectedPartyId,
+          'receipt': _receiptController.text.trim().isEmpty
+              ? null
+              : _receiptController.text.trim(),
+          'createdBy': 1, // TODO: Replace with actual current user ID
+        };
+        print('New expense data: $expenseData');
+
         // Create new expense - for now, using createdBy = 1 (should be current user ID)
-        await _dataRepository.createExpense(
+        final createdExpense = await _dataRepository.createExpense(
           title: _titleController.text.trim(),
-          description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
+          description: _descriptionController.text.trim().isEmpty
+              ? null
+              : _descriptionController.text.trim(),
           amount: double.parse(_amountController.text),
           paymentMethodId: _selectedPaymentMethodId!,
           date: _selectedDate,
           categoryId: _selectedCategoryId!,
           partyId: _selectedPartyId,
-          receipt: _receiptController.text.trim().isEmpty ? null : _receiptController.text.trim(),
+          receipt: _receiptController.text.trim().isEmpty
+              ? null
+              : _receiptController.text.trim(),
           createdBy: 1, // TODO: Replace with actual current user ID
         );
+        print('Expense created successfully: $createdExpense');
       }
 
+      print('Calling onExpenseAdded callback');
       widget.onExpenseAdded();
       if (mounted) {
+        print('Closing dialog and showing success message');
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -223,6 +275,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
         );
       }
     } catch (e) {
+      print('Error saving expense: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -232,9 +285,12 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
         );
       }
     } finally {
-      setState(() {
-        _isSaving = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+      print('Save expense completed');
     }
   }
 
@@ -318,16 +374,18 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                                       labelText: 'Amount (NPR) *',
                                       border: OutlineInputBorder(),
                                     ),
-                                    keyboardType: const TextInputType.numberWithOptions(
-                                      decimal: true,
-                                    ),
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
                                     inputFormatters: [
                                       FilteringTextInputFormatter.allow(
                                         RegExp(r'^\d+\.?\d{0,2}'),
                                       ),
                                     ],
                                     validator: (value) {
-                                      if (value == null || value.trim().isEmpty) {
+                                      if (value == null ||
+                                          value.trim().isEmpty) {
                                         return 'Please enter an amount';
                                       }
                                       final amount = double.tryParse(value);
@@ -406,10 +464,13 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                                       const SizedBox(width: 8),
                                       IconButton(
                                         onPressed: _showAddCategoryDialog,
-                                        icon: const Icon(Icons.add_circle_outline),
+                                        icon: const Icon(
+                                          Icons.add_circle_outline,
+                                        ),
                                         tooltip: 'Add New Category',
                                         style: IconButton.styleFrom(
-                                          backgroundColor: Colors.red.withOpacity(0.1),
+                                          backgroundColor: Colors.red
+                                              .withOpacity(0.1),
                                           foregroundColor: Colors.red,
                                         ),
                                       ),
@@ -421,12 +482,12 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                                   child: DropdownButtonFormField<int?>(
                                     value: _selectedPartyId,
                                     decoration: InputDecoration(
-                                      labelText: _isCreditPayment 
-                                          ? 'Supplier/Party *' 
+                                      labelText: _isCreditPayment
+                                          ? 'Supplier/Party *'
                                           : 'Party (Optional)',
                                       border: const OutlineInputBorder(),
                                       filled: _isCreditPayment,
-                                      fillColor: _isCreditPayment 
+                                      fillColor: _isCreditPayment
                                           ? Colors.red.withOpacity(0.05)
                                           : null,
                                     ),
@@ -434,7 +495,9 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                                       if (!_isCreditPayment)
                                         const DropdownMenuItem(
                                           value: null,
-                                          child: Text('Select Party (Optional)'),
+                                          child: Text(
+                                            'Select Party (Optional)',
+                                          ),
                                         ),
                                       if (_isCreditPayment)
                                         const DropdownMenuItem(
@@ -444,7 +507,9 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                                       ..._parties.map((party) {
                                         return DropdownMenuItem(
                                           value: party.id,
-                                          child: Text('${party.name} (${party.type})'),
+                                          child: Text(
+                                            '${party.name} (${party.type})',
+                                          ),
                                         );
                                       }).toList(),
                                     ],
@@ -453,7 +518,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                                         _selectedPartyId = newValue;
                                       });
                                     },
-                                    validator: _isCreditPayment 
+                                    validator: _isCreditPayment
                                         ? (value) {
                                             if (value == null) {
                                               return 'Supplier is required for credit payments';
@@ -472,11 +537,17 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                                 decoration: BoxDecoration(
                                   color: Colors.orange.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                                  border: Border.all(
+                                    color: Colors.orange.withOpacity(0.3),
+                                  ),
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.info_outline, color: Colors.orange[700], size: 20),
+                                    Icon(
+                                      Icons.info_outline,
+                                      color: Colors.orange[700],
+                                      size: 20,
+                                    ),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
@@ -494,13 +565,30 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                             if (_isCreditPayment) const SizedBox(height: 16),
                             TextFormField(
                               controller: _dateController,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: 'Date *',
-                                border: OutlineInputBorder(),
-                                suffixIcon: Icon(Icons.calendar_today),
+                                border: const OutlineInputBorder(),
+                                suffixIcon: widget.expense != null
+                                    ? const Icon(Icons.calendar_today)
+                                    : const Icon(
+                                        Icons.calendar_today,
+                                        color: Colors.grey,
+                                      ),
+                                filled: widget.expense == null,
+                                fillColor: widget.expense == null
+                                    ? Colors.grey.withOpacity(0.1)
+                                    : null,
+                                helperText: widget.expense == null
+                                    ? 'Date is set to today for new expenses'
+                                    : null,
                               ),
                               readOnly: true,
-                              onTap: _selectDate,
+                              enabled:
+                                  widget.expense !=
+                                  null, // Only enable for editing existing expenses
+                              onTap: widget.expense != null
+                                  ? _selectDate
+                                  : null,
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return 'Please select a date';

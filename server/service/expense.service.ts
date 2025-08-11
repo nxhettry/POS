@@ -5,6 +5,7 @@ import Party from "../models/party.models.js";
 import User from "../models/user.models.js";
 import { addExpenseTransactionService } from "./daybook.service.js";
 import { isNonCreditPayment } from "../utils/payment.utils.js";
+import { Op } from "sequelize";
 
 interface ServiceResponse<T> {
   success: boolean;
@@ -15,41 +16,65 @@ interface ServiceResponse<T> {
 export const createExpenseService = async (
   expenseData: any
 ): Promise<ServiceResponse<any>> => {
-  const expense = await Expense.create(expenseData);
-  const expenseWithIncludes = await Expense.findByPk((expense as any).id, {
-    include: [
-      { model: ExpenseCategory, as: "ExpenseCategory" },
-      { model: PaymentMethod, as: "PaymentMethod" },
-      { model: Party, as: "Party" },
-      { model: User, as: "User" },
-    ],
-  });
+  try {
+    console.log("=== CREATE EXPENSE SERVICE ===");
+    console.log("Expense data received:", JSON.stringify(expenseData, null, 2));
 
-  if (
-    expenseData.paymentMethodId &&
-    (expenseData.approvedBy || expenseData.approvedBy === undefined)
-  ) {
-    const isNonCredit = await isNonCreditPayment(expenseData.paymentMethodId);
-    if (isNonCredit) {
-      try {
-        await addExpenseTransactionService(
-          (expense as any).id,
-          expenseData.amount || 0,
-          expenseData.paymentMethodId,
-          expenseData.date,
-          expenseData.createdBy?.toString() || "system"
-        );
-      } catch (error) {
-        console.error("Error adding expense to daybook:", error);
+    const expense = await Expense.create(expenseData);
+    console.log(
+      "Expense created in DB:",
+      JSON.stringify(expense.toJSON(), null, 2)
+    );
+
+    const expenseWithIncludes = await Expense.findByPk((expense as any).id, {
+      include: [
+        { model: ExpenseCategory, as: "ExpenseCategory" },
+        { model: PaymentMethod, as: "PaymentMethod" },
+        { model: Party, as: "Party" },
+        { model: User, as: "User" },
+      ],
+    });
+    console.log(
+      "Expense with includes:",
+      JSON.stringify(expenseWithIncludes?.toJSON(), null, 2)
+    );
+
+    if (
+      expenseData.paymentMethodId &&
+      (expenseData.approvedBy || expenseData.approvedBy === undefined)
+    ) {
+      const isNonCredit = await isNonCreditPayment(expenseData.paymentMethodId);
+      console.log("Payment method is non-credit:", isNonCredit);
+      if (isNonCredit) {
+        try {
+          await addExpenseTransactionService(
+            (expense as any).id,
+            expenseData.amount || 0,
+            expenseData.paymentMethodId,
+            expenseData.date,
+            expenseData.createdBy?.toString() || "system"
+          );
+          console.log("Added to daybook successfully");
+        } catch (error) {
+          console.error("Error adding expense to daybook:", error);
+        }
       }
     }
-  }
 
-  return {
-    success: true,
-    data: expenseWithIncludes,
-    message: "Expense created successfully",
-  };
+    return {
+      success: true,
+      data: expenseWithIncludes,
+      message: "Expense created successfully",
+    };
+  } catch (error) {
+    console.error("Error in createExpenseService:", error);
+    return {
+      success: false,
+      message: `Failed to create expense: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
+    };
+  }
 };
 
 export const updateExpenseService = async (
@@ -240,10 +265,16 @@ export const getExpensesByDateRangeService = async (
   startDate: string,
   endDate: string
 ): Promise<ServiceResponse<any[]>> => {
+  const startDateTime = new Date(startDate);
+  startDateTime.setUTCHours(0, 0, 0, 0);
+
+  const endDateTime = new Date(endDate);
+  endDateTime.setUTCHours(23, 59, 59, 999);
+
   const expenses = await Expense.findAll({
     where: {
       date: {
-        [require("sequelize").Op.between]: [startDate, endDate],
+        [Op.between]: [startDateTime, endDateTime],
       },
     },
     include: [
@@ -271,7 +302,7 @@ export const getApprovedExpensesService = async (): Promise<
   const expenses = await Expense.findAll({
     where: {
       approvedBy: {
-        [require("sequelize").Op.not]: null,
+        [Op.not]: null,
       },
     },
     include: [

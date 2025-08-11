@@ -5,18 +5,16 @@ import '../models/models.dart';
 class ApiDataService {
   final ApiService _apiService = ApiService();
 
-  // ========== AUTHENTICATION ==========
-  
   Future<Map<String, dynamic>> login(String username, String password) async {
     final response = await _apiService.post(Endpoints.login, {
       'username': username,
       'password': password,
     });
-    
+
     if (response['token'] != null) {
       ApiService.setAuthToken(response['token']);
     }
-    
+
     return response;
   }
 
@@ -29,18 +27,19 @@ class ApiDataService {
     return await _apiService.get(Endpoints.profile, requiresAuth: true);
   }
 
-  // ========== SETTINGS ==========
-  
   Future<Restaurant> getRestaurantSettings() async {
-    final response = await _apiService.get(Endpoints.restaurantSettings, requiresAuth: true);
+    final response = await _apiService.get(
+      Endpoints.restaurantSettings,
+      requiresAuth: true,
+    );
     final restaurantData = response['data'] ?? response;
     return Restaurant.fromMap(restaurantData);
   }
 
   Future<Restaurant> updateRestaurantSettings(Restaurant restaurant) async {
     final response = await _apiService.put(
-      Endpoints.restaurantSettings, 
-      restaurant.toMap(), 
+      Endpoints.restaurantSettings,
+      restaurant.toMap(),
       requiresAuth: true,
     );
     final restaurantData = response['data'] ?? response;
@@ -48,15 +47,18 @@ class ApiDataService {
   }
 
   Future<SystemSettings> getSystemSettings() async {
-    final response = await _apiService.get(Endpoints.systemSettings, requiresAuth: true);
+    final response = await _apiService.get(
+      Endpoints.systemSettings,
+      requiresAuth: true,
+    );
     final settingsData = response['data'] ?? response;
     return SystemSettings.fromMap(settingsData);
   }
 
   Future<SystemSettings> updateSystemSettings(SystemSettings settings) async {
     final response = await _apiService.put(
-      Endpoints.systemSettings, 
-      settings.toJson(), 
+      Endpoints.systemSettings,
+      settings.toJson(),
       requiresAuth: true,
     );
     final settingsData = response['data'] ?? response;
@@ -64,59 +66,64 @@ class ApiDataService {
   }
 
   Future<BillSettings> getBillSettings() async {
-    final response = await _apiService.get(Endpoints.billSettings, requiresAuth: true);
+    final response = await _apiService.get(
+      Endpoints.billSettings,
+      requiresAuth: true,
+    );
     final settingsData = response['data'] ?? response;
     return BillSettings.fromMap(settingsData);
   }
 
   Future<BillSettings> updateBillSettings(BillSettings settings) async {
     final response = await _apiService.put(
-      Endpoints.billSettings, 
-      settings.toMap(), 
+      Endpoints.billSettings,
+      settings.toMap(),
       requiresAuth: true,
     );
     final settingsData = response['data'] ?? response;
     return BillSettings.fromMap(settingsData);
   }
 
-  // ========== TABLES ==========
-  
   Future<List<Table>> getTables() async {
-    final response = await _apiService.get(Endpoints.tables, requiresAuth: false);
+    final response = await _apiService.get(
+      Endpoints.tables,
+      requiresAuth: false,
+    );
     final data = response['data'] as List? ?? [];
-    return data.map((item) => Table(
-      id: item['id'],
-      name: item['name'] ?? '',
-      status: (item['status'] as String?) ?? 'available',
-    )).toList();
+    return data
+        .map(
+          (item) => Table(
+            id: item['id'],
+            name: item['name'] ?? '',
+            status: (item['status'] as String?) ?? 'available',
+          ),
+        )
+        .toList();
   }
 
   Future<Table> getTableById(int id) async {
-    final response = await _apiService.get('${Endpoints.tableById}/$id', requiresAuth: true);
-    
-    // Handle the wrapped response from server
+    final response = await _apiService.get(
+      '${Endpoints.tableById}/$id',
+      requiresAuth: true,
+    );
+
     final tableData = response['data'] ?? response;
     return Table(
-      id: tableData['id'], 
+      id: tableData['id'],
       name: tableData['name'] ?? '',
       status: (tableData['status'] as String?) ?? 'available',
     );
   }
 
   Future<Table> createTable(String name, {String status = 'available'}) async {
-    final response = await _apiService.post(
-      Endpoints.tables, 
-      {
-        'name': name,
-        'status': status,
-      }, 
-      requiresAuth: true,
-    );
-    
-    // Handle the wrapped response from server
+    final response = await _apiService.post(Endpoints.tables, {
+      'name': name,
+      'status': status,
+    }, requiresAuth: true);
+
     final tableData = response['data'] ?? response;
     return Table(
-      id: tableData['id'], 
+      id: tableData['id'],
       name: tableData['name'] ?? name,
       status: (tableData['status'] as String?) ?? status,
     );
@@ -127,19 +134,18 @@ class ApiDataService {
     if (status != null) {
       data['status'] = status;
     }
-    
+
     print('Updating table $id with data: $data');
     final response = await _apiService.put(
-      '${Endpoints.tableById}/$id', 
-      data, 
+      '${Endpoints.tableById}/$id',
+      data,
       requiresAuth: true,
     );
     print('Update table response: $response');
-    
-    // Handle the wrapped response from server
+
     final tableData = response['data'] ?? response;
     return Table(
-      id: tableData['id'] ?? id, 
+      id: tableData['id'] ?? id,
       name: tableData['name'] ?? name,
       status: (tableData['status'] as String?) ?? 'available',
     );
@@ -149,61 +155,71 @@ class ApiDataService {
     await _apiService.delete('${Endpoints.tableById}/$id', requiresAuth: true);
   }
 
-  // ========== MENU CATEGORIES ==========
-  
   Future<List<Category>> getMenuCategories() async {
-    final response = await _apiService.get(Endpoints.menuCategories, requiresAuth: false);
+    final response = await _apiService.get(
+      Endpoints.menuCategories,
+      requiresAuth: false,
+    );
     final data = response['data'] as List? ?? [];
     return data.map((item) => Category.fromJson(item)).toList();
   }
 
   Future<Category> getMenuCategoryById(int id) async {
-    final response = await _apiService.get('${Endpoints.menuCategoryById}/$id', requiresAuth: false);
-    final categoryData = response['data'] ?? response;
-    return Category.fromJson(categoryData);
-  }
-
-  Future<Category> createMenuCategory(String name, {String? description}) async {
-    final response = await _apiService.post(
-      Endpoints.menuCategories, 
-      {
-        'name': name, 
-        if (description != null && description.isNotEmpty) 'description': description,
-      }, 
-      requiresAuth: true,
+    final response = await _apiService.get(
+      '${Endpoints.menuCategoryById}/$id',
+      requiresAuth: false,
     );
     final categoryData = response['data'] ?? response;
     return Category.fromJson(categoryData);
   }
 
-  Future<Category> updateMenuCategory(int id, String name, {String? description}) async {
-    final response = await _apiService.put(
-      '${Endpoints.menuCategoryById}/$id', 
-      {
-        'name': name,
-        if (description != null && description.isNotEmpty) 'description': description,
-      }, 
-      requiresAuth: true,
-    );
+  Future<Category> createMenuCategory(
+    String name, {
+    String? description,
+  }) async {
+    final response = await _apiService.post(Endpoints.menuCategories, {
+      'name': name,
+      if (description != null && description.isNotEmpty)
+        'description': description,
+    }, requiresAuth: true);
+    final categoryData = response['data'] ?? response;
+    return Category.fromJson(categoryData);
+  }
+
+  Future<Category> updateMenuCategory(
+    int id,
+    String name, {
+    String? description,
+  }) async {
+    final response = await _apiService
+        .put('${Endpoints.menuCategoryById}/$id', {
+          'name': name,
+          if (description != null && description.isNotEmpty)
+            'description': description,
+        }, requiresAuth: true);
     final categoryData = response['data'] ?? response;
     return Category.fromJson(categoryData);
   }
 
   Future<void> deleteMenuCategory(int id) async {
-    await _apiService.delete('${Endpoints.menuCategoryById}/$id', requiresAuth: true);
+    await _apiService.delete(
+      '${Endpoints.menuCategoryById}/$id',
+      requiresAuth: true,
+    );
   }
 
-  // ========== MENU ITEMS ==========
-  
   Future<List<Item>> getMenuItems() async {
-    final response = await _apiService.get(Endpoints.menuItems, requiresAuth: false);
+    final response = await _apiService.get(
+      Endpoints.menuItems,
+      requiresAuth: false,
+    );
     final data = response['data'] as List? ?? [];
     return data.map((item) => Item.fromJson(item)).toList();
   }
 
   Future<List<Item>> getMenuItemsByCategory(int categoryId) async {
     final response = await _apiService.get(
-      '${Endpoints.menuItemsByCategory}/$categoryId/items', 
+      '${Endpoints.menuItemsByCategory}/$categoryId/items',
       requiresAuth: false,
     );
     final data = response['data'] as List? ?? [];
@@ -211,100 +227,135 @@ class ApiDataService {
   }
 
   Future<Item> getMenuItemById(int id) async {
-    final response = await _apiService.get('${Endpoints.menuItemById}/$id', requiresAuth: false);
-    final itemData = response['data'] ?? response;
-    return Item.fromJson(itemData);
-  }
-
-  Future<Item> createMenuItem(int categoryId, String itemName, double rate, {String? description, String? image}) async {
-    final response = await _apiService.post(
-      Endpoints.menuItems, 
-      {
-        'categoryId': categoryId,
-        'itemName': itemName,
-        'rate': rate,
-        if (description != null && description.isNotEmpty) 'description': description,
-        if (image != null) 'image': image,
-      }, 
-      requiresAuth: true,
+    final response = await _apiService.get(
+      '${Endpoints.menuItemById}/$id',
+      requiresAuth: false,
     );
     final itemData = response['data'] ?? response;
     return Item.fromJson(itemData);
   }
 
-  Future<Item> updateMenuItem(int id, int categoryId, String itemName, double rate, {String? description, String? image}) async {
-    final response = await _apiService.put(
-      '${Endpoints.menuItemById}/$id', 
-      {
-        'categoryId': categoryId,
-        'itemName': itemName,
-        'rate': rate,
-        if (description != null && description.isNotEmpty) 'description': description,
-        if (image != null) 'image': image,
-      }, 
-      requiresAuth: true,
-    );
+  Future<Item> createMenuItem(
+    int categoryId,
+    String itemName,
+    double rate, {
+    String? description,
+    String? image,
+  }) async {
+    final response = await _apiService.post(Endpoints.menuItems, {
+      'categoryId': categoryId,
+      'itemName': itemName,
+      'rate': rate,
+      if (description != null && description.isNotEmpty)
+        'description': description,
+      if (image != null) 'image': image,
+    }, requiresAuth: true);
+    final itemData = response['data'] ?? response;
+    return Item.fromJson(itemData);
+  }
+
+  Future<Item> updateMenuItem(
+    int id,
+    int categoryId,
+    String itemName,
+    double rate, {
+    String? description,
+    String? image,
+  }) async {
+    final response = await _apiService.put('${Endpoints.menuItemById}/$id', {
+      'categoryId': categoryId,
+      'itemName': itemName,
+      'rate': rate,
+      if (description != null && description.isNotEmpty)
+        'description': description,
+      if (image != null) 'image': image,
+    }, requiresAuth: true);
     final itemData = response['data'] ?? response;
     return Item.fromJson(itemData);
   }
 
   Future<void> deleteMenuItem(int id) async {
-    await _apiService.delete('${Endpoints.menuItemById}/$id', requiresAuth: true);
+    await _apiService.delete(
+      '${Endpoints.menuItemById}/$id',
+      requiresAuth: true,
+    );
   }
 
-  // ========== SALES ==========
-  
   Future<List<Sales>> getSales() async {
     final response = await _apiService.get(Endpoints.sales, requiresAuth: true);
     final data = response['data'] ?? response;
-    
+
     if (data is List) {
-      return data.map((item) => Sales.fromJson(item as Map<String, dynamic>)).toList();
+      return data
+          .map((item) => Sales.fromJson(item as Map<String, dynamic>))
+          .toList();
     }
     return [];
   }
 
   Future<Sales> getSalesById(int id) async {
-    final response = await _apiService.get('${Endpoints.salesById}/$id', requiresAuth: true);
+    final response = await _apiService.get(
+      '${Endpoints.salesById}/$id',
+      requiresAuth: true,
+    );
     final salesData = response['data'] ?? response;
     return Sales.fromJson(salesData as Map<String, dynamic>);
   }
 
-  Future<List<Sales>> getSalesByDateRange(DateTime startDate, DateTime endDate) async {
-    // Get all sales first, then filter by date range on client side since server doesn't have date range endpoint
+  Future<List<Sales>> getSalesByDateRange(
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
     final sales = await getSales();
     return sales.where((sale) {
-      return sale.timestamp.isAfter(startDate.subtract(const Duration(seconds: 1))) &&
-             sale.timestamp.isBefore(endDate.add(const Duration(seconds: 1)));
+      return sale.timestamp.isAfter(
+            startDate.subtract(const Duration(seconds: 1)),
+          ) &&
+          sale.timestamp.isBefore(endDate.add(const Duration(seconds: 1)));
     }).toList();
   }
 
   Future<List<Sales>> getSalesByOrderStatus(String status) async {
-    final response = await _apiService.get('${Endpoints.salesByOrderStatus}/$status', requiresAuth: true);
+    final response = await _apiService.get(
+      '${Endpoints.salesByOrderStatus}/$status',
+      requiresAuth: true,
+    );
     final data = response['data'] ?? response;
-    
+
     if (data is List) {
-      return data.map((item) => Sales.fromJson(item as Map<String, dynamic>)).toList();
+      return data
+          .map((item) => Sales.fromJson(item as Map<String, dynamic>))
+          .toList();
     }
     return [];
   }
 
   Future<List<Sales>> getSalesByPaymentStatus(String status) async {
-    final response = await _apiService.get('${Endpoints.salesByPaymentStatus}/$status', requiresAuth: true);
+    final response = await _apiService.get(
+      '${Endpoints.salesByPaymentStatus}/$status',
+      requiresAuth: true,
+    );
     final data = response['data'] ?? response;
-    
+
     if (data is List) {
-      return data.map((item) => Sales.fromJson(item as Map<String, dynamic>)).toList();
+      return data
+          .map((item) => Sales.fromJson(item as Map<String, dynamic>))
+          .toList();
     }
     return [];
   }
 
   Future<List<Sales>> getSalesByTable(int tableId) async {
-    final response = await _apiService.get('${Endpoints.salesByTable}/$tableId', requiresAuth: true);
+    final response = await _apiService.get(
+      '${Endpoints.salesByTable}/$tableId',
+      requiresAuth: true,
+    );
     final data = response['data'] ?? response;
-    
+
     if (data is List) {
-      return data.map((item) => Sales.fromJson(item as Map<String, dynamic>)).toList();
+      return data
+          .map((item) => Sales.fromJson(item as Map<String, dynamic>))
+          .toList();
     }
     return [];
   }
@@ -324,8 +375,8 @@ class ApiDataService {
     };
 
     final response = await _apiService.post(
-      Endpoints.sales, 
-      requestData, 
+      Endpoints.sales,
+      requestData,
       requiresAuth: true,
     );
     final salesData = response['data'] ?? response;
@@ -347,8 +398,8 @@ class ApiDataService {
     };
 
     final response = await _apiService.put(
-      '${Endpoints.salesById}/$id', 
-      requestData, 
+      '${Endpoints.salesById}/$id',
+      requestData,
       requiresAuth: true,
     );
     final salesData = response['data'] ?? response;
@@ -359,43 +410,50 @@ class ApiDataService {
     await _apiService.delete('${Endpoints.salesById}/$id', requiresAuth: true);
   }
 
-  // ========== PAYMENT METHODS ==========
-  
   Future<List<PaymentMethod>> getPaymentMethods() async {
-    final response = await _apiService.get(Endpoints.paymentMethods, requiresAuth: true);
+    final response = await _apiService.get(
+      Endpoints.paymentMethods,
+      requiresAuth: true,
+    );
     final data = response['data'] ?? response;
-    
+
     if (data is List) {
-      return data.map((item) => PaymentMethod.fromJson(item as Map<String, dynamic>)).toList();
+      return data
+          .map((item) => PaymentMethod.fromJson(item as Map<String, dynamic>))
+          .toList();
     }
     return [];
   }
 
   Future<List<PaymentMethod>> getActivePaymentMethods() async {
-    final response = await _apiService.get(Endpoints.activePaymentMethods, requiresAuth: true);
+    final response = await _apiService.get(
+      Endpoints.activePaymentMethods,
+      requiresAuth: true,
+    );
     final data = response['data'] ?? response;
-    
+
     if (data is List) {
-      return data.map((item) => PaymentMethod.fromJson(item as Map<String, dynamic>)).toList();
+      return data
+          .map((item) => PaymentMethod.fromJson(item as Map<String, dynamic>))
+          .toList();
     }
     return [];
   }
 
-  // ========== EXPENSES ==========
-  
   Future<List<Expense>> getExpenses() async {
     try {
-      final response = await _apiService.get(Endpoints.expenses, requiresAuth: true);
+      final response = await _apiService.get(
+        Endpoints.expenses,
+      );
       final data = response['data'] ?? response;
       if (data is List) {
         return data.map((item) => Expense.fromMap(item)).toList();
       }
       return [];
     } catch (e) {
-      // If error is due to no expenses found or server returns 400/404, return empty list
       final errorString = e.toString().toLowerCase();
-      if (errorString.contains('400') || 
-          errorString.contains('404') || 
+      if (errorString.contains('400') ||
+          errorString.contains('404') ||
           errorString.contains('no expenses found') ||
           errorString.contains('not found') ||
           errorString.contains('empty')) {
@@ -405,20 +463,26 @@ class ApiDataService {
     }
   }
 
-  Future<List<Expense>> getExpensesByDateRange(DateTime startDate, DateTime endDate) async {
+  Future<List<Expense>> getExpensesByDateRange(
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
     try {
-      final queryParams = '?startDate=${startDate.toIso8601String().split('T')[0]}&endDate=${endDate.toIso8601String().split('T')[0]}';
-      final response = await _apiService.get('${Endpoints.expensesByDateRange}$queryParams', requiresAuth: true);
+      final queryParams =
+          '?startDate=${startDate.toIso8601String().split('T')[0]}&endDate=${endDate.toIso8601String().split('T')[0]}';
+      final response = await _apiService.get(
+        '${Endpoints.expensesByDateRange}$queryParams',
+        requiresAuth: true,
+      );
       final data = response['data'] ?? response;
       if (data is List) {
         return data.map((item) => Expense.fromMap(item)).toList();
       }
       return [];
     } catch (e) {
-      // If error is due to no expenses found or server returns 400/404, return empty list
       final errorString = e.toString().toLowerCase();
-      if (errorString.contains('400') || 
-          errorString.contains('404') || 
+      if (errorString.contains('400') ||
+          errorString.contains('404') ||
           errorString.contains('no expenses found') ||
           errorString.contains('not found') ||
           errorString.contains('empty')) {
@@ -430,15 +494,18 @@ class ApiDataService {
 
   Future<List<Expense>> getExpensesByCategory(int categoryId) async {
     try {
-      final response = await _apiService.get('${Endpoints.expensesByCategory}/$categoryId', requiresAuth: true);
+      final response = await _apiService.get(
+        '${Endpoints.expensesByCategory}/$categoryId',
+        requiresAuth: true,
+      );
       final data = response['data'] ?? response;
       if (data is List) {
         return data.map((item) => Expense.fromMap(item)).toList();
       }
       return [];
     } catch (e) {
-      // If error is due to no expenses found, return empty list
-      if (e.toString().contains('400') || e.toString().contains('No expenses found')) {
+      if (e.toString().contains('400') ||
+          e.toString().contains('No expenses found')) {
         return [];
       }
       rethrow;
@@ -447,15 +514,18 @@ class ApiDataService {
 
   Future<List<Expense>> getExpensesByParty(int partyId) async {
     try {
-      final response = await _apiService.get('${Endpoints.expensesByParty}/$partyId', requiresAuth: true);
+      final response = await _apiService.get(
+        '${Endpoints.expensesByParty}/$partyId',
+        requiresAuth: true,
+      );
       final data = response['data'] ?? response;
       if (data is List) {
         return data.map((item) => Expense.fromMap(item)).toList();
       }
       return [];
     } catch (e) {
-      // If error is due to no expenses found, return empty list
-      if (e.toString().contains('400') || e.toString().contains('No expenses found')) {
+      if (e.toString().contains('400') ||
+          e.toString().contains('No expenses found')) {
         return [];
       }
       rethrow;
@@ -464,15 +534,18 @@ class ApiDataService {
 
   Future<List<Expense>> getApprovedExpenses() async {
     try {
-      final response = await _apiService.get(Endpoints.approvedExpenses, requiresAuth: true);
+      final response = await _apiService.get(
+        Endpoints.approvedExpenses,
+        requiresAuth: true,
+      );
       final data = response['data'] ?? response;
       if (data is List) {
         return data.map((item) => Expense.fromMap(item)).toList();
       }
       return [];
     } catch (e) {
-      // If error is due to no expenses found, return empty list
-      if (e.toString().contains('400') || e.toString().contains('No expenses found')) {
+      if (e.toString().contains('400') ||
+          e.toString().contains('No expenses found')) {
         return [];
       }
       rethrow;
@@ -481,15 +554,18 @@ class ApiDataService {
 
   Future<List<Expense>> getPendingExpenses() async {
     try {
-      final response = await _apiService.get(Endpoints.pendingExpenses, requiresAuth: true);
+      final response = await _apiService.get(
+        Endpoints.pendingExpenses,
+        requiresAuth: true,
+      );
       final data = response['data'] ?? response;
       if (data is List) {
         return data.map((item) => Expense.fromMap(item)).toList();
       }
       return [];
     } catch (e) {
-      // If error is due to no expenses found, return empty list
-      if (e.toString().contains('400') || e.toString().contains('No expenses found')) {
+      if (e.toString().contains('400') ||
+          e.toString().contains('No expenses found')) {
         return [];
       }
       rethrow;
@@ -507,29 +583,44 @@ class ApiDataService {
     String? receipt,
     required int createdBy,
   }) async {
-    final response = await _apiService.post(
-      Endpoints.expenses, 
-      {
-        'title': title,
-        'description': description,
-        'amount': amount,
-        'paymentMethodId': paymentMethodId,
-        'date': date.toIso8601String(),
-        'categoryId': categoryId,
-        'partyId': partyId,
-        'receipt': receipt,
-        'createdBy': createdBy,
-      }, 
-      requiresAuth: true,
-    );
-    final expenseData = response['data'] ?? response;
-    return Expense.fromMap(expenseData);
+    final requestData = {
+      'title': title,
+      'description': description,
+      'amount': amount,
+      'paymentMethodId': paymentMethodId,
+      'date': date.toIso8601String(),
+      'categoryId': categoryId,
+      'partyId': partyId,
+      'receipt': receipt,
+      'createdBy': createdBy,
+    };
+    
+    print('=== CREATE EXPENSE REQUEST (FLUTTER) ===');
+    print('Request data: ${requestData.toString()}');
+    print('Endpoint: ${Endpoints.expenses}');
+    print('Timestamp: ${DateTime.now().toIso8601String()}');
+    
+    try {
+      final response = await _apiService.post(Endpoints.expenses, requestData, requiresAuth: true);
+      print('Response received: ${response.toString()}');
+      final expenseData = response['data'] ?? response;
+      print('Parsed expense data: ${expenseData.toString()}');
+      final expense = Expense.fromMap(expenseData);
+      print('Created expense object: ${expense.toString()}');
+      return expense;
+    } catch (e) {
+      print('Error creating expense: $e');
+      rethrow;
+    }
   }
 
-  Future<Expense> updateExpense(int id, Map<String, dynamic> expenseData) async {
+  Future<Expense> updateExpense(
+    int id,
+    Map<String, dynamic> expenseData,
+  ) async {
     final response = await _apiService.put(
-      '${Endpoints.expenseById}/$id', 
-      expenseData, 
+      '${Endpoints.expenseById}/$id',
+      expenseData,
       requiresAuth: true,
     );
     final data = response['data'] ?? response;
@@ -537,37 +628,45 @@ class ApiDataService {
   }
 
   Future<void> deleteExpense(int id) async {
-    await _apiService.delete('${Endpoints.expenseById}/$id', requiresAuth: true);
+    await _apiService.delete(
+      '${Endpoints.expenseById}/$id',
+      requiresAuth: true,
+    );
   }
 
-  // ========== PARTIES ==========
-  
   Future<List<Party>> getParties() async {
-    final response = await _apiService.get(Endpoints.parties, requiresAuth: true);
+    final response = await _apiService.get(
+      Endpoints.parties,
+      requiresAuth: true,
+    );
     final data = response['data'] ?? response;
     return (data as List).map((item) => Party.fromJson(item)).toList();
   }
 
   Future<List<Party>> getActiveParties() async {
-    final response = await _apiService.get(Endpoints.activeParties, requiresAuth: true);
+    final response = await _apiService.get(
+      Endpoints.activeParties,
+      requiresAuth: true,
+    );
     final data = response['data'] ?? response;
     return (data as List).map((item) => Party.fromJson(item)).toList();
   }
 
-  // ========== EXPENSE CATEGORIES ==========
-  
   Future<List<ExpensesCategory>> getExpenseCategories() async {
-    final response = await _apiService.get(Endpoints.expenseCategories, requiresAuth: true);
+    final response = await _apiService.get(
+      Endpoints.expenseCategories,
+      requiresAuth: false,
+    );
     final data = response['data'] ?? response;
-    return (data as List).map((item) => ExpensesCategory.fromMap(item)).toList();
+    return (data as List)
+        .map((item) => ExpensesCategory.fromMap(item))
+        .toList();
   }
 
   Future<ExpensesCategory> createExpenseCategory(String name) async {
-    final response = await _apiService.post(
-      Endpoints.expenseCategories, 
-      {'name': name}, 
-      requiresAuth: true,
-    );
+    final response = await _apiService.post(Endpoints.expenseCategories, {
+      'name': name,
+    }, requiresAuth: true);
     final categoryData = response['data'] ?? response;
     return ExpensesCategory.fromMap(categoryData);
   }
@@ -580,10 +679,10 @@ class ApiDataService {
     if (description != null && description.isNotEmpty) {
       payload['description'] = description;
     }
-    
+
     final response = await _apiService.post(
-      Endpoints.expenseCategories, 
-      payload, 
+      Endpoints.expenseCategories,
+      payload,
       requiresAuth: true,
     );
     final categoryData = response['data'] ?? response;
@@ -592,8 +691,8 @@ class ApiDataService {
 
   Future<ExpensesCategory> updateExpenseCategory(int id, String name) async {
     final response = await _apiService.put(
-      '${Endpoints.expenseCategoryById}/$id', 
-      {'name': name}, 
+      '${Endpoints.expenseCategoryById}/$id',
+      {'name': name},
       requiresAuth: true,
     );
     final categoryData = response['data'] ?? response;
@@ -601,16 +700,22 @@ class ApiDataService {
   }
 
   Future<void> deleteExpenseCategory(int id) async {
-    await _apiService.delete('${Endpoints.expenseCategoryById}/$id', requiresAuth: true);
+    await _apiService.delete(
+      '${Endpoints.expenseCategoryById}/$id',
+      requiresAuth: true,
+    );
   }
 
   Future<List<ExpensesCategory>> getActiveExpenseCategories() async {
-    final response = await _apiService.get(Endpoints.activeExpenseCategories, requiresAuth: true);
+    final response = await _apiService.get(
+      Endpoints.activeExpenseCategories,
+      requiresAuth: true,
+    );
     final data = response['data'] ?? response;
-    return (data as List).map((item) => ExpensesCategory.fromMap(item)).toList();
+    return (data as List)
+        .map((item) => ExpensesCategory.fromMap(item))
+        .toList();
   }
-
-  // ========== UTILITY METHODS FOR EXPENSES ==========
 
   Future<double> getTotalExpensesForDate(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
@@ -619,12 +724,13 @@ class ApiDataService {
     return expenses.fold<double>(0.0, (sum, expense) => sum + expense.amount);
   }
 
-  Future<double> getTotalExpensesForDateRange(DateTime startDate, DateTime endDate) async {
+  Future<double> getTotalExpensesForDateRange(
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
     final expenses = await getExpensesByDateRange(startDate, endDate);
     return expenses.fold<double>(0.0, (sum, expense) => sum + expense.amount);
   }
-
-  // ========== UTILITY METHODS ==========
 
   Future<String> getNextInvoiceNumber() async {
     try {
@@ -632,15 +738,16 @@ class ApiDataService {
       if (sales.isEmpty) {
         return 'INV-0001';
       }
-      
-      // Extract numeric part from last invoice and increment
-      final lastInvoice = sales.first.invoiceNo; // First because we sort by date DESC
-      final numericPart = int.tryParse(lastInvoice.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+
+      final lastInvoice = sales.first.invoiceNo;
+      final numericPart =
+          int.tryParse(lastInvoice.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
       final nextNumber = (numericPart + 1).toString().padLeft(4, '0');
       return 'INV-$nextNumber';
     } catch (e) {
-      // Fallback: generate based on timestamp
-      final timestamp = DateTime.now().millisecondsSinceEpoch.toString().substring(7);
+      final timestamp = DateTime.now().millisecondsSinceEpoch
+          .toString()
+          .substring(7);
       return 'INV-$timestamp';
     }
   }
@@ -652,14 +759,20 @@ class ApiDataService {
     return sales.fold<double>(0.0, (total, sale) => total + sale.total);
   }
 
-  Future<double> getTotalSalesForDateRange(DateTime startDate, DateTime endDate) async {
+  Future<double> getTotalSalesForDateRange(
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
     final sales = await getSalesByDateRange(startDate, endDate);
     return sales.fold<double>(0.0, (total, sale) => total + sale.total);
   }
 
   Future<Map<String, dynamic>> getSalesStatistics() async {
     final sales = await getSales();
-    final totalSales = sales.fold<double>(0.0, (total, sale) => total + sale.total);
+    final totalSales = sales.fold<double>(
+      0.0,
+      (total, sale) => total + sale.total,
+    );
     final totalOrders = sales.length;
     final averageOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0.0;
 

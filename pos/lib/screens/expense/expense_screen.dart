@@ -140,7 +140,6 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
       return expenses;
     } catch (e) {
-      // Return empty list for any errors in filtering
       return [];
     }
   }
