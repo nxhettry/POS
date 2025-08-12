@@ -4,6 +4,9 @@ import cors from "cors";
 import compression from "compression";
 import sequelize from "../db/connection.js";
 
+// Import associations to establish model relationships
+import "../models/associations.js";
+
 import apiRoutes from "../routes/index.js";
 
 dotenv.config();
@@ -11,13 +14,11 @@ dotenv.config();
 const app = express();
 const PORT = Number(process.env.PORT) || 8080;
 
-// Simplified CORS for local offline use
 app.use(
   cors({
-    origin: "*", // Allow all origins for local development
-    credentials: false,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    origin: "http://localhost:3000",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
 

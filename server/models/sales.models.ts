@@ -5,12 +5,6 @@ import Table from "./table.model.js";
 import PaymentMethod from "./paymentMethod.models.js";
 import Party from "./party.models.js";
 
-let SalesItem: any;
-import("./salesItem.models.js").then((module) => {
-  SalesItem = module.default;
-  Sales.hasMany(SalesItem, { foreignKey: "salesId", as: "SalesItems" });
-});
-
 class Sales extends Model {}
 
 Sales.init(

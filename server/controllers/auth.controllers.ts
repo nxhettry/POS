@@ -70,15 +70,16 @@ export const login = asyncHandler(
         },
       };
 
-      res.cookie("accessToken", tokens.accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "none",
-        maxAge: 8 * 60 * 60 * 1000,
-      });
+      console.log(tokens.accessToken)
 
       return res
         .status(200)
+        .cookie("accessToken", tokens.accessToken, {
+          httpOnly: true,
+          secure: true,
+          maxAge: 1000 * 60 * 60 * 24,
+          sameSite: "none",
+        })
         .json(new apiResponse(200, responseData, "Login successful"));
     } catch (error: any) {
       return res

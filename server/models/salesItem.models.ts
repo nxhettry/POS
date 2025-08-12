@@ -1,6 +1,5 @@
 import { Model, DataTypes } from "sequelize";
 import sequelize from "../db/connection.js";
-import Sales from "./sales.models.js";
 import MenuItem from "./menuItem.models.js";
 
 class SalesItem extends Model {}
@@ -14,10 +13,6 @@ SalesItem.init(
     },
     salesId: {
       type: DataTypes.INTEGER,
-      references: {
-        model: Sales,
-        key: "id",
-      },
       allowNull: false,
     },
     itemId: {
@@ -60,7 +55,6 @@ SalesItem.init(
   }
 );
 
-SalesItem.belongsTo(Sales, { foreignKey: "salesId" });
 SalesItem.belongsTo(MenuItem, { foreignKey: "itemId" });
 
 export default SalesItem;

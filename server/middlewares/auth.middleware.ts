@@ -138,26 +138,5 @@ export const securityHeaders = (req: Request, res: Response, next: NextFunction)
   next();
 };
 
-/**
- * Request logging middleware for security auditing
- */
-export const auditLog = (req: Request, res: Response, next: NextFunction): void => {
-  const timestamp = new Date().toISOString();
-  const ip = getClientIP(req);
-  const method = req.method;
-  const url = req.originalUrl;
-  const userAgent = req.headers['user-agent'] || 'unknown';
-  
-  // Log security-relevant requests
-  const securityEndpoints = ['/auth/', '/login', '/register', '/password'];
-  const isSecurityRequest = securityEndpoints.some(endpoint => url.includes(endpoint));
-  
-  if (isSecurityRequest) {
-    console.log(`[SECURITY] ${timestamp} - ${ip} - ${method} ${url} - ${userAgent}`);
-  }
-  
-  next();
-};
-
 // Export the extended Request type for use in other files
 export type { AuthenticatedRequest };

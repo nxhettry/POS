@@ -1,6 +1,5 @@
 import { Model, DataTypes } from "sequelize";
 import sequelize from "../db/connection.js";
-import Cart from "./cart.models.js";
 import MenuItem from "./menuItem.models.js";
 
 class CartItem extends Model {}
@@ -14,10 +13,6 @@ CartItem.init(
     },
     cartId: {
       type: DataTypes.INTEGER,
-      references: {
-        model: Cart,
-        key: "id",
-      },
       allowNull: false,
     },
     itemId: {
@@ -56,7 +51,6 @@ CartItem.init(
   }
 );
 
-CartItem.belongsTo(Cart, { foreignKey: "cartId" });
 CartItem.belongsTo(MenuItem, { foreignKey: "itemId" });
 
 export default CartItem;
