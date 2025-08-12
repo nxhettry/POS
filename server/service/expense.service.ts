@@ -17,14 +17,7 @@ export const createExpenseService = async (
   expenseData: any
 ): Promise<ServiceResponse<any>> => {
   try {
-    console.log("=== CREATE EXPENSE SERVICE ===");
-    console.log("Expense data received:", JSON.stringify(expenseData, null, 2));
-
     const expense = await Expense.create(expenseData);
-    console.log(
-      "Expense created in DB:",
-      JSON.stringify(expense.toJSON(), null, 2)
-    );
 
     const expenseWithIncludes = await Expense.findByPk((expense as any).id, {
       include: [
@@ -34,17 +27,12 @@ export const createExpenseService = async (
         { model: User, as: "User" },
       ],
     });
-    console.log(
-      "Expense with includes:",
-      JSON.stringify(expenseWithIncludes?.toJSON(), null, 2)
-    );
 
     if (
       expenseData.paymentMethodId &&
       (expenseData.approvedBy || expenseData.approvedBy === undefined)
     ) {
       const isNonCredit = await isNonCreditPayment(expenseData.paymentMethodId);
-      console.log("Payment method is non-credit:", isNonCredit);
       if (isNonCredit) {
         try {
           await addExpenseTransactionService(
@@ -54,7 +42,6 @@ export const createExpenseService = async (
             expenseData.date,
             expenseData.createdBy?.toString() || "system"
           );
-          console.log("Added to daybook successfully");
         } catch (error) {
           console.error("Error adding expense to daybook:", error);
         }

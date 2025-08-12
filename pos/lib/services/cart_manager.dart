@@ -20,7 +20,6 @@ class CartManager extends ChangeNotifier {
   double get subtotal =>
       _cartItems.fold(0, (sum, item) => sum + item.totalPrice);
 
-  // Set the selected table and load its cart data
   void setSelectedTable(int? tableId) {
     if (_selectedTableId != tableId) {
       _selectedTableId = tableId;
@@ -29,7 +28,6 @@ class CartManager extends ChangeNotifier {
     }
   }
 
-  // Load cart items for the selected table from dummy data
   void _loadTableCart() {
     _cartItems.clear();
     if (_selectedTableId != null) {
@@ -38,13 +36,10 @@ class CartManager extends ChangeNotifier {
     }
   }
 
-  // Save cart to dummy data when items change
   void _saveTableCart() {
     if (_selectedTableId != null) {
-      // Clear existing cart items for this table
       DummyData.clearTableCart(_selectedTableId!);
-      
-      // Add current cart items back to dummy data
+
       for (final cartItem in _cartItems) {
         final menuItem = {
           'id': cartItem.item['id'],
@@ -55,14 +50,17 @@ class CartManager extends ChangeNotifier {
           'categoryId': cartItem.item['categoryId'],
           'isAvailable': cartItem.item['isAvailable'] ?? true,
         };
-        DummyData.addItemToTableCart(_selectedTableId!, menuItem, cartItem.quantity);
+        DummyData.addItemToTableCart(
+          _selectedTableId!,
+          menuItem,
+          cartItem.quantity,
+        );
       }
     }
   }
 
   void addItem(Map<String, dynamic> item, int quantity) {
     if (_selectedTableId == null) {
-      // If no table is selected, don't add items
       return;
     }
 
@@ -148,7 +146,7 @@ class CartManager extends ChangeNotifier {
     final total = calculateTotal(taxRate, discountValue, isDiscountPercentage);
 
     return {
-      'invoiceNo': 'TEMP', // This will be replaced with auto-generated invoice number
+      'invoiceNo': 'TEMP',
       'table': selectedTable ?? 'No Table',
       'orderType': orderType ?? 'Dine In',
       'items': _cartItems.map((item) => item.toJson()).toList(),

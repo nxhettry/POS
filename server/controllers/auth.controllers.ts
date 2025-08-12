@@ -70,8 +70,6 @@ export const login = asyncHandler(
         },
       };
 
-      console.log(tokens.accessToken)
-
       return res
         .status(200)
         .cookie("accessToken", tokens.accessToken, {

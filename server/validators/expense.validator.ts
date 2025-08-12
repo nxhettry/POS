@@ -65,8 +65,6 @@ export const validateExpenseData = (data: ExpenseData): ExpenseValidation => {
   }
 
   if (data.partyId !== undefined && data.partyId !== null) {
-    console.log("PartyId: ", data.partyId, typeof data.partyId);
-
     if (!Number.isInteger(data.partyId)) {
       errors.push("Party ID must be a positive integer");
     }

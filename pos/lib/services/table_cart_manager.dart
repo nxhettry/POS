@@ -11,19 +11,19 @@ class TableCartManager extends ChangeNotifier {
   int? _selectedTableId;
   final List<CartItem> _cartItems = [];
   final DataRepository _dataRepository = DataRepository();
-  
-  // Flag to determine if we're using dummy data or real API
-  bool _useDummyData = true;
+
+  bool _useDummyData = false;
   int? _currentCartId;
+  Map<int, int> _cartItemIds = {};
 
   int? get selectedTableId => _selectedTableId;
   int? get currentCartId => _currentCartId;
   List<CartItem> get cartItems => List.unmodifiable(_cartItems);
   bool get isEmpty => _cartItems.isEmpty;
   int get totalItems => _cartItems.fold(0, (sum, item) => sum + item.quantity);
-  double get subtotal => _cartItems.fold(0, (sum, item) => sum + item.totalPrice);
+  double get subtotal =>
+      _cartItems.fold(0, (sum, item) => sum + item.totalPrice);
 
-  // Set the selected table and load its cart data
   Future<void> setSelectedTable(int? tableId) async {
     if (_selectedTableId != tableId) {
       _selectedTableId = tableId;
@@ -32,59 +32,60 @@ class TableCartManager extends ChangeNotifier {
     }
   }
 
-  // Load cart items for the selected table
   Future<void> _loadTableCart() async {
     _cartItems.clear();
     _currentCartId = null;
-    
+    _cartItemIds.clear();
+
     if (_selectedTableId == null) return;
 
     if (_useDummyData) {
-      // Load from dummy data
       final tableCartItems = DummyData.getTableCartItems(_selectedTableId!);
       _cartItems.addAll(tableCartItems);
-      
-      // Set dummy cart ID if table has cart
+
       final cartData = DummyData.getTableCartData(_selectedTableId!);
       if (cartData != null && cartData['cart'] != null) {
         _currentCartId = cartData['cart']['id'];
       }
     } else {
-      // Load from real API
       try {
-        final cartData = await _dataRepository.getCartByTable(_selectedTableId!);
-        if (cartData != null && cartData.isNotEmpty) {
+        final cartData = await _dataRepository.getCartByTable(
+          _selectedTableId!,
+        );
+        if (cartData.isNotEmpty) {
           _currentCartId = cartData['id'];
-          final cartItemsList = await _dataRepository.getCartItems(_currentCartId!);
-          
+          final cartItemsList = await _dataRepository.getCartItems(
+            _currentCartId!,
+          );
+
           for (final itemData in cartItemsList) {
             final menuItem = itemData['MenuItem'] ?? {};
             final item = {
               'id': menuItem['id'],
               'item_name': menuItem['itemName'] ?? menuItem['item_name'],
-              'rate': menuItem['rate'] ?? itemData['rate'],
+              'rate': (menuItem['rate'] ?? itemData['rate']).toDouble(),
               'image': menuItem['image'],
               'description': menuItem['description'],
               'categoryId': menuItem['categoryId'] ?? menuItem['category_id'],
-              'isAvailable': menuItem['isAvailable'] ?? menuItem['is_available'] ?? true,
+              'isAvailable':
+                  menuItem['isAvailable'] ?? menuItem['is_available'] ?? true,
             };
-            
-            _cartItems.add(CartItem(
+
+            final cartItem = CartItem(
               item: item,
               quantity: (itemData['quantity'] ?? 0).round(),
-            ));
+            );
+            _cartItems.add(cartItem);
+
+            _cartItemIds[menuItem['id']] = itemData['id'];
           }
         }
       } catch (e) {
         print('Error loading cart from API: $e');
-        // Fall back to dummy data on error
-        final tableCartItems = DummyData.getTableCartItems(_selectedTableId!);
-        _cartItems.addAll(tableCartItems);
       }
     }
   }
 
-  // Add item to cart
   Future<void> addItem(Map<String, dynamic> item, int quantity) async {
     if (_selectedTableId == null) return;
 
@@ -93,34 +94,41 @@ class TableCartManager extends ChangeNotifier {
     );
 
     if (existingIndex >= 0) {
-      _cartItems[existingIndex].quantity += quantity;
-      
-      if (!_useDummyData && _currentCartId != null) {
-        // Update via API
+      final newQuantity = _cartItems[existingIndex].quantity + quantity;
+
+      if (!_useDummyData &&
+          _currentCartId != null &&
+          _cartItemIds.containsKey(item['id'])) {
         try {
-          final cartItemData = _cartItems[existingIndex];
-          // You would need to track cart item IDs for API updates
-          // For now, we'll implement this when integrating with real API
+          await _dataRepository.updateCartItem(
+            _cartItemIds[item['id']]!,
+            newQuantity,
+            item['rate'].toDouble(),
+          );
+          _cartItems[existingIndex].quantity = newQuantity;
         } catch (e) {
           print('Error updating cart item via API: $e');
+          return;
         }
+      } else {
+        _cartItems[existingIndex].quantity = newQuantity;
       }
     } else {
-      _cartItems.add(CartItem(item: item, quantity: quantity));
-      
+      final cartItem = CartItem(item: item, quantity: quantity);
+
       if (!_useDummyData) {
-        // Create cart if doesn't exist
         if (_currentCartId == null) {
           try {
-            final cartData = await _dataRepository.createCart(_selectedTableId!);
+            final cartData = await _dataRepository.createCart(
+              _selectedTableId!,
+            );
             _currentCartId = cartData['id'];
           } catch (e) {
             print('Error creating cart via API: $e');
             return;
           }
         }
-        
-        // Add item via API
+
         try {
           await _dataRepository.addItemToCart(
             _currentCartId!,
@@ -128,21 +136,26 @@ class TableCartManager extends ChangeNotifier {
             quantity,
             item['rate'].toDouble(),
           );
+
+          await _loadTableCart();
+          notifyListeners();
+          return;
         } catch (e) {
           print('Error adding item to cart via API: $e');
+          return;
         }
       }
+
+      _cartItems.add(cartItem);
     }
 
-    // Save to dummy data for consistency
     if (_useDummyData) {
       _saveToDummyData();
     }
-    
+
     notifyListeners();
   }
 
-  // Update item quantity
   Future<void> updateItemQuantity(int itemId, int newQuantity) async {
     if (_selectedTableId == null) return;
 
@@ -152,29 +165,48 @@ class TableCartManager extends ChangeNotifier {
 
     if (index >= 0) {
       if (newQuantity <= 0) {
+        if (!_useDummyData && _cartItemIds.containsKey(itemId)) {
+          try {
+            await _dataRepository.removeCartItem(_cartItemIds[itemId]!);
+            _cartItemIds.remove(itemId);
+          } catch (e) {
+            print('Error removing cart item via API: $e');
+            return;
+          }
+        }
         _cartItems.removeAt(index);
       } else {
+        if (!_useDummyData && _cartItemIds.containsKey(itemId)) {
+          try {
+            await _dataRepository.updateCartItem(
+              _cartItemIds[itemId]!,
+              newQuantity,
+              _cartItems[index].item['rate'].toDouble(),
+            );
+          } catch (e) {
+            print('Error updating cart item via API: $e');
+            return;
+          }
+        }
         _cartItems[index].quantity = newQuantity;
       }
-      
-      // Save changes
+
       if (_useDummyData) {
         _saveToDummyData();
       }
-      
+
       notifyListeners();
     }
   }
 
-  // Remove item from cart
   Future<void> removeItem(int itemId) async {
     await updateItemQuantity(itemId, 0);
   }
 
-  // Clear cart
   Future<void> clearCart() async {
     _cartItems.clear();
-    
+    _cartItemIds.clear();
+
     if (_useDummyData) {
       if (_selectedTableId != null) {
         DummyData.clearTableCart(_selectedTableId!);
@@ -186,19 +218,16 @@ class TableCartManager extends ChangeNotifier {
         print('Error clearing cart via API: $e');
       }
     }
-    
+
     _currentCartId = null;
     notifyListeners();
   }
 
-  // Save current cart state to dummy data
   void _saveToDummyData() {
     if (_selectedTableId == null) return;
-    
-    // Clear existing cart items for this table
+
     DummyData.clearTableCart(_selectedTableId!);
-    
-    // Add current cart items back to dummy data
+
     for (final cartItem in _cartItems) {
       final menuItem = {
         'id': cartItem.item['id'],
@@ -209,16 +238,18 @@ class TableCartManager extends ChangeNotifier {
         'categoryId': cartItem.item['categoryId'],
         'isAvailable': cartItem.item['isAvailable'] ?? true,
       };
-      DummyData.addItemToTableCart(_selectedTableId!, menuItem, cartItem.quantity);
+      DummyData.addItemToTableCart(
+        _selectedTableId!,
+        menuItem,
+        cartItem.quantity,
+      );
     }
   }
 
-  // Calculate tax
   double calculateTax(double taxRate) {
     return subtotal * taxRate;
   }
 
-  // Calculate discount
   double calculateDiscount(double discountValue, bool isPercentage) {
     if (isPercentage) {
       return subtotal * (discountValue / 100);
@@ -227,14 +258,16 @@ class TableCartManager extends ChangeNotifier {
     }
   }
 
-  // Calculate total
-  double calculateTotal(double taxRate, double discountValue, bool isDiscountPercentage) {
+  double calculateTotal(
+    double taxRate,
+    double discountValue,
+    bool isDiscountPercentage,
+  ) {
     final tax = calculateTax(taxRate);
     final discount = calculateDiscount(discountValue, isDiscountPercentage);
     return subtotal + tax - discount;
   }
 
-  // Get order data for checkout
   Map<String, dynamic> getOrderData(
     String? selectedTable,
     String? orderType,
@@ -247,7 +280,7 @@ class TableCartManager extends ChangeNotifier {
     final total = calculateTotal(taxRate, discountValue, isDiscountPercentage);
 
     return {
-      'invoiceNo': 'TEMP', // This will be replaced with auto-generated invoice number
+      'invoiceNo': 'TEMP',
       'table': selectedTable ?? 'No Table',
       'orderType': orderType ?? 'Dine In',
       'tableId': _selectedTableId,
@@ -260,22 +293,25 @@ class TableCartManager extends ChangeNotifier {
       'isDiscountPercentage': isDiscountPercentage,
       'total': total,
       'timestamp': DateTime.now().toIso8601String(),
-      'orderStatus': 'served', // Order is completed when creating from POS
+      'orderStatus': 'served',
       'paymentStatus': 'pending',
-      'createdBy': 1, // Admin user
+      'createdBy': 1,
     };
   }
 
-  // Perform checkout
   Future<Map<String, dynamic>?> checkout(Map<String, dynamic> orderData) async {
     if (_useDummyData || _currentCartId == null) {
-      // For dummy data, just clear the cart after successful order
       await clearCart();
-      return {'success': true, 'orderId': DateTime.now().millisecondsSinceEpoch};
+      return {
+        'success': true,
+        'orderId': DateTime.now().millisecondsSinceEpoch,
+      };
     } else {
-      // Use real API checkout
       try {
-        final result = await _dataRepository.checkout(_currentCartId!, orderData);
+        final result = await _dataRepository.checkout(
+          _currentCartId!,
+          orderData,
+        );
         await clearCart();
         return result;
       } catch (e) {
@@ -285,12 +321,57 @@ class TableCartManager extends ChangeNotifier {
     }
   }
 
-  // Toggle between dummy data and real API
   void setUseDummyData(bool useDummy) {
     _useDummyData = useDummy;
-    // Reload current table cart with new data source
+
     if (_selectedTableId != null) {
       _loadTableCart();
+    }
+  }
+
+  static Future<bool> hasActiveCart(int tableId) async {
+    try {
+      final dataRepository = DataRepository();
+      final cartData = await dataRepository.getCartByTable(tableId);
+      return cartData.isNotEmpty;
+    } catch (e) {
+      print('Error checking table cart status: $e');
+      return false;
+    }
+  }
+
+  static Future<int> getTableItemCount(int tableId) async {
+    try {
+      final dataRepository = DataRepository();
+      final cartData = await dataRepository.getCartByTable(tableId);
+      if (cartData.isEmpty) return 0;
+
+      final cartItems = await dataRepository.getCartItems(cartData['id']);
+      return cartItems.fold<int>(
+        0,
+        (sum, item) => sum + ((item['quantity'] ?? 0) as int),
+      );
+    } catch (e) {
+      print('Error getting table cart item count: $e');
+      return 0;
+    }
+  }
+
+  static Future<double> getTableTotal(int tableId) async {
+    try {
+      final dataRepository = DataRepository();
+      final cartData = await dataRepository.getCartByTable(tableId);
+      if (cartData.isEmpty) return 0.0;
+
+      final cartItems = await dataRepository.getCartItems(cartData['id']);
+      return cartItems.fold<double>(0.0, (sum, item) {
+        final quantity = (item['quantity'] ?? 0) as int;
+        final rate = ((item['rate'] ?? 0) as num).toDouble();
+        return sum + (quantity * rate);
+      });
+    } catch (e) {
+      print('Error getting table cart total: $e');
+      return 0.0;
     }
   }
 }
