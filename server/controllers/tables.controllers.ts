@@ -44,7 +44,6 @@ export const updateTable = asyncHandler(
     const result = await updateTableService(Number(id), tableData);
 
     if (result.success) {
-      console.log("Table updated successfully: ", result.data);
       return res
         .status(200)
         .json(new apiResponse(200, result.data, result.message));

@@ -18,11 +18,6 @@ const router = Router();
 router.post("/", createExpense);
 router.get(
   "/date-range",
-  (req, res, next) => {
-    console.log("Request received");
-    console.log("Query Parameters:", req.query);
-    next();
-  },
   getExpensesByDateRange
 );
 router.get("/category/:categoryId", getExpensesByCategory);
