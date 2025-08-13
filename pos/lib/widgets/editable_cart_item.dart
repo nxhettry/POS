@@ -79,9 +79,9 @@ class _EditableCartItemState extends State<EditableCartItem> {
     final isSmallScreen = ResponsiveUtils.isSmallDesktop(context);
     
     return Card(
-      elevation: 2,
+      elevation: 3, // Increased elevation
       margin: EdgeInsets.symmetric(
-        vertical: ResponsiveUtils.getSpacing(context, base: 4),
+        vertical: ResponsiveUtils.getSpacing(context, base: 5), // Increased margin
         horizontal: ResponsiveUtils.getSpacing(context, base: 2),
       ),
       shape: RoundedRectangleBorder(
@@ -103,8 +103,8 @@ class _EditableCartItemState extends State<EditableCartItem> {
             });
           },
           leading: Container(
-            width: isSmallScreen ? 40 : 50,
-            height: isSmallScreen ? 40 : 50,
+            width: isSmallScreen ? 50 : 60, // Increased size
+            height: isSmallScreen ? 50 : 60, // Increased size
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               color: Colors.grey[200],
@@ -119,14 +119,14 @@ class _EditableCartItemState extends State<EditableCartItem> {
                         return Icon(
                           Icons.fastfood,
                           color: Colors.grey[600],
-                          size: isSmallScreen ? 16 : 20,
+                          size: isSmallScreen ? 20 : 24, // Increased icon size
                         );
                       },
                     )
                   : Icon(
                       Icons.fastfood,
                       color: Colors.grey[600],
-                      size: isSmallScreen ? 16 : 20,
+                      size: isSmallScreen ? 20 : 24, // Increased icon size
                     ),
             ),
           ),
@@ -139,7 +139,7 @@ class _EditableCartItemState extends State<EditableCartItem> {
                     Text(
                       item['item_name'],
                       style: TextStyle(
-                        fontSize: ResponsiveUtils.getFontSize(context, 14),
+                        fontSize: ResponsiveUtils.getFontSize(context, 16), // Increased font size
                         fontWeight: FontWeight.w600,
                         color: Colors.black87,
                       ),
@@ -149,7 +149,7 @@ class _EditableCartItemState extends State<EditableCartItem> {
                     Text(
                       "Rs. ${item['rate'].toStringAsFixed(2)} x ${widget.cartItem.quantity}",
                       style: TextStyle(
-                        fontSize: ResponsiveUtils.getFontSize(context, 12),
+                        fontSize: ResponsiveUtils.getFontSize(context, 13), // Increased font size
                         color: Colors.grey[600],
                       ),
                     ),
@@ -159,7 +159,7 @@ class _EditableCartItemState extends State<EditableCartItem> {
               Text(
                 "Rs. ${widget.cartItem.totalPrice.toStringAsFixed(2)}",
                 style: TextStyle(
-                  fontSize: ResponsiveUtils.getFontSize(context, 14),
+                  fontSize: ResponsiveUtils.getFontSize(context, 16), // Increased font size
                   fontWeight: FontWeight.bold,
                   color: Colors.green[700],
                 ),

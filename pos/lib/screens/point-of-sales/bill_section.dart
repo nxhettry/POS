@@ -10,7 +10,7 @@ import 'dart:developer' as developer;
 
 class BillSection extends StatefulWidget {
   final models.Table? selectedTable;
-  
+
   const BillSection({super.key, this.selectedTable});
 
   @override
@@ -69,7 +69,7 @@ class _BillSectionState extends State<BillSection> {
       final methods = await _dataRepository.fetchActivePaymentMethods();
       setState(() {
         paymentMethods = methods;
-        // Set default payment method for cash
+
         if (methods.isNotEmpty) {
           final cashMethod = methods.firstWhere(
             (method) => method.name.toLowerCase().contains('cash'),
@@ -85,7 +85,7 @@ class _BillSectionState extends State<BillSection> {
 
   Future<void> _loadCustomers() async {
     if (selectedPaymentType != "credit" || _isLoadingCustomers) return;
-    
+
     try {
       setState(() {
         _isLoadingCustomers = true;
@@ -100,7 +100,7 @@ class _BillSectionState extends State<BillSection> {
         _isLoadingCustomers = false;
       });
       developer.log('Error loading customers: $e', name: 'POS');
-      // Show a snackbar to inform user about the error
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -115,7 +115,7 @@ class _BillSectionState extends State<BillSection> {
   @override
   void didUpdateWidget(BillSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // When selected table changes, update cart manager
+
     if (oldWidget.selectedTable?.id != widget.selectedTable?.id) {
       cartManager.setSelectedTable(widget.selectedTable?.id);
     }
@@ -140,7 +140,10 @@ class _BillSectionState extends State<BillSection> {
   }
 
   void _onCartChanged() {
-    developer.log('Cart changed! Items count: ${cartManager.cartItems.length}', name: 'BillSection');
+    developer.log(
+      'Cart changed! Items count: ${cartManager.cartItems.length}',
+      name: 'BillSection',
+    );
     if (mounted) {
       setState(() {});
     }
@@ -179,9 +182,7 @@ class _BillSectionState extends State<BillSection> {
     if (widget.selectedTable == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Please select a table before placing the order.',
-          ),
+          content: Text('Please select a table before placing the order.'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 2),
         ),
@@ -192,9 +193,7 @@ class _BillSectionState extends State<BillSection> {
     if (selectedPaymentMethod == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Please select a payment method.',
-          ),
+          content: Text('Please select a payment method.'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 2),
         ),
@@ -205,9 +204,7 @@ class _BillSectionState extends State<BillSection> {
     if (selectedPaymentType == "credit" && selectedParty == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Please select a customer for credit sales.',
-          ),
+          content: Text('Please select a customer for credit sales.'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 2),
         ),
@@ -215,37 +212,45 @@ class _BillSectionState extends State<BillSection> {
       return;
     }
 
-            try {
+    try {
       final invoiceNo = await _dataRepository.getNextInvoiceNumber();
       developer.log('Generated invoice number: $invoiceNo', name: 'POS');
-      
-      // Add sales-specific data for the complete order
+
       final salesData = cartManager.getOrderData(
         widget.selectedTable!.name,
-        selectedOrderType!, 
+        selectedOrderType!,
         taxRate,
         discountValue,
         isDiscountPercentage,
       );
-      
+
       salesData['invoiceNo'] = invoiceNo;
       salesData['paymentMethodId'] = selectedPaymentMethod!.id;
-      salesData['paymentStatus'] = selectedPaymentType == "credit" ? "pending" : "paid";
-      salesData['partyId'] = selectedPaymentType == "credit" ? selectedParty!.id : 1; // Default to admin if not credit
-      
+      salesData['paymentStatus'] = selectedPaymentType == "credit"
+          ? "pending"
+          : "paid";
+      salesData['partyId'] = selectedPaymentType == "credit"
+          ? selectedParty!.id
+          : 1;
+
       final sale = models.Sales.fromMap(salesData);
       developer.log('Sales object created: ${sale.invoiceNo}', name: 'POS');
-      
+
       final savedSale = await _dataRepository.createSale(sale);
-      developer.log('Sale saved with invoice: ${savedSale.invoiceNo}', name: 'POS');
-      
+      developer.log(
+        'Sale saved with invoice: ${savedSale.invoiceNo}',
+        name: 'POS',
+      );
+
       try {
         await reprintInvoice(context, savedSale);
-        developer.log('Invoice reprinted successfully: ${savedSale.invoiceNo}', name: 'POS');
+        developer.log(
+          'Invoice reprinted successfully: ${savedSale.invoiceNo}',
+          name: 'POS',
+        );
       } catch (billError) {
         developer.log('Error reprinting invoice: $billError', name: 'POS');
       }
-      
     } catch (e) {
       developer.log('Error saving sale: $e', name: 'POS');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -255,10 +260,9 @@ class _BillSectionState extends State<BillSection> {
           duration: const Duration(seconds: 5),
         ),
       );
-      return; // Don't clear cart if save failed
+      return;
     }
 
-    // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Order placed successfully!'),
@@ -267,13 +271,10 @@ class _BillSectionState extends State<BillSection> {
       ),
     );
 
-    // Clear cart after successful order
     cartManager.clearCart();
 
-    // Refresh the next invoice number for the next order
     _loadNextInvoiceNumber();
 
-    // Reset form fields
     setState(() {
       selectedOrderType = "dine_in";
       selectedTax = "0%";
@@ -316,9 +317,9 @@ class _BillSectionState extends State<BillSection> {
                 ),
                 SizedBox(height: ResponsiveUtils.getSpacing(context, base: 8)),
                 Text(
-                  _isLoadingInvoiceNumber 
-                    ? "Invoice No: Loading..."
-                    : "Invoice No: $_nextInvoiceNumber",
+                  _isLoadingInvoiceNumber
+                      ? "Invoice No: Loading..."
+                      : "Invoice No: $_nextInvoiceNumber",
                   style: TextStyle(
                     fontSize: ResponsiveUtils.getFontSize(context, 14),
                     color: Colors.grey,
@@ -362,7 +363,9 @@ class _BillSectionState extends State<BillSection> {
                           style: TextStyle(
                             fontSize: ResponsiveUtils.getFontSize(context, 14),
                             fontWeight: FontWeight.w600,
-                            color: widget.selectedTable != null ? Colors.black : Colors.grey,
+                            color: widget.selectedTable != null
+                                ? Colors.black
+                                : Colors.grey,
                           ),
                         ),
                       ],
@@ -393,7 +396,10 @@ class _BillSectionState extends State<BillSection> {
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(
                         vertical: ResponsiveUtils.getSpacing(context, base: 12),
-                        horizontal: ResponsiveUtils.getSpacing(context, base: 12),
+                        horizontal: ResponsiveUtils.getSpacing(
+                          context,
+                          base: 12,
+                        ),
                       ),
                     ),
                     value: selectedOrderType,
@@ -438,48 +444,77 @@ class _BillSectionState extends State<BillSection> {
           ),
 
           Expanded(
+            flex: 3,
             child: AnimatedBuilder(
               animation: cartManager,
               builder: (context, child) {
                 return SingleChildScrollView(
                   child: Column(
                     children: [
-                      // Quick Add Item Widget
                       if (widget.selectedTable != null)
-                        QuickAddItemWidget(
-                          onItemAdded: () {
-                            setState(() {});
-                          },
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            vertical: ResponsiveUtils.getSpacing(
+                              context,
+                              base: 4,
+                            ),
+                          ),
+                          child: QuickAddItemWidget(
+                            onItemAdded: () {
+                              setState(() {});
+                            },
+                          ),
                         ),
 
                       if (cartManager.isEmpty)
                         Padding(
                           padding: EdgeInsets.symmetric(
-                            vertical: ResponsiveUtils.getSpacing(context, base: 40),
+                            vertical: ResponsiveUtils.getSpacing(
+                              context,
+                              base: 40,
+                            ),
                           ),
                           child: Column(
                             children: [
                               Icon(
                                 Icons.shopping_cart_outlined,
-                                size: ResponsiveUtils.isSmallDesktop(context) ? 60 : 80,
+                                size: ResponsiveUtils.isSmallDesktop(context)
+                                    ? 70
+                                    : 90,
                                 color: Colors.grey[400],
                               ),
-                              SizedBox(height: ResponsiveUtils.getSpacing(context)),
+                              SizedBox(
+                                height: ResponsiveUtils.getSpacing(
+                                  context,
+                                  base: 12,
+                                ),
+                              ),
                               Text(
                                 'No items in cart',
                                 style: TextStyle(
-                                  fontSize: ResponsiveUtils.getFontSize(context, 18),
+                                  fontSize: ResponsiveUtils.getFontSize(
+                                    context,
+                                    20,
+                                  ),
                                   color: Colors.grey[600],
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              SizedBox(height: ResponsiveUtils.getSpacing(context, base: 8)),
+                              SizedBox(
+                                height: ResponsiveUtils.getSpacing(
+                                  context,
+                                  base: 8,
+                                ),
+                              ),
                               Text(
                                 widget.selectedTable != null
                                     ? 'Use the "Add Items" section above or select items from the menu'
                                     : 'Please select a table first, then add items from the menu',
                                 style: TextStyle(
-                                  fontSize: ResponsiveUtils.getFontSize(context, 14),
+                                  fontSize: ResponsiveUtils.getFontSize(
+                                    context,
+                                    16,
+                                  ),
                                   color: Colors.grey[500],
                                 ),
                                 textAlign: TextAlign.center,
@@ -489,12 +524,24 @@ class _BillSectionState extends State<BillSection> {
                         )
                       else
                         ...cartManager.cartItems.map(
-                          (cartItem) => EditableCartItem(
-                            cartItem: cartItem,
-                            isEnabled: widget.selectedTable != null,
-                            onChanged: () {
-                              setState(() {});
-                            },
+                          (cartItem) => Padding(
+                            padding: EdgeInsets.symmetric(
+                              vertical: ResponsiveUtils.getSpacing(
+                                context,
+                                base: 3,
+                              ),
+                              horizontal: ResponsiveUtils.getSpacing(
+                                context,
+                                base: 1,
+                              ),
+                            ),
+                            child: EditableCartItem(
+                              cartItem: cartItem,
+                              isEnabled: widget.selectedTable != null,
+                              onChanged: () {
+                                setState(() {});
+                              },
+                            ),
                           ),
                         ),
                     ],
@@ -506,13 +553,13 @@ class _BillSectionState extends State<BillSection> {
 
           Padding(
             padding: EdgeInsets.only(
-              top: ResponsiveUtils.getSpacing(context, base: 12),
+              top: ResponsiveUtils.getSpacing(context, base: 8),
             ),
             child: Row(
               children: [
                 Expanded(
                   child: Container(
-                    height: ResponsiveUtils.isSmallDesktop(context) ? 40 : 45,
+                    height: ResponsiveUtils.isSmallDesktop(context) ? 32 : 36,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
                       color: Colors.grey[100],
@@ -528,35 +575,47 @@ class _BillSectionState extends State<BillSection> {
                       decoration: InputDecoration(
                         labelText: "Tax",
                         labelStyle: TextStyle(
-                          fontSize: ResponsiveUtils.getFontSize(context, 12),
+                          fontSize: ResponsiveUtils.getFontSize(context, 10),
                         ),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(
-                          vertical: ResponsiveUtils.getSpacing(context, base: 8),
-                          horizontal: ResponsiveUtils.getSpacing(context, base: 10),
+                          vertical: ResponsiveUtils.getSpacing(
+                            context,
+                            base: 6,
+                          ),
+                          horizontal: ResponsiveUtils.getSpacing(
+                            context,
+                            base: 8,
+                          ),
                         ),
                       ),
                       value: selectedTax,
                       style: TextStyle(
-                        fontSize: ResponsiveUtils.getFontSize(context, 14),
+                        fontSize: ResponsiveUtils.getFontSize(context, 12),
                         color: Colors.black,
                       ),
                       items: [
                         DropdownMenuItem(
-                          value: "0%", 
+                          value: "0%",
                           child: Text(
                             "0%",
                             style: TextStyle(
-                              fontSize: ResponsiveUtils.getFontSize(context, 14),
+                              fontSize: ResponsiveUtils.getFontSize(
+                                context,
+                                12,
+                              ),
                             ),
                           ),
                         ),
                         DropdownMenuItem(
-                          value: "13%", 
+                          value: "13%",
                           child: Text(
                             "13%",
                             style: TextStyle(
-                              fontSize: ResponsiveUtils.getFontSize(context, 14),
+                              fontSize: ResponsiveUtils.getFontSize(
+                                context,
+                                12,
+                              ),
                             ),
                           ),
                         ),
@@ -569,10 +628,10 @@ class _BillSectionState extends State<BillSection> {
                     ),
                   ),
                 ),
-                SizedBox(width: ResponsiveUtils.getSpacing(context, base: 12)),
+                SizedBox(width: ResponsiveUtils.getSpacing(context, base: 8)),
                 Expanded(
                   child: Container(
-                    height: ResponsiveUtils.isSmallDesktop(context) ? 40 : 45,
+                    height: ResponsiveUtils.isSmallDesktop(context) ? 32 : 36,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
                       color: Colors.grey[100],
@@ -587,17 +646,23 @@ class _BillSectionState extends State<BillSection> {
                     child: TextFormField(
                       controller: discountController,
                       style: TextStyle(
-                        fontSize: ResponsiveUtils.getFontSize(context, 14),
+                        fontSize: ResponsiveUtils.getFontSize(context, 12),
                       ),
                       decoration: InputDecoration(
                         labelText: "Discount",
                         labelStyle: TextStyle(
-                          fontSize: ResponsiveUtils.getFontSize(context, 12),
+                          fontSize: ResponsiveUtils.getFontSize(context, 10),
                         ),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(
-                          vertical: ResponsiveUtils.getSpacing(context, base: 8),
-                          horizontal: ResponsiveUtils.getSpacing(context, base: 10),
+                          vertical: ResponsiveUtils.getSpacing(
+                            context,
+                            base: 6,
+                          ),
+                          horizontal: ResponsiveUtils.getSpacing(
+                            context,
+                            base: 8,
+                          ),
                         ),
                       ),
                       keyboardType: TextInputType.number,
@@ -609,11 +674,11 @@ class _BillSectionState extends State<BillSection> {
                     ),
                   ),
                 ),
-                SizedBox(width: ResponsiveUtils.getSpacing(context, base: 8)),
+                SizedBox(width: ResponsiveUtils.getSpacing(context, base: 6)),
                 Container(
-                  height: ResponsiveUtils.isSmallDesktop(context) ? 40 : 45,
+                  height: ResponsiveUtils.isSmallDesktop(context) ? 32 : 36,
                   padding: EdgeInsets.symmetric(
-                    horizontal: ResponsiveUtils.getSpacing(context, base: 8),
+                    horizontal: ResponsiveUtils.getSpacing(context, base: 6),
                   ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
@@ -622,26 +687,26 @@ class _BillSectionState extends State<BillSection> {
                   child: DropdownButton<String>(
                     value: isDiscountPercentage ? "%" : "\$",
                     style: TextStyle(
-                      fontSize: ResponsiveUtils.getFontSize(context, 14),
+                      fontSize: ResponsiveUtils.getFontSize(context, 12),
                       color: Colors.black,
                     ),
                     underline: SizedBox(),
                     items: [
                       DropdownMenuItem(
-                        value: "%", 
+                        value: "%",
                         child: Text(
                           "%",
                           style: TextStyle(
-                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            fontSize: ResponsiveUtils.getFontSize(context, 12),
                           ),
                         ),
                       ),
                       DropdownMenuItem(
-                        value: "\$", 
+                        value: "\$",
                         child: Text(
                           "Rs.",
                           style: TextStyle(
-                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            fontSize: ResponsiveUtils.getFontSize(context, 12),
                           ),
                         ),
                       ),
@@ -657,14 +722,13 @@ class _BillSectionState extends State<BillSection> {
             ),
           ),
 
-          SizedBox(height: ResponsiveUtils.getSpacing(context, base: 12)),
-          
-          // Payment Method Selection Row
+          SizedBox(height: ResponsiveUtils.getSpacing(context, base: 8)),
+
           Row(
             children: [
               Expanded(
                 child: Container(
-                  height: ResponsiveUtils.isSmallDesktop(context) ? 40 : 45,
+                  height: ResponsiveUtils.isSmallDesktop(context) ? 32 : 36,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
                     color: Colors.grey[100],
@@ -680,44 +744,47 @@ class _BillSectionState extends State<BillSection> {
                     decoration: InputDecoration(
                       labelText: "Payment Type",
                       labelStyle: TextStyle(
-                        fontSize: ResponsiveUtils.getFontSize(context, 12),
+                        fontSize: ResponsiveUtils.getFontSize(context, 10),
                       ),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(
-                        vertical: ResponsiveUtils.getSpacing(context, base: 8),
-                        horizontal: ResponsiveUtils.getSpacing(context, base: 10),
+                        vertical: ResponsiveUtils.getSpacing(context, base: 6),
+                        horizontal: ResponsiveUtils.getSpacing(
+                          context,
+                          base: 8,
+                        ),
                       ),
                     ),
                     value: selectedPaymentType,
                     style: TextStyle(
-                      fontSize: ResponsiveUtils.getFontSize(context, 14),
+                      fontSize: ResponsiveUtils.getFontSize(context, 12),
                       color: Colors.black,
                     ),
                     items: [
                       DropdownMenuItem(
-                        value: "cash", 
+                        value: "cash",
                         child: Text(
                           "Cash",
                           style: TextStyle(
-                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            fontSize: ResponsiveUtils.getFontSize(context, 12),
                           ),
                         ),
                       ),
                       DropdownMenuItem(
-                        value: "credit", 
+                        value: "credit",
                         child: Text(
                           "Credit",
                           style: TextStyle(
-                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            fontSize: ResponsiveUtils.getFontSize(context, 12),
                           ),
                         ),
                       ),
                       DropdownMenuItem(
-                        value: "fonepay", 
+                        value: "fonepay",
                         child: Text(
                           "FonePay",
                           style: TextStyle(
-                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            fontSize: ResponsiveUtils.getFontSize(context, 12),
                           ),
                         ),
                       ),
@@ -725,27 +792,27 @@ class _BillSectionState extends State<BillSection> {
                     onChanged: (value) {
                       setState(() {
                         selectedPaymentType = value;
-                        selectedParty = null; // Reset party selection when payment type changes
-                        
-                        // Update payment method based on type
+                        selectedParty = null;
+
                         if (paymentMethods.isNotEmpty) {
                           if (value == "cash") {
                             selectedPaymentMethod = paymentMethods.firstWhere(
-                              (method) => method.name.toLowerCase().contains('cash'),
+                              (method) =>
+                                  method.name.toLowerCase().contains('cash'),
                               orElse: () => paymentMethods.first,
                             );
                           } else if (value == "fonepay") {
                             selectedPaymentMethod = paymentMethods.firstWhere(
-                              (method) => method.name.toLowerCase().contains('fonepay'),
+                              (method) =>
+                                  method.name.toLowerCase().contains('fonepay'),
                               orElse: () => paymentMethods.first,
                             );
                           } else {
-                            // For credit, use any available method
                             selectedPaymentMethod = paymentMethods.first;
                           }
                         }
                       });
-                      
+
                       if (value == "credit") {
                         _loadCustomers();
                       }
@@ -754,10 +821,10 @@ class _BillSectionState extends State<BillSection> {
                 ),
               ),
               if (selectedPaymentType == "credit") ...[
-                SizedBox(width: ResponsiveUtils.getSpacing(context, base: 12)),
+                SizedBox(width: ResponsiveUtils.getSpacing(context, base: 8)),
                 Expanded(
                   child: Container(
-                    height: ResponsiveUtils.isSmallDesktop(context) ? 40 : 45,
+                    height: ResponsiveUtils.isSmallDesktop(context) ? 32 : 36,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
                       color: Colors.grey[100],
@@ -772,8 +839,8 @@ class _BillSectionState extends State<BillSection> {
                     child: _isLoadingCustomers
                         ? Center(
                             child: SizedBox(
-                              height: 20,
-                              width: 20,
+                              height: 16,
+                              width: 16,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             ),
                           )
@@ -781,30 +848,51 @@ class _BillSectionState extends State<BillSection> {
                             decoration: InputDecoration(
                               labelText: "Customer *",
                               labelStyle: TextStyle(
-                                fontSize: ResponsiveUtils.getFontSize(context, 12),
-                                color: selectedParty == null ? Colors.red : null,
+                                fontSize: ResponsiveUtils.getFontSize(
+                                  context,
+                                  10,
+                                ),
+                                color: selectedParty == null
+                                    ? Colors.red
+                                    : null,
                               ),
                               border: InputBorder.none,
                               contentPadding: EdgeInsets.symmetric(
-                                vertical: ResponsiveUtils.getSpacing(context, base: 8),
-                                horizontal: ResponsiveUtils.getSpacing(context, base: 10),
+                                vertical: ResponsiveUtils.getSpacing(
+                                  context,
+                                  base: 6,
+                                ),
+                                horizontal: ResponsiveUtils.getSpacing(
+                                  context,
+                                  base: 8,
+                                ),
                               ),
                             ),
                             value: selectedParty,
                             style: TextStyle(
-                              fontSize: ResponsiveUtils.getFontSize(context, 14),
+                              fontSize: ResponsiveUtils.getFontSize(
+                                context,
+                                12,
+                              ),
                               color: Colors.black,
                             ),
-                            items: customers.map((customer) => DropdownMenuItem(
-                              value: customer,
-                              child: Text(
-                                customer.name,
-                                style: TextStyle(
-                                  fontSize: ResponsiveUtils.getFontSize(context, 14),
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            )).toList(),
+                            items: customers
+                                .map(
+                                  (customer) => DropdownMenuItem(
+                                    value: customer,
+                                    child: Text(
+                                      customer.name,
+                                      style: TextStyle(
+                                        fontSize: ResponsiveUtils.getFontSize(
+                                          context,
+                                          12,
+                                        ),
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
                             onChanged: (value) {
                               setState(() {
                                 selectedParty = value;
@@ -817,14 +905,14 @@ class _BillSectionState extends State<BillSection> {
             ],
           ),
 
-          SizedBox(height: ResponsiveUtils.getSpacing(context, base: 12)),
+          SizedBox(height: ResponsiveUtils.getSpacing(context, base: 8)),
           Divider(height: 1),
           AnimatedBuilder(
             animation: cartManager,
             builder: (context, child) {
               return Padding(
                 padding: EdgeInsets.only(
-                  top: ResponsiveUtils.getSpacing(context, base: 12),
+                  top: ResponsiveUtils.getSpacing(context, base: 8),
                 ),
                 child: Column(
                   children: [
@@ -834,54 +922,58 @@ class _BillSectionState extends State<BillSection> {
                         Text(
                           "Subtotal",
                           style: TextStyle(
-                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            fontSize: ResponsiveUtils.getFontSize(context, 12),
                             color: Colors.grey[600],
                           ),
                         ),
                         Text(
                           "Rs. ${subtotal.toStringAsFixed(2)}",
                           style: TextStyle(
-                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            fontSize: ResponsiveUtils.getFontSize(context, 12),
                             color: Colors.black,
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: ResponsiveUtils.getSpacing(context, base: 4)),
+                    SizedBox(
+                      height: ResponsiveUtils.getSpacing(context, base: 3),
+                    ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           "Tax ($selectedTax)",
                           style: TextStyle(
-                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            fontSize: ResponsiveUtils.getFontSize(context, 12),
                             color: Colors.grey[600],
                           ),
                         ),
                         Text(
                           "Rs. ${tax.toStringAsFixed(2)}",
                           style: TextStyle(
-                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            fontSize: ResponsiveUtils.getFontSize(context, 12),
                             color: Colors.black,
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: ResponsiveUtils.getSpacing(context, base: 4)),
+                    SizedBox(
+                      height: ResponsiveUtils.getSpacing(context, base: 3),
+                    ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           "Discount",
                           style: TextStyle(
-                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            fontSize: ResponsiveUtils.getFontSize(context, 12),
                             color: Colors.grey[600],
                           ),
                         ),
                         Text(
                           "-Rs. ${discount.toStringAsFixed(2)}",
                           style: TextStyle(
-                            fontSize: ResponsiveUtils.getFontSize(context, 14),
+                            fontSize: ResponsiveUtils.getFontSize(context, 12),
                             color: Colors.black,
                           ),
                         ),
@@ -889,7 +981,7 @@ class _BillSectionState extends State<BillSection> {
                     ),
                     Padding(
                       padding: EdgeInsets.symmetric(
-                        vertical: ResponsiveUtils.getSpacing(context, base: 8),
+                        vertical: ResponsiveUtils.getSpacing(context, base: 6),
                       ),
                       child: Divider(height: 1),
                     ),
@@ -899,7 +991,7 @@ class _BillSectionState extends State<BillSection> {
                         Text(
                           "TOTAL",
                           style: TextStyle(
-                            fontSize: ResponsiveUtils.getFontSize(context, 16),
+                            fontSize: ResponsiveUtils.getFontSize(context, 14),
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
                           ),
@@ -907,7 +999,7 @@ class _BillSectionState extends State<BillSection> {
                         Text(
                           "Rs. ${total.toStringAsFixed(2)}",
                           style: TextStyle(
-                            fontSize: ResponsiveUtils.getFontSize(context, 18),
+                            fontSize: ResponsiveUtils.getFontSize(context, 16),
                             fontWeight: FontWeight.bold,
                             color: Colors.green[700],
                           ),
@@ -920,13 +1012,13 @@ class _BillSectionState extends State<BillSection> {
             },
           ),
 
-          SizedBox(height: ResponsiveUtils.getSpacing(context, base: 12)),
+          SizedBox(height: ResponsiveUtils.getSpacing(context, base: 8)),
           AnimatedBuilder(
             animation: cartManager,
             builder: (context, child) {
               return SizedBox(
                 width: double.infinity,
-                height: ResponsiveUtils.isSmallDesktop(context) ? 44 : 48,
+                height: ResponsiveUtils.isSmallDesktop(context) ? 38 : 42,
                 child: ElevatedButton(
                   onPressed: _placeOrder,
                   style: ElevatedButton.styleFrom(
@@ -941,7 +1033,7 @@ class _BillSectionState extends State<BillSection> {
                   child: Text(
                     cartManager.isEmpty ? "Add Items to Cart" : "Place Order",
                     style: TextStyle(
-                      fontSize: ResponsiveUtils.getFontSize(context, 16),
+                      fontSize: ResponsiveUtils.getFontSize(context, 14),
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
                     ),
