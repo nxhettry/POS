@@ -69,11 +69,13 @@ class TableCartManager extends ChangeNotifier {
               'categoryId': menuItem['categoryId'] ?? menuItem['category_id'],
               'isAvailable':
                   menuItem['isAvailable'] ?? menuItem['is_available'] ?? true,
+              'notes': itemData['notes'], // Add notes from the cart item
             };
 
             final cartItem = CartItem(
               item: item,
               quantity: (itemData['quantity'] ?? 0).round(),
+              notes: itemData['notes']?.toString(), // Add notes to cart item
             );
             _cartItems.add(cartItem);
 
@@ -86,7 +88,7 @@ class TableCartManager extends ChangeNotifier {
     }
   }
 
-  Future<void> addItem(Map<String, dynamic> item, int quantity) async {
+  Future<void> addItem(Map<String, dynamic> item, int quantity, {String? notes}) async {
     if (_selectedTableId == null) return;
 
     final existingIndex = _cartItems.indexWhere(
@@ -106,15 +108,30 @@ class TableCartManager extends ChangeNotifier {
             item['rate'].toDouble(),
           );
           _cartItems[existingIndex].quantity = newQuantity;
+          
+          // Update notes if provided
+          if (notes != null) {
+            _cartItems[existingIndex].notes = notes;
+            _cartItems[existingIndex].item['notes'] = notes;
+          }
         } catch (e) {
           print('Error updating cart item via API: $e');
           return;
         }
       } else {
         _cartItems[existingIndex].quantity = newQuantity;
+        if (notes != null) {
+          _cartItems[existingIndex].notes = notes;
+          _cartItems[existingIndex].item['notes'] = notes;
+        }
       }
     } else {
-      final cartItem = CartItem(item: item, quantity: quantity);
+      // Add notes to item data if provided
+      if (notes != null) {
+        item['notes'] = notes;
+      }
+      
+      final cartItem = CartItem(item: item, quantity: quantity, notes: notes);
 
       if (!_useDummyData) {
         if (_currentCartId == null) {

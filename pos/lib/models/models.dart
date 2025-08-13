@@ -170,13 +170,25 @@ class Table {
 class CartItem {
   final Map<String, dynamic> item;
   int quantity;
+  String? notes;
 
-  CartItem({required this.item, this.quantity = 1});
+  CartItem({required this.item, this.quantity = 1, this.notes});
 
   double get totalPrice => (item['rate'] as num).toDouble() * quantity;
 
   Map<String, dynamic> toJson() {
-    return {'item': item, 'quantity': quantity, 'totalPrice': totalPrice};
+    final json = <String, dynamic>{
+      'item': item, 
+      'quantity': quantity, 
+      'totalPrice': totalPrice,
+    };
+    
+    // Add notes if they exist
+    if (notes != null && notes!.isNotEmpty) {
+      json['notes'] = notes!;
+    }
+    
+    return json;
   }
 }
 

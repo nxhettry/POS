@@ -27,6 +27,7 @@ class _TablesViewState extends State<TablesView> {
   Future<Map<String, dynamic>> _getTableCartStatus(int tableId) async {
     try {
       final cartData = await _dataRepository.getCartByTable(tableId);
+
       if (cartData.isEmpty) {
         return {'hasCart': false, 'itemCount': 0};
       }

@@ -321,7 +321,7 @@ class ApiDataService {
       return [];
     } catch (e) {
       print('Error fetching sales by date range: $e');
-      // Fallback to client-side filtering if API fails
+
       final sales = await getSales();
       return sales.where((sale) {
         return sale.timestamp.isAfter(
@@ -378,10 +378,9 @@ class ApiDataService {
   }
 
   Future<Sales> createSale(Sales sale) async {
-    // Convert order type from underscore to hyphen format
     String orderType = sale.orderType.toLowerCase();
     if (orderType == 'dine_in') orderType = 'dine-in';
-    
+
     final requestData = {
       'tableId': sale.tableId,
       'orderType': orderType,
@@ -403,12 +402,11 @@ class ApiDataService {
     final response = await _apiService.post(
       Endpoints.sales,
       requestData,
-      requiresAuth: false, // Temporarily set to false for testing
+      requiresAuth: false,
     );
     final salesData = response['data'] ?? response;
     final createdSale = Sales.fromJson(salesData as Map<String, dynamic>);
 
-    // Create sales items
     if (sale.items.isNotEmpty) {
       await _createSalesItems(createdSale.id!, sale.items);
     }
@@ -419,7 +417,7 @@ class ApiDataService {
   Future<void> _createSalesItems(int salesId, List<dynamic> items) async {
     for (var item in items) {
       Map<String, dynamic> salesItemData;
-      
+
       if (item is CartItem) {
         salesItemData = {
           'salesId': salesId,
@@ -439,7 +437,7 @@ class ApiDataService {
           'totalPrice': item['totalPrice'],
         };
       } else {
-        continue; // Skip unsupported item types
+        continue;
       }
 
       print('=== CREATE SALES ITEM REQUEST (FLUTTER) ===');
@@ -449,11 +447,10 @@ class ApiDataService {
         await _apiService.post(
           Endpoints.salesItems,
           salesItemData,
-          requiresAuth: false, // Temporarily set to false for testing
+          requiresAuth: false,
         );
       } catch (e) {
         print('Error creating sales item: $e');
-        // Continue with other items even if one fails
       }
     }
   }
@@ -517,9 +514,7 @@ class ApiDataService {
 
   Future<List<Expense>> getExpenses() async {
     try {
-      final response = await _apiService.get(
-        Endpoints.expenses,
-      );
+      final response = await _apiService.get(Endpoints.expenses);
       final data = response['data'] ?? response;
       if (data is List) {
         return data.map((item) => Expense.fromMap(item)).toList();
@@ -554,7 +549,7 @@ class ApiDataService {
       return [];
     } catch (e) {
       print('Error fetching expenses by date range: $e');
-      // Fallback to client-side filtering if API fails
+
       try {
         final queryParams =
             '?startDate=${startDate.toIso8601String().split('T')[0]}&endDate=${endDate.toIso8601String().split('T')[0]}';
@@ -675,14 +670,18 @@ class ApiDataService {
       'receipt': receipt,
       'createdBy': createdBy,
     };
-    
+
     print('=== CREATE EXPENSE REQUEST (FLUTTER) ===');
     print('Request data: ${requestData.toString()}');
     print('Endpoint: ${Endpoints.expenses}');
     print('Timestamp: ${DateTime.now().toIso8601String()}');
-    
+
     try {
-      final response = await _apiService.post(Endpoints.expenses, requestData, requiresAuth: true);
+      final response = await _apiService.post(
+        Endpoints.expenses,
+        requestData,
+        requiresAuth: true,
+      );
       print('Response received: ${response.toString()}');
       final expenseData = response['data'] ?? response;
       print('Parsed expense data: ${expenseData.toString()}');
@@ -824,20 +823,16 @@ class ApiDataService {
 
   Future<String> getNextInvoiceNumber() async {
     try {
-      final response = await _apiService.get(
-        Endpoints.nextInvoiceNumber,
-      );
+      final response = await _apiService.get(Endpoints.nextInvoiceNumber);
 
       if (response['success'] == true && response['data'] != null) {
         return response['data']['invoiceNumber'] ?? 'INV 001';
       } else {
-        // Fallback to local generation if API fails
         final sales = await getSales();
         final nextId = sales.isEmpty ? 1 : (sales.length + 1);
         return 'INV ${nextId.toString().padLeft(3, '0')}';
       }
     } catch (e) {
-      // Fallback to local generation if API fails
       try {
         final sales = await getSales();
         final nextId = sales.isEmpty ? 1 : (sales.length + 1);
@@ -883,52 +878,55 @@ class ApiDataService {
     };
   }
 
-  // Cart methods
   Future<Map<String, dynamic>> getCartByTable(int tableId) async {
     final response = await _apiService.get(
       '${Endpoints.cartsByTable}/$tableId',
       requiresAuth: true,
     );
-    return response['data'] ?? response;
+
+    final data = response['data'] ?? response;
+
+    if (data is List) {
+      if (data.isEmpty) {
+        return {};
+      } else {
+        return data.first as Map<String, dynamic>;
+      }
+    }
+
+    return data as Map<String, dynamic>;
   }
 
   Future<Map<String, dynamic>> createCart(int tableId) async {
-    final response = await _apiService.post(
-      Endpoints.carts,
-      {
-        'tableId': tableId,
-        'userId': 1, // Admin user
-        'status': 'open',
-      },
-      requiresAuth: true,
-    );
+    final response = await _apiService.post(Endpoints.carts, {
+      'tableId': tableId,
+      'userId': 1,
+      'status': 'open',
+    }, requiresAuth: true);
     return response['data'] ?? response;
   }
 
-  Future<void> addItemToCart(int cartId, int itemId, int quantity, double rate) async {
-    await _apiService.post(
-      Endpoints.cartItems,
-      {
-        'cartId': cartId,
-        'itemId': itemId,
-        'quantity': quantity,
-        'rate': rate,
-        'totalPrice': quantity * rate,
-      },
-      requiresAuth: true,
-    );
+  Future<void> addItemToCart(
+    int cartId,
+    int itemId,
+    int quantity,
+    double rate,
+  ) async {
+    await _apiService.post(Endpoints.cartItems, {
+      'cartId': cartId,
+      'itemId': itemId,
+      'quantity': quantity,
+      'rate': rate,
+      'totalPrice': quantity * rate,
+    }, requiresAuth: true);
   }
 
   Future<void> updateCartItem(int cartItemId, int quantity, double rate) async {
-    await _apiService.put(
-      '${Endpoints.cartItemById}/$cartItemId',
-      {
-        'quantity': quantity,
-        'rate': rate,
-        'totalPrice': quantity * rate,
-      },
-      requiresAuth: true,
-    );
+    await _apiService.put('${Endpoints.cartItemById}/$cartItemId', {
+      'quantity': quantity,
+      'rate': rate,
+      'totalPrice': quantity * rate,
+    }, requiresAuth: true);
   }
 
   Future<void> removeCartItem(int cartItemId) async {
@@ -954,24 +952,23 @@ class ApiDataService {
     );
   }
 
-  Future<Map<String, dynamic>> checkout(int cartId, Map<String, dynamic> orderData) async {
+  Future<Map<String, dynamic>> checkout(
+    int cartId,
+    Map<String, dynamic> orderData,
+  ) async {
     final response = await _apiService.post(
       '${Endpoints.sales}',
       orderData,
       requiresAuth: true,
     );
-    
-    // After successful checkout, close the cart
-    await _apiService.put(
-      '${Endpoints.cartById}/$cartId',
-      {'status': 'closed'},
-      requiresAuth: true,
-    );
-    
+
+    await _apiService.put('${Endpoints.cartById}/$cartId', {
+      'status': 'closed',
+    }, requiresAuth: true);
+
     return response['data'] ?? response;
   }
 
-  // ========== REPORTS ==========
   Future<Map<String, dynamic>> getSalesAnalytics(
     DateTime startDate,
     DateTime endDate,

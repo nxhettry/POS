@@ -4,6 +4,8 @@ import "../../services/table_cart_manager.dart";
 import "../../models/models.dart" as models;
 import "../../utils/responsive.dart";
 import "../../utils/invoice.dart";
+import "../../widgets/editable_cart_item.dart";
+import "../../widgets/quick_add_item_widget.dart";
 import 'dart:developer' as developer;
 
 class BillSection extends StatefulWidget {
@@ -29,7 +31,6 @@ class _BillSectionState extends State<BillSection> {
   List<models.PaymentMethod> paymentMethods = [];
   List<models.Party> customers = [];
   final DataRepository _dataRepository = DataRepository();
-  bool _isLoadingPaymentMethods = true;
   bool _isLoadingCustomers = false;
   String _nextInvoiceNumber = "INV 001";
   bool _isLoadingInvoiceNumber = true;
@@ -65,9 +66,6 @@ class _BillSectionState extends State<BillSection> {
 
   Future<void> _loadPaymentMethods() async {
     try {
-      setState(() {
-        _isLoadingPaymentMethods = true;
-      });
       final methods = await _dataRepository.fetchActivePaymentMethods();
       setState(() {
         paymentMethods = methods;
@@ -79,12 +77,8 @@ class _BillSectionState extends State<BillSection> {
           );
           selectedPaymentMethod = cashMethod;
         }
-        _isLoadingPaymentMethods = false;
       });
     } catch (e) {
-      setState(() {
-        _isLoadingPaymentMethods = false;
-      });
       developer.log('Error loading payment methods: $e', name: 'POS');
     }
   }
@@ -221,24 +215,25 @@ class _BillSectionState extends State<BillSection> {
       return;
     }
 
-    final orderData = cartManager.getOrderData(
-      widget.selectedTable!.name,
-      selectedOrderType!, // Pass the selected order type directly since it's already in correct format
-      taxRate,
-      discountValue,
-      isDiscountPercentage,
-    );
-
-    try {
+            try {
       final invoiceNo = await _dataRepository.getNextInvoiceNumber();
       developer.log('Generated invoice number: $invoiceNo', name: 'POS');
       
-      orderData['invoiceNo'] = invoiceNo;
-      orderData['paymentMethodId'] = selectedPaymentMethod!.id;
-      orderData['paymentStatus'] = selectedPaymentType == "credit" ? "pending" : "paid";
-      orderData['partyId'] = selectedPaymentType == "credit" ? selectedParty!.id : 1; // Default to admin if not credit
+      // Add sales-specific data for the complete order
+      final salesData = cartManager.getOrderData(
+        widget.selectedTable!.name,
+        selectedOrderType!, 
+        taxRate,
+        discountValue,
+        isDiscountPercentage,
+      );
       
-      final sale = models.Sales.fromMap(orderData);
+      salesData['invoiceNo'] = invoiceNo;
+      salesData['paymentMethodId'] = selectedPaymentMethod!.id;
+      salesData['paymentStatus'] = selectedPaymentType == "credit" ? "pending" : "paid";
+      salesData['partyId'] = selectedPaymentType == "credit" ? selectedParty!.id : 1; // Default to admin if not credit
+      
+      final sale = models.Sales.fromMap(salesData);
       developer.log('Sales object created: ${sale.invoiceNo}', name: 'POS');
       
       final savedSale = await _dataRepository.createSale(sale);
@@ -266,7 +261,7 @@ class _BillSectionState extends State<BillSection> {
     // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Order ${orderData['invoiceNo']} placed successfully!'),
+        content: Text('Order placed successfully!'),
         backgroundColor: Colors.green,
         duration: const Duration(seconds: 3),
       ),
@@ -449,6 +444,14 @@ class _BillSectionState extends State<BillSection> {
                 return SingleChildScrollView(
                   child: Column(
                     children: [
+                      // Quick Add Item Widget
+                      if (widget.selectedTable != null)
+                        QuickAddItemWidget(
+                          onItemAdded: () {
+                            setState(() {});
+                          },
+                        ),
+
                       if (cartManager.isEmpty)
                         Padding(
                           padding: EdgeInsets.symmetric(
@@ -472,18 +475,27 @@ class _BillSectionState extends State<BillSection> {
                               ),
                               SizedBox(height: ResponsiveUtils.getSpacing(context, base: 8)),
                               Text(
-                                'Add items from the menu to get started',
+                                widget.selectedTable != null
+                                    ? 'Use the "Add Items" section above or select items from the menu'
+                                    : 'Please select a table first, then add items from the menu',
                                 style: TextStyle(
                                   fontSize: ResponsiveUtils.getFontSize(context, 14),
                                   color: Colors.grey[500],
                                 ),
+                                textAlign: TextAlign.center,
                               ),
                             ],
                           ),
                         )
                       else
                         ...cartManager.cartItems.map(
-                          (cartItem) => buildItemRow(cartItem),
+                          (cartItem) => EditableCartItem(
+                            cartItem: cartItem,
+                            isEnabled: widget.selectedTable != null,
+                            onChanged: () {
+                              setState(() {});
+                            },
+                          ),
                         ),
                     ],
                   ),
@@ -939,200 +951,6 @@ class _BillSectionState extends State<BillSection> {
             },
           ),
         ],
-      ),
-    );
-  }
-
-  Widget buildItemRow(models.CartItem cartItem) {
-    final item = cartItem.item;
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        vertical: ResponsiveUtils.getSpacing(context, base: 8),
-      ),
-      child: Container(
-        padding: ResponsiveUtils.getPadding(context, base: 12),
-        decoration: BoxDecoration(
-          color: Colors.grey[50],
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              blurRadius: 5,
-              spreadRadius: 1,
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: ResponsiveUtils.isSmallDesktop(context) ? 45 : 50,
-              height: ResponsiveUtils.isSmallDesktop(context) ? 45 : 50,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                color: Colors.grey[200],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: item['image'] != null && item['image'].toString().isNotEmpty
-                    ? Image.asset(
-                        item['image'],
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            decoration: BoxDecoration(
-                              color: Colors.grey[300],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              Icons.fastfood,
-                              color: Colors.grey[600],
-                              size: ResponsiveUtils.isSmallDesktop(context) ? 20 : 24,
-                            ),
-                          );
-                        },
-                      )
-                    : Container(
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.fastfood,
-                          color: Colors.grey[600],
-                          size: ResponsiveUtils.isSmallDesktop(context) ? 20 : 24,
-                        ),
-                      ),
-              ),
-            ),
-            SizedBox(width: ResponsiveUtils.getSpacing(context, base: 12)),
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item['item_name'],
-                    style: TextStyle(
-                      fontSize: ResponsiveUtils.getFontSize(context, 16),
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: ResponsiveUtils.getSpacing(context, base: 4)),
-                  Text(
-                    "Rs. ${item['rate']} each",
-                    style: TextStyle(
-                      fontSize: ResponsiveUtils.getFontSize(context, 14),
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            Row(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.remove,
-                      color: Colors.red,
-                      size: ResponsiveUtils.isSmallDesktop(context) ? 16 : 18,
-                    ),
-                    onPressed: () {
-                      if (cartItem.quantity > 1) {
-                        cartManager.updateItemQuantity(
-                          item['id'],
-                          cartItem.quantity - 1,
-                        );
-                      } else {
-                        cartManager.removeItem(item['id']);
-                      }
-                    },
-                    constraints: BoxConstraints(
-                      minWidth: ResponsiveUtils.isSmallDesktop(context) ? 28 : 32,
-                      minHeight: ResponsiveUtils.isSmallDesktop(context) ? 28 : 32,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: ResponsiveUtils.getSpacing(context, base: 12),
-                  ),
-                  child: Text(
-                    "${cartItem.quantity}",
-                    style: TextStyle(
-                      fontSize: ResponsiveUtils.getFontSize(context, 16),
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.add,
-                      color: Colors.green,
-                      size: ResponsiveUtils.isSmallDesktop(context) ? 16 : 18,
-                    ),
-                    onPressed: () {
-                      cartManager.updateItemQuantity(
-                        item['id'],
-                        cartItem.quantity + 1,
-                      );
-                    },
-                    constraints: BoxConstraints(
-                      minWidth: ResponsiveUtils.isSmallDesktop(context) ? 28 : 32,
-                      minHeight: ResponsiveUtils.isSmallDesktop(context) ? 28 : 32,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            SizedBox(width: ResponsiveUtils.getSpacing(context, base: 12)),
-
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  "Rs. ${cartItem.totalPrice.toStringAsFixed(2)}",
-                  style: TextStyle(
-                    fontSize: ResponsiveUtils.getFontSize(context, 16),
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    cartManager.removeItem(item['id']);
-                  },
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 0),
-                  ),
-                  child: Text(
-                    "Remove",
-                    style: TextStyle(
-                      fontSize: ResponsiveUtils.getFontSize(context, 12),
-                      color: Colors.red[600],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }
