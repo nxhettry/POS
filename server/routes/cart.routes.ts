@@ -14,16 +14,9 @@ import {
   getCartItemsByCart,
   deleteCartItem,
   clearCart,
-  addToCart,
-  updateCartItems,
-  checkoutCart,
 } from "../controllers/cart.controllers.js";
 
 const router = Router();
-
-router.post("/add-to-cart", addToCart);
-router.put("/update-items", updateCartItems);
-router.post("/:cartId/checkout", checkoutCart);
 
 router.get("/status/:status", getCartsByStatus);
 router.get("/table/:tableId", getCartsByTable);

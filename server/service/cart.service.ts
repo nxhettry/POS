@@ -2,6 +2,10 @@ import Cart from "../models/cart.models.js";
 import User from "../models/user.models.js";
 import CartItem from "../models/cartItems.models.js";
 import MenuItem from "../models/menuItem.models.js";
+import {
+  CartItemCreateData,
+  createCartItemService,
+} from "./cartItem.service.js";
 
 interface CartUpdateData {
   tableId?: number;
@@ -13,11 +17,33 @@ interface CartCreateData {
   tableId: number;
   userId?: number;
   status?: "open" | "closed" | "cancelled";
+  items?: CartItemCreateData[];
 }
 
 export const createCartService = async (cartData: CartCreateData) => {
   try {
+    // cart banaune
     const newCart = await Cart.create(cartData as any);
+
+    const cartId = newCart.get("id") as number;
+    if (!cartId) {
+      throw new Error("Failed to create cart");
+    }
+
+    // cart itens ko lagi object banaudai
+    const cartItemsObj: CartItemCreateData[] | [] =
+      cartData.items?.map((item) => ({
+        ...item,
+        cartId,
+      })) || [];
+
+    // thokdey
+    const cartItems = await createCartItemService(cartItemsObj);
+
+    if (!cartItems) {
+      throw new Error("Failed to create cart items");
+    }
+
     return {
       success: true,
       data: newCart,
@@ -124,8 +150,11 @@ export const getCartsByStatusService = async (
 
 export const getCartsByTableService = async (tableId: number) => {
   try {
-    const carts = await Cart.findAll({
-      where: { tableId },
+    const data = await Cart.findAll({
+      where: {
+        tableId,
+        status: "open",
+      },
       include: [
         User,
         {
@@ -138,7 +167,7 @@ export const getCartsByTableService = async (tableId: number) => {
 
     return {
       success: true,
-      data: carts,
+      data: data,
       message: "Carts retrieved successfully",
     };
   } catch (error: any) {

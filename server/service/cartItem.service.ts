@@ -9,9 +9,9 @@ interface CartItemUpdateData {
   rate?: number;
   totalPrice?: number;
   notes?: string;
-}
+} 
 
-interface CartItemCreateData {
+export interface CartItemCreateData {
   cartId: number;
   itemId: number;
   quantity: number;
@@ -21,21 +21,28 @@ interface CartItemCreateData {
 }
 
 export const createCartItemService = async (
-  cartItemData: CartItemCreateData
+  cartItemData: CartItemCreateData | CartItemCreateData[]
 ) => {
   try {
-    if (!cartItemData.totalPrice) {
-      cartItemData.totalPrice = cartItemData.quantity * cartItemData.rate;
-    }
+    const itemsToCreate = Array.isArray(cartItemData)
+      ? cartItemData
+      : [cartItemData];
 
-    const newCartItem = await CartItem.create(cartItemData as any);
+    itemsToCreate.forEach((item) => {
+      if (!item.totalPrice) {
+        item.totalPrice = item.quantity * item.rate;
+      }
+    });
+
+    const newCartItems = await CartItem.bulkCreate(itemsToCreate as any);
+
     return {
       success: true,
-      data: newCartItem,
-      message: "Cart item created successfully",
+      data: newCartItems,
+      message: "Cart items created successfully",
     };
   } catch (error: any) {
-    throw new Error(`Failed to create cart item: ${error.message}`);
+    throw new Error(`Failed to create cart items: ${error.message}`);
   }
 };
 

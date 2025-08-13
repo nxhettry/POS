@@ -15,7 +15,7 @@ Cart.init(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    userId: {
+    createdBy: {
       type: DataTypes.INTEGER,
       references: {
         model: User,
@@ -43,6 +43,6 @@ Cart.init(
   }
 );
 
-Cart.belongsTo(User, { foreignKey: "userId" });
+Cart.belongsTo(User, { foreignKey: "createdBy" });
 
 export default Cart;
