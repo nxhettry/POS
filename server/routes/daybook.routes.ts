@@ -5,12 +5,10 @@ import {
   getDaybookSummary,
   getDaybookByDate,
 } from "../controllers/daybook.controllers.js";
-import { authenticate } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
 // Apply auth middleware to all routes
-router.use(authenticate);
 
 // Get today's daybook summary
 router.get("/today-summary", getTodaysSummary);

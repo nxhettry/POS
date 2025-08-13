@@ -1,15 +1,18 @@
 import CartItem from "../models/cartItems.models.js";
 import Cart from "../models/cart.models.js";
 import MenuItem from "../models/menuItem.models.js";
+import sequelize from "../db/connection.js";
+import { Transaction } from "sequelize";
 
-interface CartItemUpdateData {
+export interface CartItemUpdateData {
+  id: number;
   cartId?: number;
   itemId?: number;
   quantity?: number;
   rate?: number;
   totalPrice?: number;
   notes?: string;
-} 
+}
 
 export interface CartItemCreateData {
   cartId: number;
@@ -21,8 +24,11 @@ export interface CartItemCreateData {
 }
 
 export const createCartItemService = async (
-  cartItemData: CartItemCreateData | CartItemCreateData[]
+  cartItemData: CartItemCreateData | CartItemCreateData[],
+  transaction?: Transaction
 ) => {
+  const t = transaction || (await sequelize.transaction());
+
   try {
     const itemsToCreate = Array.isArray(cartItemData)
       ? cartItemData
@@ -34,7 +40,13 @@ export const createCartItemService = async (
       }
     });
 
-    const newCartItems = await CartItem.bulkCreate(itemsToCreate as any);
+    const newCartItems = await CartItem.bulkCreate(itemsToCreate as any, {
+      transaction: t,
+    });
+
+    if (!transaction) {
+      await t.commit();
+    }
 
     return {
       success: true,
@@ -42,52 +54,43 @@ export const createCartItemService = async (
       message: "Cart items created successfully",
     };
   } catch (error: any) {
+    if (!transaction) {
+      await t.rollback();
+    }
     throw new Error(`Failed to create cart items: ${error.message}`);
   }
 };
 
 export const updateCartItemService = async (
-  id: number,
-  cartItemData: CartItemUpdateData
+  cartItemData: CartItemUpdateData | CartItemUpdateData[],
+  transaction?: Transaction
 ) => {
+  const t = transaction || (await sequelize.transaction());
+
   try {
-    const cartItem = await CartItem.findByPk(id);
+    const itemsToUpdate = Array.isArray(cartItemData)
+      ? cartItemData
+      : [cartItemData];
 
-    if (!cartItem) {
-      return {
-        success: false,
-        data: null,
-        message: "Cart item not found",
-      };
+    const updatedCartItems = await CartItem.bulkCreate(itemsToUpdate as any, {
+      updateOnDuplicate: ["quantity", "totalPrice"],
+      transaction: t,
+    });
+
+    if (!transaction) {
+      await t.commit();
     }
-
-    if (
-      cartItemData.quantity !== undefined &&
-      cartItemData.rate !== undefined &&
-      !cartItemData.totalPrice
-    ) {
-      cartItemData.totalPrice = cartItemData.quantity * cartItemData.rate;
-    } else if (
-      cartItemData.quantity !== undefined &&
-      !cartItemData.totalPrice
-    ) {
-      const currentRate = parseFloat(cartItem.get("rate") as string) || 0;
-      cartItemData.totalPrice = cartItemData.quantity * currentRate;
-    } else if (cartItemData.rate !== undefined && !cartItemData.totalPrice) {
-      const currentQuantity =
-        parseFloat(cartItem.get("quantity") as string) || 0;
-      cartItemData.totalPrice = currentQuantity * cartItemData.rate;
-    }
-
-    const updatedCartItem = await cartItem.update(cartItemData);
 
     return {
       success: true,
-      data: updatedCartItem,
-      message: "Cart item updated successfully",
+      data: updatedCartItems,
+      message: "Cart items updated successfully",
     };
   } catch (error: any) {
-    throw new Error(`Failed to update cart item: ${error.message}`);
+    if (!transaction) {
+      await t.rollback();
+    }
+    throw new Error(`Failed to update cart items: ${error.message}`);
   }
 };
 
@@ -150,11 +153,19 @@ export const getCartItemsByCartService = async (cartId: number) => {
   }
 };
 
-export const deleteCartItemService = async (id: number) => {
+export const deleteCartItemService = async (
+  id: number,
+  transaction?: Transaction
+) => {
+  const t = transaction || (await sequelize.transaction());
+
   try {
-    const cartItem = await CartItem.findByPk(id);
+    const cartItem = await CartItem.findByPk(id, { transaction: t });
 
     if (!cartItem) {
+      if (!transaction) {
+        await t.rollback();
+      }
       return {
         success: false,
         data: null,
@@ -162,7 +173,11 @@ export const deleteCartItemService = async (id: number) => {
       };
     }
 
-    await cartItem.destroy();
+    await cartItem.destroy({ transaction: t });
+
+    if (!transaction) {
+      await t.commit();
+    }
 
     return {
       success: true,
@@ -170,15 +185,26 @@ export const deleteCartItemService = async (id: number) => {
       message: "Cart item deleted successfully",
     };
   } catch (error: any) {
+    if (!transaction) {
+      await t.rollback();
+    }
     throw new Error(`Failed to delete cart item: ${error.message}`);
   }
 };
 
-export const clearCartService = async (cartId: number) => {
+export const clearCartService = async (
+  cartId: number,
+  transaction?: Transaction
+) => {
+  const t = transaction || (await sequelize.transaction());
+
   try {
-    const cart = await Cart.findByPk(cartId);
+    const cart = await Cart.findByPk(cartId, { transaction: t });
 
     if (!cart) {
+      if (!transaction) {
+        await t.rollback();
+      }
       return {
         success: false,
         data: null,
@@ -188,7 +214,12 @@ export const clearCartService = async (cartId: number) => {
 
     await CartItem.destroy({
       where: { cartId },
+      transaction: t,
     });
+
+    if (!transaction) {
+      await t.commit();
+    }
 
     return {
       success: true,
@@ -196,6 +227,9 @@ export const clearCartService = async (cartId: number) => {
       message: "Cart cleared successfully",
     };
   } catch (error: any) {
+    if (!transaction) {
+      await t.rollback();
+    }
     throw new Error(`Failed to clear cart: ${error.message}`);
   }
 };

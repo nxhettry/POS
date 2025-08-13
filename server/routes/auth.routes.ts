@@ -5,15 +5,16 @@ import {
   getProfile,
   refreshToken,
 } from "../controllers/auth.controllers.js";
-import { authenticate } from "../middlewares/auth.middleware.js";
 import { validateUserLogin } from "../middlewares/validation.middleware.js";
 
 const router = Router();
 
+// Public routes (no authentication required)
 router.post("/login", validateUserLogin, login);
 router.post("/refresh", refreshToken);
 
-router.get("/logout", authenticate, logout);
-router.get("/profile", authenticate, getProfile);
+// Protected routes (authentication required)
+router.get("/logout", logout);
+router.get("/profile", getProfile);
 
 export default router;

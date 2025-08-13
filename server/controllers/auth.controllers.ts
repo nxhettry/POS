@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import { validateUserCredentialsService } from "../service/user.service.js";
 import {
   createUserSessionService,
-  endAllActiveSessionsForUserService,
   getCurrentActiveSessionService,
 } from "../service/userSession.service.js";
 import {
@@ -11,7 +10,6 @@ import {
   getDeviceInfo,
 } from "../utils/security.js";
 import { asyncHandler, apiResponse } from "../utils/api.js";
-import { AuthenticatedRequest } from "../middlewares/auth.middleware.js";
 
 export const login = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
@@ -88,8 +86,10 @@ export const login = asyncHandler(
 );
 
 export const logout = asyncHandler(
-  async (req: AuthenticatedRequest, res: Response): Promise<any> => {
-    if (!req.user) {
+  async (req: Request, res: Response): Promise<any> => {
+    const { userId, role } = req as any;
+
+    if (!userId) {
       return res
         .status(401)
         .json(new apiResponse(401, null, "Authentication required"));
@@ -103,8 +103,9 @@ export const logout = asyncHandler(
 );
 
 export const getProfile = asyncHandler(
-  async (req: AuthenticatedRequest, res: Response): Promise<any> => {
-    if (!req.user) {
+  async (req: Request, res: Response): Promise<any> => {
+    const { userId, role } = req as any;
+    if (!userId) {
       return res
         .status(401)
         .json(new apiResponse(401, null, "Authentication required"));
@@ -112,15 +113,14 @@ export const getProfile = asyncHandler(
 
     try {
       const sessionResult = await getCurrentActiveSessionService(
-        req.user.userId,
+        userId,
         getClientIP(req),
         getDeviceInfo(req)
       );
 
       const profileData = {
-        userId: req.user.userId,
-        username: req.user.username,
-        role: req.user.role,
+        userId: userId,
+        role: role,
         sessionInfo: sessionResult.success
           ? {
               id: sessionResult.data.id,

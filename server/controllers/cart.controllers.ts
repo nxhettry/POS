@@ -297,7 +297,7 @@ export const updateCartItem = asyncHandler(
         );
     }
 
-    const result = await updateCartItemService(Number(id), cartItemData);
+    const result = await updateCartItemService(cartItemData);
 
     if (result.success) {
       return res

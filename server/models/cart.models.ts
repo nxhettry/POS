@@ -24,7 +24,7 @@ Cart.init(
     },
     status: {
       type: DataTypes.ENUM("open", "closed", "cancelled"),
-      allowNull: false,
+      defaultValue: "open",
     },
     createdAt: {
       type: DataTypes.DATE,

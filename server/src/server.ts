@@ -3,11 +3,12 @@ import dotenv from "dotenv";
 import cors from "cors";
 import compression from "compression";
 import sequelize from "../db/connection.js";
+import cookieParser from "cookie-parser";
 
-// Import associations to establish model relationships
 import "../models/associations.js";
 
 import apiRoutes from "../routes/index.js";
+import { authenticate } from "../middlewares/auth.middleware.js";
 
 dotenv.config();
 
@@ -23,10 +24,11 @@ app.use(
 );
 
 app.use(compression());
+app.use(cookieParser());
+app.use(authenticate);
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
 app.use("/api", apiRoutes);
 
 app.get("/health", (req, res) => {

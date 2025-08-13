@@ -2,54 +2,137 @@ import Cart from "../models/cart.models.js";
 import User from "../models/user.models.js";
 import CartItem from "../models/cartItems.models.js";
 import MenuItem from "../models/menuItem.models.js";
+import sequelize from "../db/connection.js";
 import {
   CartItemCreateData,
+  CartItemUpdateData,
   createCartItemService,
 } from "./cartItem.service.js";
 
 interface CartUpdateData {
   tableId?: number;
-  userId?: number;
+  createdBy?: number;
   status?: "open" | "closed" | "cancelled";
 }
 
 interface CartCreateData {
   tableId: number;
-  userId?: number;
+  createdBy?: number;
   status?: "open" | "closed" | "cancelled";
   items?: CartItemCreateData[];
 }
 
 export const createCartService = async (cartData: CartCreateData) => {
-  try {
-    // cart banaune
-    const newCart = await Cart.create(cartData as any);
+  const transaction = await sequelize.transaction();
 
-    const cartId = newCart.get("id") as number;
+  try {
+    if (cartData.tableId) {
+      const isCartPresent = await Cart.findOne({
+        where: {
+          tableId: cartData.tableId,
+          status: "open",
+        },
+        transaction,
+      });
+
+      if (isCartPresent) {
+        const cartItemsObj: CartItemCreateData[] | [] =
+          cartData.items?.map((item) => ({
+            ...item,
+            cartId: isCartPresent.dataValues.id as number,
+          })) || [];
+
+        const existingCartItems = await CartItem.findAll({
+          where: {
+            cartId: isCartPresent.dataValues.id,
+          },
+          transaction,
+        });
+
+        const existingItemsMap = new Map<number, any>();
+        existingCartItems.forEach((item) => {
+          existingItemsMap.set(item.dataValues.itemId, item.dataValues);
+        });
+
+        const itemsToUpdate: CartItemUpdateData[] = [];
+        const itemsToCreate: CartItemCreateData[] = [];
+
+        cartItemsObj.forEach((newItem) => {
+          if (existingItemsMap.has(newItem.itemId)) {
+            const existingItem = existingItemsMap.get(newItem.itemId)!;
+            itemsToUpdate.push({
+              id: existingItem.id,
+              quantity: newItem.quantity,
+              totalPrice: newItem.quantity * newItem.rate,
+            });
+          } else {
+            itemsToCreate.push(newItem);
+          }
+        });
+
+        if (itemsToUpdate.length > 0) {
+          await Promise.all(
+            itemsToUpdate.map((item) =>
+              CartItem.update(
+                {
+                  quantity: item.quantity,
+                  totalPrice: item.totalPrice,
+                },
+                {
+                  where: { id: item.id },
+                  transaction,
+                }
+              )
+            )
+          );
+        }
+
+        if (itemsToCreate.length > 0) {
+          await createCartItemService(itemsToCreate, transaction);
+        }
+
+        await transaction.commit();
+        return {
+          success: true,
+          data: isCartPresent,
+          message: "Cart updated successfully",
+        };
+      }
+    }
+
+    const newCart = await Cart.create(cartData as any, { transaction });
+
+    const cartId = newCart.dataValues.id as number;
     if (!cartId) {
       throw new Error("Failed to create cart");
     }
 
-    // cart itens ko lagi object banaudai
+    console.log("\n\n\nNew Cart : ", newCart);
+
     const cartItemsObj: CartItemCreateData[] | [] =
       cartData.items?.map((item) => ({
         ...item,
         cartId,
       })) || [];
 
-    // thokdey
-    const cartItems = await createCartItemService(cartItemsObj);
+    console.log("\n\n\nCart items object : ", cartItemsObj);
 
+    console.log("\n\n\nNow creating cart items ...");
+    const cartItems = await createCartItemService(cartItemsObj, transaction);
+
+    console.log("\n\n\nCart itmes : ", cartItems);
     if (!cartItems) {
       throw new Error("Failed to create cart items");
     }
 
+    await transaction.commit();
     return {
       success: true,
       data: newCart,
       message: "Cart created successfully",
     };
   } catch (error: any) {
+    await transaction.rollback();
     throw new Error(`Failed to create cart: ${error.message}`);
   }
 };
@@ -58,10 +141,13 @@ export const updateCartService = async (
   id: number,
   cartData: CartUpdateData
 ) => {
+  const transaction = await sequelize.transaction();
+
   try {
-    const cart = await Cart.findByPk(id);
+    const cart = await Cart.findByPk(id, { transaction });
 
     if (!cart) {
+      await transaction.rollback();
       return {
         success: false,
         data: null,
@@ -69,14 +155,16 @@ export const updateCartService = async (
       };
     }
 
-    const updatedCart = await cart.update(cartData);
+    const updatedCart = await cart.update(cartData, { transaction });
 
+    await transaction.commit();
     return {
       success: true,
       data: updatedCart,
       message: "Cart updated successfully",
     };
   } catch (error: any) {
+    await transaction.rollback();
     throw new Error(`Failed to update cart: ${error.message}`);
   }
 };
@@ -176,10 +264,13 @@ export const getCartsByTableService = async (tableId: number) => {
 };
 
 export const deleteCartService = async (id: number) => {
+  const transaction = await sequelize.transaction();
+
   try {
-    const cart = await Cart.findByPk(id);
+    const cart = await Cart.findByPk(id, { transaction });
 
     if (!cart) {
+      await transaction.rollback();
       return {
         success: false,
         data: null,
@@ -187,14 +278,16 @@ export const deleteCartService = async (id: number) => {
       };
     }
 
-    await cart.destroy();
+    await cart.destroy({ transaction });
 
+    await transaction.commit();
     return {
       success: true,
       data: null,
       message: "Cart deleted successfully",
     };
   } catch (error: any) {
+    await transaction.rollback();
     throw new Error(`Failed to delete cart: ${error.message}`);
   }
 };
