@@ -131,7 +131,6 @@ class TableCartManager extends ChangeNotifier {
       itemAdded = true;
     }
 
-    // Update UI immediately
     notifyListeners();
 
     if (!_useDummyData) {
@@ -139,7 +138,7 @@ class TableCartManager extends ChangeNotifier {
         await _syncCartToServer();
       } catch (e) {
         print('Failed to sync cart addition to server: $e');
-        // Revert the change if sync fails
+
         if (itemAdded) {
           _cartItems.removeLast();
         } else if (existingIndex >= 0) {
@@ -184,13 +183,10 @@ class TableCartManager extends ChangeNotifier {
       }
 
       print('Cart sync completed successfully');
-      
-      // Reload cart from server to ensure consistency
+
       await _loadTableCart();
     } catch (e) {
       print('Error syncing cart to server: $e');
-      // Don't rethrow the error, just log it and let the UI continue
-      // The local state will be preserved and user can try again
     }
   }
 
@@ -205,7 +201,7 @@ class TableCartManager extends ChangeNotifier {
 
     if (index >= 0) {
       final oldQuantity = _cartItems[index].quantity;
-      
+
       if (newQuantity <= 0) {
         _cartItems.removeAt(index);
         print('Removed item $itemId from cart');
@@ -214,7 +210,6 @@ class TableCartManager extends ChangeNotifier {
         print('Updated item $itemId quantity to $newQuantity');
       }
 
-      // Update UI immediately
       notifyListeners();
 
       if (!_useDummyData) {
@@ -222,9 +217,8 @@ class TableCartManager extends ChangeNotifier {
           await _syncCartToServer();
         } catch (e) {
           print('Failed to sync cart update to server: $e');
-          // Revert the change if sync fails
+
           if (newQuantity <= 0) {
-            // For simplicity, just reload the cart from server on error
             await _loadTableCart();
           } else if (index < _cartItems.length) {
             _cartItems[index].quantity = oldQuantity;
