@@ -14,6 +14,7 @@ import {
   getCartItemsByCart,
   deleteCartItem,
   clearCart,
+  updateCartWithItems,
 } from "../controllers/cart.controllers.js";
 
 const router = Router();
@@ -21,6 +22,7 @@ const router = Router();
 router.get("/status/:status", getCartsByStatus);
 router.get("/table/:tableId", getCartsByTable);
 router.post("/", createCart);
+router.put("/update-items", updateCartWithItems);
 router.put("/:id", updateCart);
 router.get("/:id", getCart);
 router.get("/", getAllCarts);

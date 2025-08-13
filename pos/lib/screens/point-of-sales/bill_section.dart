@@ -144,8 +144,11 @@ class _BillSectionState extends State<BillSection> {
       'Cart changed! Items count: ${cartManager.cartItems.length}',
       name: 'BillSection',
     );
+    // Force a rebuild of the widget to reflect cart changes
     if (mounted) {
-      setState(() {});
+      setState(() {
+        // Empty setState to trigger rebuild
+      });
     }
   }
 
@@ -523,26 +526,33 @@ class _BillSectionState extends State<BillSection> {
                           ),
                         )
                       else
-                        ...cartManager.cartItems.map(
-                          (cartItem) => Padding(
-                            padding: EdgeInsets.symmetric(
-                              vertical: ResponsiveUtils.getSpacing(
-                                context,
-                                base: 3,
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          itemCount: cartManager.cartItems.length,
+                          itemBuilder: (context, index) {
+                            final cartItem = cartManager.cartItems[index];
+                            return Padding(
+                              key: ValueKey('cart_item_${cartItem.item['id']}_${cartItem.quantity}_${cartItem.item['rate']}_$index'),
+                              padding: EdgeInsets.symmetric(
+                                vertical: ResponsiveUtils.getSpacing(
+                                  context,
+                                  base: 3,
+                                ),
+                                horizontal: ResponsiveUtils.getSpacing(
+                                  context,
+                                  base: 1,
+                                ),
                               ),
-                              horizontal: ResponsiveUtils.getSpacing(
-                                context,
-                                base: 1,
+                              child: EditableCartItem(
+                                cartItem: cartItem,
+                                isEnabled: widget.selectedTable != null,
+                                onChanged: () {
+                                  setState(() {});
+                                },
                               ),
-                            ),
-                            child: EditableCartItem(
-                              cartItem: cartItem,
-                              isEnabled: widget.selectedTable != null,
-                              onChanged: () {
-                                setState(() {});
-                              },
-                            ),
-                          ),
+                            );
+                          },
                         ),
                     ],
                   ),

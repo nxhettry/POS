@@ -952,6 +952,33 @@ class ApiDataService {
     );
   }
 
+  // New method to update cart with items using the required format
+  Future<Map<String, dynamic>> updateCartWithItems(
+    int? cartId,
+    int tableId,
+    List<Map<String, dynamic>> items,
+  ) async {
+    final requestData = {
+      'cartId': cartId,
+      'tableId': tableId,
+      'items': items.map((item) => {
+        'itemId': item['itemId'],
+        'quantity': item['quantity'],
+        'rate': item['rate'],
+        'totalPrice': item['totalPrice'],
+        if (item['notes'] != null) 'notes': item['notes'],
+      }).toList(),
+    };
+
+    final response = await _apiService.put(
+      Endpoints.updateCartWithItems,
+      requestData,
+      requiresAuth: true,
+    );
+
+    return response['data'] ?? response;
+  }
+
   Future<Map<String, dynamic>> checkout(
     int cartId,
     Map<String, dynamic> orderData,

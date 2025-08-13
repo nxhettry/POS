@@ -58,6 +58,10 @@ class TableCartManager extends ChangeNotifier {
             _currentCartId!,
           );
 
+          print(
+            'Loading cart for table $_selectedTableId with ${cartItemsList.length} items',
+          );
+
           for (final itemData in cartItemsList) {
             final menuItem = itemData['MenuItem'] ?? {};
             final item = {
@@ -69,150 +73,167 @@ class TableCartManager extends ChangeNotifier {
               'categoryId': menuItem['categoryId'] ?? menuItem['category_id'],
               'isAvailable':
                   menuItem['isAvailable'] ?? menuItem['is_available'] ?? true,
-              'notes': itemData['notes'], // Add notes from the cart item
+              'notes': itemData['notes'],
             };
 
             final cartItem = CartItem(
               item: item,
               quantity: (itemData['quantity'] ?? 0).round(),
-              notes: itemData['notes']?.toString(), // Add notes to cart item
+              notes: itemData['notes']?.toString(),
             );
             _cartItems.add(cartItem);
 
             _cartItemIds[menuItem['id']] = itemData['id'];
           }
+
+          print(
+            'Loaded ${_cartItems.length} items into cart for table $_selectedTableId',
+          );
         }
       } catch (e) {
         print('Error loading cart from API: $e');
       }
     }
+
+    notifyListeners();
   }
 
-  Future<void> addItem(Map<String, dynamic> item, int quantity, {String? notes}) async {
+  Future<void> addItem(
+    Map<String, dynamic> item,
+    int quantity, {
+    String? notes,
+  }) async {
     if (_selectedTableId == null) return;
 
     final existingIndex = _cartItems.indexWhere(
       (cartItem) => cartItem.item['id'] == item['id'],
     );
 
-    if (existingIndex >= 0) {
-      final newQuantity = _cartItems[existingIndex].quantity + quantity;
+    bool itemAdded = false;
+    int oldQuantity = 0;
 
-      if (!_useDummyData &&
-          _currentCartId != null &&
-          _cartItemIds.containsKey(item['id'])) {
-        try {
-          await _dataRepository.updateCartItem(
-            _cartItemIds[item['id']]!,
-            newQuantity,
-            item['rate'].toDouble(),
-          );
-          _cartItems[existingIndex].quantity = newQuantity;
-          
-          // Update notes if provided
-          if (notes != null) {
-            _cartItems[existingIndex].notes = notes;
-            _cartItems[existingIndex].item['notes'] = notes;
-          }
-        } catch (e) {
-          print('Error updating cart item via API: $e');
-          return;
-        }
-      } else {
-        _cartItems[existingIndex].quantity = newQuantity;
-        if (notes != null) {
-          _cartItems[existingIndex].notes = notes;
-          _cartItems[existingIndex].item['notes'] = notes;
-        }
+    if (existingIndex >= 0) {
+      oldQuantity = _cartItems[existingIndex].quantity;
+      final newQuantity = _cartItems[existingIndex].quantity + quantity;
+      _cartItems[existingIndex].quantity = newQuantity;
+
+      if (notes != null) {
+        _cartItems[existingIndex].notes = notes;
+        _cartItems[existingIndex].item['notes'] = notes;
       }
     } else {
-      // Add notes to item data if provided
       if (notes != null) {
         item['notes'] = notes;
       }
-      
+
       final cartItem = CartItem(item: item, quantity: quantity, notes: notes);
-
-      if (!_useDummyData) {
-        if (_currentCartId == null) {
-          try {
-            final cartData = await _dataRepository.createCart(
-              _selectedTableId!,
-            );
-            _currentCartId = cartData['id'];
-          } catch (e) {
-            print('Error creating cart via API: $e');
-            return;
-          }
-        }
-
-        try {
-          await _dataRepository.addItemToCart(
-            _currentCartId!,
-            item['id'],
-            quantity,
-            item['rate'].toDouble(),
-          );
-
-          await _loadTableCart();
-          notifyListeners();
-          return;
-        } catch (e) {
-          print('Error adding item to cart via API: $e');
-          return;
-        }
-      }
-
       _cartItems.add(cartItem);
+      itemAdded = true;
     }
 
-    if (_useDummyData) {
+    // Update UI immediately
+    notifyListeners();
+
+    if (!_useDummyData) {
+      try {
+        await _syncCartToServer();
+      } catch (e) {
+        print('Failed to sync cart addition to server: $e');
+        // Revert the change if sync fails
+        if (itemAdded) {
+          _cartItems.removeLast();
+        } else if (existingIndex >= 0) {
+          _cartItems[existingIndex].quantity = oldQuantity;
+        }
+        notifyListeners();
+      }
+    } else {
       _saveToDummyData();
     }
+  }
 
-    notifyListeners();
+  Future<void> _syncCartToServer() async {
+    if (_selectedTableId == null || _useDummyData) return;
+
+    try {
+      print(
+        'Syncing cart to server for table $_selectedTableId with ${_cartItems.length} items',
+      );
+
+      final items = _cartItems
+          .map(
+            (cartItem) => {
+              'itemId': cartItem.item['id'],
+              'quantity': cartItem.quantity,
+              'rate': cartItem.item['rate'],
+              'totalPrice': cartItem.totalPrice,
+              if (cartItem.notes != null && cartItem.notes!.isNotEmpty)
+                'notes': cartItem.notes,
+            },
+          )
+          .toList();
+
+      final result = await _dataRepository.updateCartWithItems(
+        _currentCartId,
+        _selectedTableId!,
+        items,
+      );
+
+      if (result['cartId'] != null) {
+        _currentCartId = result['cartId'];
+      }
+
+      print('Cart sync completed successfully');
+      
+      // Reload cart from server to ensure consistency
+      await _loadTableCart();
+    } catch (e) {
+      print('Error syncing cart to server: $e');
+      // Don't rethrow the error, just log it and let the UI continue
+      // The local state will be preserved and user can try again
+    }
   }
 
   Future<void> updateItemQuantity(int itemId, int newQuantity) async {
     if (_selectedTableId == null) return;
+
+    print('Updating item $itemId quantity to $newQuantity');
 
     final index = _cartItems.indexWhere(
       (cartItem) => cartItem.item['id'] == itemId,
     );
 
     if (index >= 0) {
+      final oldQuantity = _cartItems[index].quantity;
+      
       if (newQuantity <= 0) {
-        if (!_useDummyData && _cartItemIds.containsKey(itemId)) {
-          try {
-            await _dataRepository.removeCartItem(_cartItemIds[itemId]!);
-            _cartItemIds.remove(itemId);
-          } catch (e) {
-            print('Error removing cart item via API: $e');
-            return;
-          }
-        }
         _cartItems.removeAt(index);
+        print('Removed item $itemId from cart');
       } else {
-        if (!_useDummyData && _cartItemIds.containsKey(itemId)) {
-          try {
-            await _dataRepository.updateCartItem(
-              _cartItemIds[itemId]!,
-              newQuantity,
-              _cartItems[index].item['rate'].toDouble(),
-            );
-          } catch (e) {
-            print('Error updating cart item via API: $e');
-            return;
-          }
-        }
         _cartItems[index].quantity = newQuantity;
+        print('Updated item $itemId quantity to $newQuantity');
       }
 
-      if (_useDummyData) {
+      // Update UI immediately
+      notifyListeners();
+
+      if (!_useDummyData) {
+        try {
+          await _syncCartToServer();
+        } catch (e) {
+          print('Failed to sync cart update to server: $e');
+          // Revert the change if sync fails
+          if (newQuantity <= 0) {
+            // For simplicity, just reload the cart from server on error
+            await _loadTableCart();
+          } else if (index < _cartItems.length) {
+            _cartItems[index].quantity = oldQuantity;
+          }
+          notifyListeners();
+        }
+      } else {
         _saveToDummyData();
       }
-
-      notifyListeners();
     }
   }
 
@@ -224,16 +245,10 @@ class TableCartManager extends ChangeNotifier {
     _cartItems.clear();
     _cartItemIds.clear();
 
-    if (_useDummyData) {
-      if (_selectedTableId != null) {
-        DummyData.clearTableCart(_selectedTableId!);
-      }
-    } else if (_currentCartId != null) {
-      try {
-        await _dataRepository.clearCartItems(_currentCartId!);
-      } catch (e) {
-        print('Error clearing cart via API: $e');
-      }
+    if (!_useDummyData) {
+      await _syncCartToServer();
+    } else if (_selectedTableId != null) {
+      DummyData.clearTableCart(_selectedTableId!);
     }
 
     _currentCartId = null;

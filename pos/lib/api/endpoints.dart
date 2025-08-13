@@ -55,6 +55,7 @@ class Endpoints {
   static const String cartsByStatus = '/api/cart/status';
   static const String cartsByTable = '/api/cart/table';
   static const String clearCart = '/api/cart';
+  static const String updateCartWithItems = '/api/cart/update-items';
 
   static const String cartItems = '/api/cart/items';
   static const String cartItemById = '/api/cart/items';

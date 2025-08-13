@@ -38,6 +38,21 @@ class _EditableCartItemState extends State<EditableCartItem> {
   }
 
   @override
+  void didUpdateWidget(EditableCartItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Update controllers when cart item data changes
+    if (oldWidget.cartItem != widget.cartItem || 
+        oldWidget.cartItem.quantity != widget.cartItem.quantity ||
+        oldWidget.cartItem.item['rate'] != widget.cartItem.item['rate'] ||
+        oldWidget.cartItem.item['notes'] != widget.cartItem.item['notes']) {
+      
+      quantityController.text = widget.cartItem.quantity.toString();
+      rateController.text = widget.cartItem.item['rate'].toStringAsFixed(2);
+      notesController.text = widget.cartItem.item['notes']?.toString() ?? '';
+    }
+  }
+
+  @override
   void dispose() {
     quantityController.dispose();
     rateController.dispose();
@@ -47,36 +62,102 @@ class _EditableCartItemState extends State<EditableCartItem> {
 
   void _updateQuantity(int newQuantity) async {
     if (newQuantity > 0 && newQuantity != widget.cartItem.quantity) {
-      await _cartManager.updateItemQuantity(widget.cartItem.item['id'], newQuantity);
-      quantityController.text = newQuantity.toString();
-      widget.onChanged?.call();
+      try {
+        await _cartManager.updateItemQuantity(widget.cartItem.item['id'], newQuantity);
+        quantityController.text = newQuantity.toString();
+        // Only call onChanged after successful server update
+        widget.onChanged?.call();
+      } catch (e) {
+        // Reset to original value on error
+        quantityController.text = widget.cartItem.quantity.toString();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update quantity: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
   void _updateRate(double newRate) async {
     if (newRate > 0) {
-      // Update the item data in cart manager
-      widget.cartItem.item['rate'] = newRate;
-      await _cartManager.updateItemQuantity(widget.cartItem.item['id'], widget.cartItem.quantity);
-      widget.onChanged?.call();
+      try {
+        // Update the item data in cart manager
+        widget.cartItem.item['rate'] = newRate;
+        await _cartManager.updateItemQuantity(widget.cartItem.item['id'], widget.cartItem.quantity);
+        // Only call onChanged after successful server update
+        widget.onChanged?.call();
+      } catch (e) {
+        // Reset to original value on error
+        rateController.text = widget.cartItem.item['rate'].toStringAsFixed(2);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update rate: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
-  void _updateNotes(String notes) {
-    // Update the item data in cart manager
-    widget.cartItem.item['notes'] = notes;
-    widget.onChanged?.call();
+  void _updateNotes(String notes) async {
+    try {
+      // Update the item data in cart manager
+      widget.cartItem.item['notes'] = notes;
+      // Trigger a cart sync for notes update
+      await _cartManager.updateItemQuantity(widget.cartItem.item['id'], widget.cartItem.quantity);
+      // Only call onChanged after successful server update
+      widget.onChanged?.call();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update notes: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _removeItem() async {
-    await _cartManager.removeItem(widget.cartItem.item['id']);
-    widget.onChanged?.call();
+    try {
+      await _cartManager.removeItem(widget.cartItem.item['id']);
+      // Only call onChanged after successful server update
+      widget.onChanged?.call();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to remove item: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final item = widget.cartItem.item;
     final isSmallScreen = ResponsiveUtils.isSmallDesktop(context);
+    
+    // Update controllers if they don't match current values (handles async updates)
+    if (quantityController.text != widget.cartItem.quantity.toString()) {
+      quantityController.text = widget.cartItem.quantity.toString();
+    }
+    if (rateController.text != widget.cartItem.item['rate'].toStringAsFixed(2)) {
+      rateController.text = widget.cartItem.item['rate'].toStringAsFixed(2);
+    }
+    final currentNotes = widget.cartItem.item['notes']?.toString() ?? '';
+    if (notesController.text != currentNotes) {
+      notesController.text = currentNotes;
+    }
     
     return Card(
       elevation: 3, // Increased elevation
@@ -328,7 +409,8 @@ class _EditableCartItemState extends State<EditableCartItem> {
                           contentPadding: ResponsiveUtils.getPadding(context, base: 8),
                           isDense: true,
                         ),
-                        onChanged: (value) => _updateNotes(value),
+                        onFieldSubmitted: (value) => _updateNotes(value),
+                        onEditingComplete: () => _updateNotes(notesController.text),
                       ),
                     ],
                   ),

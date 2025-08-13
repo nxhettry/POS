@@ -21,6 +21,7 @@ import {
   clearCartService,
 } from "../service/cartItem.service.js";
 import sequelize from "../db/connection.js";
+import Cart from "../models/cart.models.js";
 
 interface CartItemRequest {
   cartId: number | null;
@@ -407,6 +408,114 @@ export const clearCart = asyncHandler(
         .json(new apiResponse(200, result.data, result.message));
     } else {
       return res.status(404).json(new apiResponse(404, null, result.message));
+    }
+  }
+);
+
+export const updateCartWithItems = asyncHandler(
+  async (req: Request, res: Response): Promise<any> => {
+    const { cartId, tableId, items } = req.body;
+
+    if (!tableId) {
+      return res
+        .status(400)
+        .json(new apiResponse(400, null, "Table ID is required"));
+    }
+
+    if (!items || !Array.isArray(items)) {
+      return res
+        .status(400)
+        .json(new apiResponse(400, null, "Items array is required"));
+    }
+
+    for (const item of items) {
+      if (
+        !item.itemId ||
+        !item.quantity ||
+        item.rate === undefined ||
+        item.totalPrice === undefined
+      ) {
+        return res
+          .status(400)
+          .json(
+            new apiResponse(
+              400,
+              null,
+              "Each item must have itemId, quantity, rate, and totalPrice"
+            )
+          );
+      }
+    }
+
+    try {
+      const transaction = await sequelize.transaction();
+      let committed = false;
+
+      try {
+        let currentCartId = cartId;
+
+        if (!currentCartId) {
+          const cartData = {
+            tableId,
+            createdBy: 1,
+            status: "open" as const,
+          };
+
+          const newCart = await Cart.create(cartData as any, { transaction });
+          currentCartId = newCart.dataValues.id;
+        }
+
+        const clearResult = await clearCartService(currentCartId, transaction);
+        if (!clearResult.success) {
+          await transaction.rollback();
+          committed = true;
+          return res
+            .status(400)
+            .json(new apiResponse(400, null, clearResult.message));
+        }
+
+        const cartItemsData = items.map((item) => ({
+          cartId: currentCartId,
+          itemId: item.itemId,
+          quantity: item.quantity,
+          rate: item.rate,
+          totalPrice: item.totalPrice,
+          notes: item.notes || undefined,
+        }));
+
+        await createCartItemService(cartItemsData, transaction);
+
+        await transaction.commit();
+        committed = true;
+
+        return res
+          .status(200)
+          .json(
+            new apiResponse(
+              200,
+              { cartId: currentCartId },
+              "Cart updated successfully"
+            )
+          );
+      } catch (error) {
+        if (!committed) {
+          await transaction.rollback();
+        }
+        throw error;
+      }
+    } catch (error) {
+      console.error("Error updating cart with items:", error);
+      return res
+        .status(500)
+        .json(
+          new apiResponse(
+            500,
+            null,
+            `Internal server error while updating cart: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          )
+        );
     }
   }
 );

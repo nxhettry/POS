@@ -272,6 +272,15 @@ class DataRepository {
     await _apiDataService.clearCartItems(cartId);
   }
 
+  // New method to update cart with items using the required format
+  Future<Map<String, dynamic>> updateCartWithItems(
+    int? cartId,
+    int tableId,
+    List<Map<String, dynamic>> items,
+  ) async {
+    return await _apiDataService.updateCartWithItems(cartId, tableId, items);
+  }
+
   Future<Map<String, dynamic>> checkout(int cartId, Map<String, dynamic> orderData) async {
     return await _apiDataService.checkout(cartId, orderData);
   }
