@@ -17,16 +17,11 @@ interface ServiceResponse<T> {
 export const createSalesService = async (
   salesData: any
 ): Promise<ServiceResponse<any>> => {
-  console.log("\n\n\n\nSales data received in service :");
-
   if (!salesData.partyId) {
     salesData.partyId = 1;
   }
 
-  console.log("\n\n\n\nSales now creating :", salesData);
   const sales = await Sales.create(salesData);
-
-  console.log("\n\n\n\nSales after creation :", sales);
 
   const salesWithIncludes = await Sales.findByPk(sales.dataValues.id, {
     include: [
@@ -41,8 +36,6 @@ export const createSalesService = async (
       },
     ],
   });
-
-  console.log("\n\n\n\nSales with includes : ", salesWithIncludes);
 
   if (salesData.paymentMethodId && salesData.paymentStatus === "paid") {
     const isNonCredit = await isNonCreditPayment(salesData.paymentMethodId);

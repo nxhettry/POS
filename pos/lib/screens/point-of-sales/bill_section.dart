@@ -210,7 +210,6 @@ class _BillSectionState extends State<BillSection> {
 
     try {
       final invoiceNo = await _dataRepository.getNextInvoiceNumber();
-      developer.log('Generated invoice number: $invoiceNo', name: 'POS');
 
       final salesData = cartManager.getOrderData(
         widget.selectedTable!.name,
@@ -230,14 +229,8 @@ class _BillSectionState extends State<BillSection> {
           : 1;
 
       final sale = models.Sales.fromMap(salesData);
-      developer.log('Sales object created: ${sale.invoiceNo}', name: 'POS');
-      developer.log('Sale Data : ${salesData.toString()}');
 
       final savedSale = await _dataRepository.createSale(sale);
-      developer.log(
-        'Sale saved with invoice: ${savedSale.invoiceNo}',
-        name: 'POS',
-      );
 
       try {
         await reprintInvoice(context, savedSale);

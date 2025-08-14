@@ -35,8 +35,6 @@ export const createSales = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const salesData = req.body;
 
-    console.log("\n\n\nRequest : ", req.body);
-
     if (
       !salesData.orderType ||
       !salesData.orderStatus ||
@@ -53,13 +51,9 @@ export const createSales = asyncHandler(
         );
     }
 
-    console.log("Checking for validation ......");
-
     const validation = validateSalesData(salesData);
 
     if (!validation.isValid) {
-      console.log("Validation failed ......");
-
       return res
         .status(400)
         .json(
@@ -70,8 +64,6 @@ export const createSales = asyncHandler(
           )
         );
     }
-
-    console.log("Validation passed, now calling service ......");
 
     const result = await createSalesService(salesData);
 

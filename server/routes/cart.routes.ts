@@ -28,10 +28,10 @@ router.get("/:id", getCart);
 router.get("/", getAllCarts);
 router.delete("/:id", deleteCart);
 
+router.get("/items", getAllCartItems);
 router.post("/items", createCartItem);
 router.put("/items/:id", updateCartItem);
 router.get("/items/:id", getCartItem);
-router.get("/items", getAllCartItems);
 router.get("/:cartId/items", getCartItemsByCart);
 router.delete("/items/:id", deleteCartItem);
 router.delete("/:cartId/clear", clearCart);
