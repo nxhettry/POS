@@ -11,18 +11,31 @@ import {
   getSalesByTableService,
   getSalesByPartyService,
   deleteSalesService,
-  getNextInvoiceNumberService,
 } from "../service/sales.service.js";
 
 const generateInvoiceNumber = (salesId: number): string => {
-  return `INV ${salesId.toString().padStart(3, "0")}`;
+  return `INV${salesId.toString().padStart(3, "0")}`;
+};
+
+const addInvoiceNumberToSales = (salesData: any) => {
+  if (salesData && salesData.id) {
+    return {
+      ...(salesData.toJSON ? salesData.toJSON() : salesData),
+      invoiceNumber: generateInvoiceNumber(salesData.id),
+    };
+  }
+  return salesData;
+};
+
+const addInvoiceNumberToSalesArray = (salesArray: any[]) => {
+  return salesArray.map(addInvoiceNumberToSales);
 };
 
 export const createSales = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const salesData = req.body;
 
-    console.log("\n\n\nRequest : ", req.body)
+    console.log("\n\n\nRequest : ", req.body);
 
     if (
       !salesData.orderType ||
@@ -40,9 +53,13 @@ export const createSales = asyncHandler(
         );
     }
 
+    console.log("Checking for validation ......");
+
     const validation = validateSalesData(salesData);
 
     if (!validation.isValid) {
+      console.log("Validation failed ......");
+
       return res
         .status(400)
         .json(
@@ -54,12 +71,15 @@ export const createSales = asyncHandler(
         );
     }
 
+    console.log("Validation passed, now calling service ......");
+
     const result = await createSalesService(salesData);
 
     if (result.success) {
+      const responseData = addInvoiceNumberToSales(result.data);
       return res
         .status(201)
-        .json(new apiResponse(201, result.data, result.message));
+        .json(new apiResponse(201, responseData, result.message));
     } else {
       return res.status(400).json(new apiResponse(400, null, result.message));
     }
@@ -94,9 +114,10 @@ export const updateSales = asyncHandler(
     const result = await updateSalesService(Number(id), salesData);
 
     if (result.success) {
+      const responseData = addInvoiceNumberToSales(result.data);
       return res
         .status(200)
-        .json(new apiResponse(200, result.data, result.message));
+        .json(new apiResponse(200, responseData, result.message));
     } else {
       return res.status(404).json(new apiResponse(404, null, result.message));
     }
@@ -116,9 +137,10 @@ export const getSales = asyncHandler(
     const result = await getSalesService(Number(id));
 
     if (result.success) {
+      const responseData = addInvoiceNumberToSales(result.data);
       return res
         .status(200)
-        .json(new apiResponse(200, result.data, result.message));
+        .json(new apiResponse(200, responseData, result.message));
     } else {
       return res.status(404).json(new apiResponse(404, null, result.message));
     }
@@ -130,9 +152,10 @@ export const getAllSales = asyncHandler(
     const result = await getAllSalesService();
 
     if (result.success) {
+      const responseData = addInvoiceNumberToSalesArray(result.data || []);
       return res
         .status(200)
-        .json(new apiResponse(200, result.data, result.message));
+        .json(new apiResponse(200, responseData, result.message));
     } else {
       return res.status(400).json(new apiResponse(400, null, result.message));
     }
@@ -165,9 +188,10 @@ export const getSalesByOrderStatus = asyncHandler(
     const result = await getSalesByOrderStatusService(status);
 
     if (result.success) {
+      const responseData = addInvoiceNumberToSalesArray(result.data || []);
       return res
         .status(200)
-        .json(new apiResponse(200, result.data, result.message));
+        .json(new apiResponse(200, responseData, result.message));
     } else {
       return res.status(400).json(new apiResponse(400, null, result.message));
     }
@@ -194,9 +218,10 @@ export const getSalesByPaymentStatus = asyncHandler(
     const result = await getSalesByPaymentStatusService(status);
 
     if (result.success) {
+      const responseData = addInvoiceNumberToSalesArray(result.data || []);
       return res
         .status(200)
-        .json(new apiResponse(200, result.data, result.message));
+        .json(new apiResponse(200, responseData, result.message));
     } else {
       return res.status(400).json(new apiResponse(400, null, result.message));
     }
@@ -216,9 +241,10 @@ export const getSalesByTable = asyncHandler(
     const result = await getSalesByTableService(Number(tableId));
 
     if (result.success) {
+      const responseData = addInvoiceNumberToSalesArray(result.data || []);
       return res
         .status(200)
-        .json(new apiResponse(200, result.data, result.message));
+        .json(new apiResponse(200, responseData, result.message));
     } else {
       return res.status(400).json(new apiResponse(400, null, result.message));
     }
@@ -238,9 +264,10 @@ export const getSalesByParty = asyncHandler(
     const result = await getSalesByPartyService(Number(partyId));
 
     if (result.success) {
+      const responseData = addInvoiceNumberToSalesArray(result.data || []);
       return res
         .status(200)
-        .json(new apiResponse(200, result.data, result.message));
+        .json(new apiResponse(200, responseData, result.message));
     } else {
       return res.status(400).json(new apiResponse(400, null, result.message));
     }
@@ -265,20 +292,6 @@ export const deleteSales = asyncHandler(
         .json(new apiResponse(200, result.data, result.message));
     } else {
       return res.status(404).json(new apiResponse(404, null, result.message));
-    }
-  }
-);
-
-export const getNextInvoiceNumber = asyncHandler(
-  async (req: Request, res: Response): Promise<any> => {
-    const result = await getNextInvoiceNumberService();
-
-    if (result.success) {
-      return res
-        .status(200)
-        .json(new apiResponse(200, result.data, result.message));
-    } else {
-      return res.status(400).json(new apiResponse(400, null, result.message));
     }
   }
 );

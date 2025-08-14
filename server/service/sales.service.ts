@@ -14,17 +14,14 @@ interface ServiceResponse<T> {
   message: string;
 }
 
-const generateInvoiceNumber = (salesId: number): string => {
-  return `INV ${salesId.toString().padStart(3, "0")}`;
-};
-
 export const createSalesService = async (
   salesData: any
 ): Promise<ServiceResponse<any>> => {
+  console.log("\n\n\n\nSales data received in service :");
+  console.log("\n\n\n\nSales now creating :", salesData);
   const sales = await Sales.create(salesData);
 
-  const invoiceNo = generateInvoiceNumber(sales.dataValues.id as number);
-  await sales.update({ invoiceNo });
+  console.log("\n\n\n\nSales after creation :", sales);
 
   const salesWithIncludes = await Sales.findByPk(sales.dataValues.id, {
     include: [
@@ -39,6 +36,8 @@ export const createSalesService = async (
       },
     ],
   });
+
+  console.log("\n\n\n\nSales with includes : ", salesWithIncludes);
 
   if (salesData.paymentMethodId && salesData.paymentStatus === "paid") {
     const isNonCredit = await isNonCreditPayment(salesData.paymentMethodId);
@@ -306,32 +305,4 @@ export const deleteSalesService = async (
     data: null,
     message: "Sales record deleted successfully",
   };
-};
-
-export const getNextInvoiceNumberService = async (): Promise<
-  ServiceResponse<any>
-> => {
-  try {
-    const lastSales = await Sales.findOne({
-      order: [["id", "DESC"]],
-      attributes: ["id"],
-    });
-
-    const nextId = lastSales ? (lastSales as any).id + 1 : 1;
-    const nextInvoiceNumber = generateInvoiceNumber(nextId);
-
-    return {
-      success: true,
-      data: {
-        nextId,
-        invoiceNumber: nextInvoiceNumber,
-      },
-      message: "Next invoice number retrieved successfully",
-    };
-  } catch (error) {
-    return {
-      success: false,
-      message: "Error retrieving next invoice number",
-    };
-  }
 };
