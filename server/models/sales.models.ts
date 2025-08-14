@@ -17,7 +17,7 @@ Sales.init(
     tableId: {
       type: DataTypes.INTEGER,
       references: {
-        model: Table,
+        model: "tables",
         key: "id",
       },
     },
@@ -36,7 +36,7 @@ Sales.init(
     paymentMethodId: {
       type: DataTypes.INTEGER,
       references: {
-        model: PaymentMethod,
+        model: "payment_methods",
         key: "id",
       },
     },
@@ -52,21 +52,22 @@ Sales.init(
     partyId: {
       type: DataTypes.INTEGER,
       references: {
-        model: Party,
+        model: "parties",
         key: "id",
       },
+      defaultValue: 1,
     },
     createdBy: {
       type: DataTypes.INTEGER,
       references: {
-        model: User,
+        model: "users",
         key: "id",
       },
     },
     signedBy: {
       type: DataTypes.INTEGER,
       references: {
-        model: User,
+        model: "users",
         key: "id",
       },
     },
@@ -87,9 +88,9 @@ Sales.init(
   }
 );
 
-Sales.belongsTo(User, { foreignKey: "createdBy" });
-Sales.belongsTo(Table, { foreignKey: "tableId" });
-Sales.belongsTo(PaymentMethod, { foreignKey: "paymentMethodId" });
-Sales.belongsTo(Party, { foreignKey: "partyId" });
+Sales.belongsTo(User, { foreignKey: "createdBy", as: "User" });
+Sales.belongsTo(Table, { foreignKey: "tableId", as: "Table" });
+Sales.belongsTo(PaymentMethod, { foreignKey: "paymentMethodId", as: "PaymentMethod" });
+Sales.belongsTo(Party, { foreignKey: "partyId", as: "Party" });
 
 export default Sales;

@@ -18,7 +18,7 @@ SalesItem.init(
     itemId: {
       type: DataTypes.INTEGER,
       references: {
-        model: MenuItem,
+        model: "menu_items",
         key: "id",
       },
       allowNull: false,
@@ -55,6 +55,6 @@ SalesItem.init(
   }
 );
 
-SalesItem.belongsTo(MenuItem, { foreignKey: "itemId" });
+SalesItem.belongsTo(MenuItem, { foreignKey: "itemId", as: "MenuItem" });
 
 export default SalesItem;

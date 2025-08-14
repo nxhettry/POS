@@ -18,6 +18,11 @@ export const createSalesService = async (
   salesData: any
 ): Promise<ServiceResponse<any>> => {
   console.log("\n\n\n\nSales data received in service :");
+
+  if (!salesData.partyId) {
+    salesData.partyId = 1;
+  }
+
   console.log("\n\n\n\nSales now creating :", salesData);
   const sales = await Sales.create(salesData);
 
