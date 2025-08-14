@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'settings_list_item.dart';
 import 'restaurant_info_screen.dart';
 import 'sales_bill_screen.dart';
-import 'tax_screen.dart';
+import 'payment_screen.dart';
 import 'system_screen.dart';
 import "./setup_screen.dart";
 
-enum SettingsSection { restaurantInfo, salesBill, tax, system, setup }
+enum SettingsSection { restaurantInfo, salesBill, payment, system, setup }
 
 class SettingsMenuItem {
   final SettingsSection section;
@@ -42,9 +42,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       icon: Icons.receipt_long,
     ),
     SettingsMenuItem(
-      section: SettingsSection.tax,
-      title: 'Tax',
-      icon: Icons.percent,
+      section: SettingsSection.payment,
+      title: 'Payment',
+      icon: Icons.payment,
     ),
     SettingsMenuItem(
       section: SettingsSection.system,
@@ -62,7 +62,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // Left Sidebar
         Container(
           width: 350,
           decoration: BoxDecoration(
@@ -85,7 +84,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           child: Column(
             children: [
-              // Header
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -143,7 +141,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
 
-              // Menu Items
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -169,7 +166,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
 
-        // Right Content Area
         Expanded(
           child: Container(
             color: Colors.grey[50],
@@ -186,8 +182,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return const RestaurantInfoScreen();
       case SettingsSection.salesBill:
         return const SalesBillScreen();
-      case SettingsSection.tax:
-        return const TaxScreen();
+      case SettingsSection.payment:
+        return const PaymentScreen();
       case SettingsSection.system:
         return const SystemScreen();
       case SettingsSection.setup:

@@ -23,10 +23,10 @@ export const createSalesService = async (
 ): Promise<ServiceResponse<any>> => {
   const sales = await Sales.create(salesData);
 
-  const invoiceNo = generateInvoiceNumber((sales as any).id);
+  const invoiceNo = generateInvoiceNumber(sales.dataValues.id as number);
   await sales.update({ invoiceNo });
 
-  const salesWithIncludes = await Sales.findByPk((sales as any).id, {
+  const salesWithIncludes = await Sales.findByPk(sales.dataValues.id, {
     include: [
       { model: Table, as: "Table" },
       { model: PaymentMethod, as: "PaymentMethod" },
@@ -45,7 +45,7 @@ export const createSalesService = async (
     if (isNonCredit) {
       try {
         await addSaleTransactionService(
-          (sales as any).id,
+          sales.dataValues.id,
           salesData.total || 0,
           salesData.paymentMethodId,
           undefined,

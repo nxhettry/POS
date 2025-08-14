@@ -512,6 +512,36 @@ class ApiDataService {
     return [];
   }
 
+  Future<PaymentMethod> createPaymentMethod(String name) async {
+    final response = await _apiService.post(Endpoints.paymentMethods, {
+      'name': name,
+      'isActive': true,
+    }, requiresAuth: true);
+    final data = response['data'] ?? response;
+    return PaymentMethod.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<PaymentMethod> updatePaymentMethod(
+    int id,
+    String name,
+    bool isActive,
+  ) async {
+    final response = await _apiService.put(
+      '${Endpoints.paymentMethodById}/$id',
+      {'name': name, 'isActive': isActive},
+      requiresAuth: true,
+    );
+    final data = response['data'] ?? response;
+    return PaymentMethod.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<void> deletePaymentMethod(int id) async {
+    await _apiService.delete(
+      '${Endpoints.paymentMethodById}/$id',
+      requiresAuth: true,
+    );
+  }
+
   Future<List<Expense>> getExpenses() async {
     try {
       final response = await _apiService.get(Endpoints.expenses);
@@ -952,7 +982,6 @@ class ApiDataService {
     );
   }
 
-  // New method to update cart with items using the required format
   Future<Map<String, dynamic>> updateCartWithItems(
     int? cartId,
     int tableId,
@@ -961,13 +990,17 @@ class ApiDataService {
     final requestData = {
       'cartId': cartId,
       'tableId': tableId,
-      'items': items.map((item) => {
-        'itemId': item['itemId'],
-        'quantity': item['quantity'],
-        'rate': item['rate'],
-        'totalPrice': item['totalPrice'],
-        if (item['notes'] != null) 'notes': item['notes'],
-      }).toList(),
+      'items': items
+          .map(
+            (item) => {
+              'itemId': item['itemId'],
+              'quantity': item['quantity'],
+              'rate': item['rate'],
+              'totalPrice': item['totalPrice'],
+              if (item['notes'] != null) 'notes': item['notes'],
+            },
+          )
+          .toList(),
     };
 
     final response = await _apiService.put(

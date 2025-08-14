@@ -178,16 +178,15 @@ class CartItem {
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{
-      'item': item, 
-      'quantity': quantity, 
+      'item': item,
+      'quantity': quantity,
       'totalPrice': totalPrice,
     };
-    
-    // Add notes if they exist
+
     if (notes != null && notes!.isNotEmpty) {
       json['notes'] = notes!;
     }
-    
+
     return json;
   }
 }
@@ -195,15 +194,10 @@ class CartItem {
 class PaymentMethod {
   final int? id;
   final String name;
-  final String type;
+  final String? type;
   final bool isActive;
 
-  PaymentMethod({
-    this.id,
-    required this.name,
-    required this.type,
-    this.isActive = true,
-  });
+  PaymentMethod({this.id, required this.name, this.type, this.isActive = true});
 
   Map<String, dynamic> toJson() {
     return {'id': id, 'name': name, 'type': type, 'isActive': isActive};
@@ -213,7 +207,7 @@ class PaymentMethod {
     return PaymentMethod(
       id: json['id'],
       name: json['name'] ?? '',
-      type: json['type'] ?? 'cash',
+      type: json['type'],
       isActive: _parseBoolFromDynamic(json['isActive'] ?? json['is_active']),
     );
   }
@@ -917,7 +911,6 @@ class ExpensesCategory {
   }
 }
 
-// Daybook Models
 class DaybookSummary {
   final String? date;
   final DaybookBalance openingBalance;
@@ -966,10 +959,7 @@ class DaybookBalance {
   final double cash;
   final double online;
 
-  DaybookBalance({
-    required this.cash,
-    required this.online,
-  });
+  DaybookBalance({required this.cash, required this.online});
 
   factory DaybookBalance.fromJson(Map<String, dynamic> json) {
     return DaybookBalance(
@@ -979,10 +969,7 @@ class DaybookBalance {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'cash': cash,
-      'online': online,
-    };
+    return {'cash': cash, 'online': online};
   }
 
   double get total => cash + online;
@@ -993,11 +980,7 @@ class DaybookSales {
   final double online;
   final int? count;
 
-  DaybookSales({
-    required this.cash,
-    required this.online,
-    this.count,
-  });
+  DaybookSales({required this.cash, required this.online, this.count});
 
   factory DaybookSales.fromJson(Map<String, dynamic> json) {
     return DaybookSales(
@@ -1008,11 +991,7 @@ class DaybookSales {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'cash': cash,
-      'online': online,
-      'count': count,
-    };
+    return {'cash': cash, 'online': online, 'count': count};
   }
 
   double get total => cash + online;
@@ -1023,11 +1002,7 @@ class DaybookExpenses {
   final double online;
   final int? count;
 
-  DaybookExpenses({
-    required this.cash,
-    required this.online,
-    this.count,
-  });
+  DaybookExpenses({required this.cash, required this.online, this.count});
 
   factory DaybookExpenses.fromJson(Map<String, dynamic> json) {
     return DaybookExpenses(
@@ -1038,11 +1013,7 @@ class DaybookExpenses {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'cash': cash,
-      'online': online,
-      'count': count,
-    };
+    return {'cash': cash, 'online': online, 'count': count};
   }
 
   double get total => cash + online;
@@ -1051,8 +1022,8 @@ class DaybookExpenses {
 class DaybookTransaction {
   final int? id;
   final int daybookId;
-  final String transactionType; // sale, expense, opening_balance, closing_balance
-  final String paymentMode; // cash, online
+  final String transactionType;
+  final String paymentMode;
   final int? referenceId;
   final double amount;
   final String? description;

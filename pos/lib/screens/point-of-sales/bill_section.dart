@@ -140,15 +140,8 @@ class _BillSectionState extends State<BillSection> {
   }
 
   void _onCartChanged() {
-    developer.log(
-      'Cart changed! Items count: ${cartManager.cartItems.length}',
-      name: 'BillSection',
-    );
-    // Force a rebuild of the widget to reflect cart changes
     if (mounted) {
-      setState(() {
-        // Empty setState to trigger rebuild
-      });
+      setState(() {});
     }
   }
 
@@ -238,6 +231,7 @@ class _BillSectionState extends State<BillSection> {
 
       final sale = models.Sales.fromMap(salesData);
       developer.log('Sales object created: ${sale.invoiceNo}', name: 'POS');
+      developer.log('Sale Data : ${salesData.toString()}');
 
       final savedSale = await _dataRepository.createSale(sale);
       developer.log(
@@ -268,7 +262,7 @@ class _BillSectionState extends State<BillSection> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Order placed successfully!'),
+        content: Text('Sales Created successfully!'),
         backgroundColor: Colors.green,
         duration: const Duration(seconds: 3),
       ),
@@ -533,7 +527,9 @@ class _BillSectionState extends State<BillSection> {
                           itemBuilder: (context, index) {
                             final cartItem = cartManager.cartItems[index];
                             return Padding(
-                              key: ValueKey('cart_item_${cartItem.item['id']}_${cartItem.quantity}_${cartItem.item['rate']}_$index'),
+                              key: ValueKey(
+                                'cart_item_${cartItem.item['id']}_${cartItem.quantity}_${cartItem.item['rate']}_$index',
+                              ),
                               padding: EdgeInsets.symmetric(
                                 vertical: ResponsiveUtils.getSpacing(
                                   context,
@@ -1041,7 +1037,9 @@ class _BillSectionState extends State<BillSection> {
                     elevation: 2,
                   ),
                   child: Text(
-                    cartManager.isEmpty ? "Add Items to Cart" : "Place Order",
+                    cartManager.isEmpty
+                        ? "Add Items to Cart"
+                        : "Create Invoice",
                     style: TextStyle(
                       fontSize: ResponsiveUtils.getFontSize(context, 14),
                       color: Colors.white,

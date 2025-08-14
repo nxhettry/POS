@@ -16,7 +16,7 @@ Sales.init(
     },
     invoiceNo: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
       unique: true,
     },
     tableId: {

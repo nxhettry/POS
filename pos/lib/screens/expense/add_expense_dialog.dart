@@ -39,14 +39,13 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
   bool _isLoading = false;
   bool _isSaving = false;
 
-  // Check if the selected payment method is credit
   bool get _isCreditPayment {
     if (_selectedPaymentMethodId == null) return false;
     final paymentMethod = _paymentMethods.firstWhere(
       (method) => method.id == _selectedPaymentMethodId,
       orElse: () => PaymentMethod(name: '', type: 'cash'),
     );
-    return paymentMethod.type.toLowerCase() == 'credit';
+    return paymentMethod.type?.toLowerCase() == 'credit';
   }
 
   @override
@@ -55,7 +54,6 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
     _loadData();
 
     if (widget.expense != null) {
-      // Editing existing expense
       _titleController.text = widget.expense!.title;
       _descriptionController.text = widget.expense!.description ?? '';
       _amountController.text = widget.expense!.amount.toString();
@@ -66,7 +64,6 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
       _selectedPaymentMethodId = widget.expense!.paymentMethodId;
       _selectedPartyId = widget.expense!.partyId;
     } else {
-      // New expense - always set date to today and don't allow changes
       _selectedDate = DateTime.now();
       _dateController.text = DateFormat('yyyy-MM-dd').format(_selectedDate);
     }
@@ -88,7 +85,6 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
         _parties = parties;
 
         if (widget.expense == null) {
-          // Set defaults for new expense
           if (categories.isNotEmpty) {
             _selectedCategoryId = categories.first.id;
           }
@@ -139,12 +135,11 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
       context: context,
       builder: (context) => AddCategoryDialog(
         onCategoryAdded: () async {
-          // Reload categories after adding new one
           try {
             final categories = await _dataRepository.fetchExpenseCategories();
             setState(() {
               _categories = categories;
-              // Select the newly added category (last one)
+
               if (categories.isNotEmpty) {
                 _selectedCategoryId = categories.last.id;
               }
@@ -179,7 +174,6 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
       return;
     }
 
-    // Additional validation for credit payments
     if (_isCreditPayment && _selectedPartyId == null) {
       print('Credit payment validation failed - no party selected');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -202,7 +196,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
     try {
       if (widget.expense != null) {
         print('Updating existing expense with ID: ${widget.expense!.id}');
-        // Update existing expense
+
         final updateData = {
           'title': _titleController.text.trim(),
           'description': _descriptionController.text.trim().isEmpty
@@ -235,11 +229,10 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
           'receipt': _receiptController.text.trim().isEmpty
               ? null
               : _receiptController.text.trim(),
-          'createdBy': 1, // TODO: Replace with actual current user ID
+          'createdBy': 1,
         };
         print('New expense data: $expenseData');
 
-        // Create new expense - for now, using createdBy = 1 (should be current user ID)
         final createdExpense = await _dataRepository.createExpense(
           title: _titleController.text.trim(),
           description: _descriptionController.text.trim().isEmpty
@@ -253,7 +246,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
           receipt: _receiptController.text.trim().isEmpty
               ? null
               : _receiptController.text.trim(),
-          createdBy: 1, // TODO: Replace with actual current user ID
+          createdBy: 1,
         );
         print('Expense created successfully: $createdExpense');
       }
@@ -413,7 +406,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                                     onChanged: (int? newValue) {
                                       setState(() {
                                         _selectedPaymentMethodId = newValue;
-                                        // Reset party selection when payment method changes
+
                                         if (!_isCreditPayment) {
                                           _selectedPartyId = null;
                                         }
@@ -583,9 +576,7 @@ class _AddExpenseDialogState extends State<AddExpenseDialog> {
                                     : null,
                               ),
                               readOnly: true,
-                              enabled:
-                                  widget.expense !=
-                                  null, // Only enable for editing existing expenses
+                              enabled: widget.expense != null,
                               onTap: widget.expense != null
                                   ? _selectDate
                                   : null,

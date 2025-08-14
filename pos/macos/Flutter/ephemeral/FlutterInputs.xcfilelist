@@ -1618,13 +1618,13 @@
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/point-of-sales/point_of_sales_screen.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/point-of-sales/tables_view.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/reports/reports_screen.dart
+/Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/settings/payment_screen.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/settings/restaurant_info_screen.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/settings/sales_bill_screen.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/settings/settings_list_item.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/settings/settings_screen.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/settings/setup_screen.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/settings/system_screen.dart
-/Users/nishangautam/Downloads/Work/RatoPos/pos/lib/screens/settings/tax_screen.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/services/api_data_service.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/services/data_repository.dart
 /Users/nishangautam/Downloads/Work/RatoPos/pos/lib/services/database_helper.dart

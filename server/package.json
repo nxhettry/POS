@@ -9,7 +9,10 @@
     "dev:secure": "tsc-watch --onSuccess \"nodemon dist/secure-server.js\"",
     "build": "tsc",
     "start": "node dist/src/server.js",
-    "start:secure": "node dist/secure-server.js"
+    "start:secure": "node dist/secure-server.js",
+    "migrate": "tsc && node dist/utils/migrate.js",
+    "migrate:run": "tsc && node dist/utils/migrate.js run",
+    "migrate:run-all": "tsc && node dist/utils/migrate.js run-all"
   },
   "keywords": [],
   "author": "",
