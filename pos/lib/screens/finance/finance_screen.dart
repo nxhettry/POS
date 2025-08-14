@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import '../../utils/responsive.dart';
 import 'finance_list_item.dart';
 import 'daybook_screen.dart';
+import 'parties_screen.dart';
 
-enum FinanceSection { daybookRecord, cashFlow, reports }
+enum FinanceSection { daybookRecord, parties, reports }
 
 class FinanceMenuItem {
   final FinanceSection section;
@@ -25,7 +26,7 @@ class FinanceScreen extends StatefulWidget {
 }
 
 class _FinanceScreenState extends State<FinanceScreen> {
-  FinanceSection _selectedSection = FinanceSection.daybookRecord;
+  FinanceSection _selectedSection = FinanceSection.parties;
 
   final List<FinanceMenuItem> _menuItems = [
     FinanceMenuItem(
@@ -34,9 +35,9 @@ class _FinanceScreenState extends State<FinanceScreen> {
       icon: Icons.book,
     ),
     FinanceMenuItem(
-      section: FinanceSection.cashFlow,
-      title: 'Cash Flow',
-      icon: Icons.trending_up,
+      section: FinanceSection.parties,
+      title: 'Parties',
+      icon: Icons.people,
     ),
     FinanceMenuItem(
       section: FinanceSection.reports,
@@ -49,8 +50,8 @@ class _FinanceScreenState extends State<FinanceScreen> {
     switch (_selectedSection) {
       case FinanceSection.daybookRecord:
         return const DaybookScreen();
-      case FinanceSection.cashFlow:
-        return _buildPlaceholderScreen('Cash Flow', 'Cash flow analysis coming soon');
+      case FinanceSection.parties:
+        return const PartiesScreen();
       case FinanceSection.reports:
         return _buildPlaceholderScreen('Financial Reports', 'Financial reports coming soon');
     }

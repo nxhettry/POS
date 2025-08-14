@@ -855,7 +855,7 @@ class ApiDataService {
     try {
       final response = await _apiService.get(Endpoints.nextInvoiceNumber);
 
-      if (response['success'] == true && response['data'] != null) {
+      if (response['status'] == true && response['data'] != null) {
         return response['data']['invoiceNumber'] ?? 'INV 001';
       } else {
         final sales = await getSales();

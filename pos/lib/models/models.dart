@@ -217,17 +217,25 @@ class Party {
   final int? id;
   final String name;
   final String type;
-  final String? phone;
+  final String address;
+  final String phone;
   final String? email;
-  final String? address;
+  final double balance;
+  final bool isActive;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   Party({
     this.id,
     required this.name,
     required this.type,
-    this.phone,
+    required this.address,
+    required this.phone,
     this.email,
-    this.address,
+    this.balance = 0.0,
+    this.isActive = true,
+    this.createdAt,
+    this.updatedAt,
   });
 
   Map<String, dynamic> toJson() {
@@ -235,9 +243,13 @@ class Party {
       'id': id,
       'name': name,
       'type': type,
+      'address': address,
       'phone': phone,
       'email': email,
-      'address': address,
+      'balance': balance,
+      'isActive': isActive,
+      'createdAt': createdAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
     };
   }
 
@@ -246,9 +258,43 @@ class Party {
       id: json['id'],
       name: json['name'] ?? '',
       type: json['type'] ?? 'customer',
-      phone: json['phone'],
+      address: json['address'] ?? '',
+      phone: json['phone'] ?? '',
       email: json['email'],
-      address: json['address'],
+      balance: (json['balance'] ?? 0).toDouble(),
+      isActive: _parseBoolFromDynamic(json['isActive'] ?? true),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : null,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+    );
+  }
+
+  Party copyWith({
+    int? id,
+    String? name,
+    String? type,
+    String? address,
+    String? phone,
+    String? email,
+    double? balance,
+    bool? isActive,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return Party(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      type: type ?? this.type,
+      address: address ?? this.address,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      balance: balance ?? this.balance,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }
